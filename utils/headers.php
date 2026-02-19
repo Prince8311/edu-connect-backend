@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/env.php';
+loadEnv(__DIR__ . '/../.env');
 ini_set('session.cookie_samesite', 'None');
 ini_set('session.cookie_secure', 'true');
 session_set_cookie_params([
