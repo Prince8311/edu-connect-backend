@@ -2,9 +2,6 @@
 
 require "../../utils/headers.php";
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
 if ($requestMethod === 'POST') {
     require "../../_db-connect.php";
     global $conn;
