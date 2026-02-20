@@ -36,27 +36,37 @@ if ($requestMethod === 'POST') {
             $userEmail = $data['email'];
             $userType = $data['user_type'];
 
-            if ($userType == "super_admin" && $userType == "employee") {
-                $otp = rand(100000, 999999);
-                $otpPart1 = substr($otp, 0, 3);
-                $otpPart2 = substr($otp, 3, 3);
-                $mail = new PHPMailer(true);
+            if ($userType != "super_admin" && $userType != "employee") {
+                $data = [
+                    'status' => 400,
+                    'message' => 'Permission denied.',
+                    'userType' => $userType
+                ];
+                header("HTTP/1.0 400 Forbidden");
+                echo json_encode($data);
+                exit;
+            }
 
-                try {
-                    $mail->isSMTP();
-                    $mail->Host       = 'mail.ticketbay.in';
-                    $mail->SMTPAuth   = true;
-                    $mail->Username   = getenv('SMTP_MAIL');
-                    $mail->Password   = getenv('SMTP_PASSWORD');
-                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-                    $mail->Port       = getenv('SMTP_PORT');
-                    $mail->CharSet = 'UTF-8';
+            $otp = rand(100000, 999999);
+            $otpPart1 = substr($otp, 0, 3);
+            $otpPart2 = substr($otp, 3, 3);
+            $mail = new PHPMailer(true);
 
-                    $mail->isHTML(true);
-                    $mail->setFrom('noreply@ticketbay.in', 'noreply@ticketbay.in');
-                    $mail->addAddress("$userEmail", 'User');
-                    $mail->Subject = 'OTP for Authentication';
-                    $mail->Body    = '<!DOCTYPE html>
+            try {
+                $mail->isSMTP();
+                $mail->Host       = 'mail.ticketbay.in';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = getenv('SMTP_MAIL');
+                $mail->Password   = getenv('SMTP_PASSWORD');
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+                $mail->Port       = getenv('SMTP_PORT');
+                $mail->CharSet = 'UTF-8';
+
+                $mail->isHTML(true);
+                $mail->setFrom('noreply@ticketbay.in', 'noreply@ticketbay.in');
+                $mail->addAddress("$userEmail", 'User');
+                $mail->Subject = 'OTP for Authentication';
+                $mail->Body    = '<!DOCTYPE html>
                                 <html lang="en">
                                     <head>
                                         <meta charset="UTF-8">
@@ -84,40 +94,32 @@ if ($requestMethod === 'POST') {
                                         </div>
                                     </body>
                                 </html>';
-                    $mail->send();
-                    $updateSql = "UPDATE `admin_users` SET `mail_otp`='$otp', `auth_token`=NULL, `expires_at`=NULL WHERE `id` = '$userId'";
-                    $updateResult = mysqli_query($conn, $updateSql);
+                $mail->send();
+                $updateSql = "UPDATE `admin_users` SET `mail_otp`='$otp', `auth_token`=NULL, `expires_at`=NULL WHERE `id` = '$userId'";
+                $updateResult = mysqli_query($conn, $updateSql);
 
-                    if ($updateResult) {
-                        $_SESSION['userId'] = $userId;
-                        $data = [
-                            'status' => 200,
-                            'message' => 'OTP has been sent.'
-                        ];
-                        header("HTTP/1.0 200 OTP Sent");
-                        echo json_encode($data);
-                    } else {
-                        $data = [
-                            'status' => 500,
-                            'message' => 'Internal Server Error',
-                        ];
-                        header("HTTP/1.0 500 Internal Server Error");
-                        echo json_encode($data);
-                    }
-                } catch (Exception $e) {
+                if ($updateResult) {
+                    $_SESSION['userId'] = $userId;
+                    $data = [
+                        'status' => 200,
+                        'message' => 'OTP has been sent.'
+                    ];
+                    header("HTTP/1.0 200 OTP Sent");
+                    echo json_encode($data);
+                } else {
                     $data = [
                         'status' => 500,
-                        'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
+                        'message' => 'Internal Server Error',
                     ];
-                    header("HTTP/1.0 500 Message could not be sent");
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode($data);
                 }
-            } else {
+            } catch (Exception $e) {
                 $data = [
-                    'status' => 400,
-                    'message' => 'Permission denied.',
+                    'status' => 500,
+                    'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
                 ];
-                header("HTTP/1.0 400 Forbidden");
-                echo json_encode($data);
+                header("HTTP/1.0 500 Message could not be sent");
             }
         } else {
             $data = [
