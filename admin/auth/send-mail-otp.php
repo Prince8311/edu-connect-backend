@@ -30,8 +30,6 @@ if ($requestMethod === 'POST') {
             echo json_encode($data);
         }
 
-        $appEnv = getenv('APP_ENV');
-
         if (mysqli_num_rows($result) === 1) {
             $data = mysqli_fetch_assoc($result);
             $userId = $data['id'];
@@ -46,12 +44,12 @@ if ($requestMethod === 'POST') {
 
                 try {
                     $mail->isSMTP();
-                    $mail->Host       = getenv('SMTP_HOST');
+                    $mail->Host       = 'mail.ticketbay.in';
                     $mail->SMTPAuth   = true;
-                    $mail->Username   = getenv('SMTP_MAIL');
-                    $mail->Password   = getenv('SMTP_PASSWORD');
+                    $mail->Username   = 'noreply@ticketbay.in';
+                    $mail->Password   = 'abhay$ticketbay@2024';
                     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-                    $mail->Port       = getenv('SMTP_PORT');
+                    $mail->Port       = 465;
                     $mail->CharSet = 'UTF-8';
 
                     $mail->isHTML(true);
