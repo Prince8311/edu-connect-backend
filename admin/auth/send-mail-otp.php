@@ -6,10 +6,6 @@ if ($requestMethod === 'POST') {
     require "../../_db-connect.php";
     global $conn;
 
-    require "../../PHPMailer/Exception.php";
-    require "../../PHPMailer/PHPMailer.php";
-    require "../../PHPMailer/SMTP.php";
-
     $inputData = json_decode(file_get_contents("php://input"), true);
 
     if (!empty($inputData)) {
