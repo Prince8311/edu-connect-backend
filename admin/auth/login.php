@@ -79,7 +79,7 @@ if ($requestMethod === 'POST') {
                     $authToken = base64_encode($tokenData);
                     $expiresAt = date("Y-m-d H:i:s", time() + 86400);
 
-                    $updateUserSql = "UPDATE `admin_users` SET `auth_token`='$authToken', `expires_at`='$expiresAt' WHERE `id` = '$userId'";
+                    $updateUserSql = "UPDATE `admin_users` SET `mail_otp`=NULL, `auth_token`='$authToken', `expires_at`='$expiresAt' WHERE `id` = '$userId'";
                     $updateResult = mysqli_query($conn, $updateUserSql);
 
                     if ($updateResult) {
@@ -100,6 +100,8 @@ if ($requestMethod === 'POST') {
                             'message' => 'Authentication Successful.',
                             'authToken' => $authToken
                         ];
+                        header("HTTP/1.0 200 Ok");
+                        echo json_encode($data);
                     } else {
                         $data = [
                             'status' => 500,
@@ -142,7 +144,7 @@ if ($requestMethod === 'POST') {
                     $authToken = base64_encode($tokenData);
                     $expiresAt = date("Y-m-d H:i:s", time() + 86400);
 
-                    $updateUserSql = "UPDATE `admin_users` SET `auth_token`='$authToken', `expires_at`='$expiresAt' WHERE `id` = '$userId'";
+                    $updateUserSql = "UPDATE `admin_users` SET `mail_otp`=NULL, `auth_token`='$authToken', `expires_at`='$expiresAt' WHERE `id` = '$userId'";
                     $updateResult = mysqli_query($conn, $updateUserSql);
                     if ($updateResult) {
                         setcookie(
