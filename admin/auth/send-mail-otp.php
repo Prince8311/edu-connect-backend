@@ -20,6 +20,16 @@ if ($requestMethod === 'POST') {
 
         $sql = "SELECT * FROM `admin_users` WHERE `name`='$user' OR `email`='$user' OR `phone`='$user'";
         $result = mysqli_query($conn, $sql);
+
+        if (!$result) {
+            $data = [
+                'status' => 500,
+                'message' => 'Database error: ' . mysqli_error($conn)
+            ];
+            header("HTTP/1.0 500 Internal Server Error");
+            echo json_encode($data);
+        }
+
         $appEnv = getenv('APP_ENV');
 
         if (mysqli_num_rows($result) === 1) {
@@ -28,7 +38,7 @@ if ($requestMethod === 'POST') {
             $userEmail = $data['email'];
             $userType = $data['user_type'];
 
-            if ($userType == "super_admin" || $userType == "employee") {
+            if ($userType == "super_admin" && $userType == "employee") {
                 $otp = rand(100000, 999999);
                 $otpPart1 = substr($otp, 0, 3);
                 $otpPart2 = substr($otp, 3, 3);
