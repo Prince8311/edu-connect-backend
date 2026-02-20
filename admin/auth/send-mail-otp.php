@@ -95,7 +95,7 @@ if ($requestMethod === 'POST') {
                                     </body>
                                 </html>';
                 $mail->send();
-                $updateSql = "UPDATE `admin_users` SET `mail_otp`='$otp', `auth_token`=NULL, `expires_at`=NULL WHERE `id` = '$userId'";
+                $updateSql = "UPDATE `admin_users` SET `mail_otp`='$otp' WHERE `id` = '$userId'";
                 $updateResult = mysqli_query($conn, $updateSql);
 
                 if ($updateResult) {
