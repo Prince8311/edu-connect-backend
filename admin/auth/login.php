@@ -15,6 +15,15 @@ if ($requestMethod === 'POST') {
         $sql = "SELECT * FROM `admin_users` WHERE `name`='$user' OR `email`='$user' OR `phone`='$user'";
         $result = mysqli_query($conn, $sql);
 
+        if (!$result) {
+            $data = [
+                'status' => 500,
+                'message' => 'Database error: ' . mysqli_error($conn)
+            ];
+            header("HTTP/1.0 500 Internal Server Error");
+            echo json_encode($data);
+        }
+
         if (mysqli_num_rows($result) === 1) {
             $data = mysqli_fetch_assoc($result);
             $userId = $data['id'];
