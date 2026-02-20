@@ -31,7 +31,7 @@ if ($requestMethod === 'POST') {
             $userEmail = $data['email'];
             $userType = $data['user_type'];
             $userRole = $data['user_role'];
-            if ($userType != "super_admin" || $userType != "employee") {
+            if ($userType != "super_admin" && $userType != "employee") {
                 $data = [
                     'status' => 400,
                     'message' => 'Authentication denied.',
