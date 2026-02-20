@@ -162,6 +162,8 @@ if ($requestMethod === 'POST') {
                             'message' => 'Authentication Successful.',
                             'authToken' => $authToken
                         ];
+                        header("HTTP/1.0 200 Ok");
+                        echo json_encode($data);
                     } else {
                         $data = [
                             'status' => 500,
