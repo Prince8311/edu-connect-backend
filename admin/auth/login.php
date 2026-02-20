@@ -35,6 +35,7 @@ if ($requestMethod === 'POST') {
                 $data = [
                     'status' => 400,
                     'message' => 'Authentication denied.',
+                    'userType' => $userType
                 ];
                 header("HTTP/1.0 400 Forbidden");
                 echo json_encode($data);
