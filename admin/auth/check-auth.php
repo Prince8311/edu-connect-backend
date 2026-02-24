@@ -22,7 +22,7 @@ if ($requestMethod === 'GET') {
     $authToken = $authResult['token'];
 
     // Fetch user
-    $sql = "SELECT `name`, `image`, `email`, `phone`, `status`, `user_type`, `user_role` FROM `admin_users` WHERE `auth_token` = '$authToken'";
+    $sql = "SELECT * FROM `admin_users` WHERE `auth_token` = '$authToken'";
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) > 0) {

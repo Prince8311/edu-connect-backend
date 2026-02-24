@@ -17,7 +17,6 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require "../../../_db-connect.php";
     global $conn;
-    $authToken = $authResult['token'];
 
     $inputData = json_decode(file_get_contents("php://input"), true);
 
@@ -31,41 +30,21 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $instSql = "SELECT * FROM `registered_institutions` WHERE";
-
+    $institutionName = mysqli_real_escape_string($conn, $inputData['institutionName']);
     $section = mysqli_real_escape_string($conn, $inputData['section']);
-    $sectionType = mysqli_real_escape_string($conn, $inputData['sectionType']);
+    $fieldName = mysqli_real_escape_string($conn, $inputData['fieldName']);
 
-    $checkSql = "SELECT * FROM `student_form_fields` WHERE `inst_name`='$institutionName' AND `form_section`='$section'";
+    $checkSql = "SELECT * FROM `student_form_fields` WHERE `inst_name`='$institutionName' AND `form_section`='$section' AND `form_field`='$fieldName'";
     $checkResult = mysqli_query($conn, $checkSql);
 
     if ($checkResult && mysqli_num_rows($checkResult) === 1) {
         $data = [
             'status' => 400,
-            'message' => 'This section already created.'
+            'message' => 'This field already created.'
         ];
         header("HTTP/1.0 400 Already exists");
         echo json_encode($data);
         exit;
-    }
-
-    $insertSql = "INSERT INTO `student_form_fields`(`inst_name`, `form_section`, `section_type`) VALUES ('[$institutionName','$section','$sectionType')";
-    $insertResult = mysqli_query($conn, $insertSql);
-
-    if ($insertResult) {
-        $data = [
-            'status' => 200,
-            'message' => 'Section created successfully.'
-        ];
-        header("HTTP/1.0 200 OK");
-        echo json_encode($data);
-    } else {
-        $data = [
-            'status' => 500,
-            'message' => 'Database error: ' . mysqli_error($conn)
-        ];
-        header("HTTP/1.0 500 Internal Server Error");
-        echo json_encode($data);
     }
 } else {
     $data = [

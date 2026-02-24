@@ -41,7 +41,7 @@ if ($requestMethod === 'POST') {
     $phone = mysqli_real_escape_string($conn, $inputData['phone']);
     $email = mysqli_real_escape_string($conn, $inputData['email']);
 
-    $nameCheckSql = "SELECT * FROM `registered_institutions` WHERE `inst_name`='$institutionName'";
+    $nameCheckSql = "SELECT * FROM `institutions` WHERE `inst_name`='$institutionName'";
     $nameCheckResult = mysqli_query($conn, $nameCheckSql);
     if ($nameCheckResult && mysqli_num_rows($nameCheckResult) === 1) {
         $data = [
@@ -53,7 +53,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $phoneCheckSql = "SELECT * FROM `registered_institutions` WHERE `phone`='$phone'";
+    $phoneCheckSql = "SELECT * FROM `institutions` WHERE `phone`='$phone'";
     $phoneCheckResult = mysqli_query($conn, $phoneCheckSql);
     if ($phoneCheckResult && mysqli_num_rows($phoneCheckResult) === 1) {
         $data = [
@@ -65,7 +65,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $emailCheckSql = "SELECT * FROM `registered_institutions` WHERE `email`='$email'";
+    $emailCheckSql = "SELECT * FROM `institutions` WHERE `email`='$email'";
     $emailCheckResult = mysqli_query($conn, $emailCheckSql);
     if ($emailCheckResult && mysqli_num_rows($emailCheckResult) === 1) {
         $data = [
@@ -96,11 +96,12 @@ if ($requestMethod === 'POST') {
     $hashPass = password_hash($password, PASSWORD_DEFAULT);
     $userRole = "Institution Admin";
 
-    $insertSql = "INSERT INTO `registered_institutions`(`inst_id`, `inst_name`, `phone`, `email`, `status`, `location`) VALUES ('$institutionId','$institutionName','$phone','$email','$status','$location')";
-    $insertResult = mysqli_query($conn, $insertSql);
-
     $adminAddSql = "INSERT INTO `admin_users`(`name`, `email`, `phone`, `password`, `status`, `user_role`) VALUES ('$institutionName','$email','$phone','$hashPass','$status','$userRole')";
     $adminAddResult = mysqli_query($conn, $adminAddSql);
+    $adminId = mysqli_insert_id($conn);
+
+    $insertSql = "INSERT INTO `institutions`(`inst_id`, `admin_id`, `inst_name`, `phone`, `email`, `status`, `location`) VALUES ('$institutionId','$adminId','$institutionName','$phone','$email','$status','$location')";
+    $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult && $adminAddResult) {
         $mail = new PHPMailer(true);
@@ -137,12 +138,12 @@ if ($requestMethod === 'POST') {
                                                         </div>
                                                         <div style="position: relative; margin-top: 2px;">
                                                             <p style="position: relative;">
-                                                                <span style="position: relative; font-family: sans-serif; color: #444; font-size: 15px; line-height: 1.4;">Your institution has been registered <b>' . $institutionName . '</b>. You can signin now as the admin of the institution in <a href="superadmin.ticketbay.in" style="color: #FC6736;" >superadmin.ticketbay.in</a> with the credentials:</span>
+                                                                <span style="position: relative; font-family: sans-serif; color: #444; font-size: 15px; line-height: 1.4;">Your institution <b>' . $institutionName . '</b>, has been registered successfully. You can signin now as the admin of the institution in <a href="superadmin.ticketbay.in" style="color: #FC6736;" >superadmin.ticketbay.in</a> with the credentials:</span>
                                                             </p>
                                                         </div>
                                                         <div style="position: relative; margin-top: 6px;">
                                                             <p style="position: relative;">
-                                                                <span style="position: relative; font-family: sans-serif; color: #444; font-size: 15px; line-height: 1.4;">User ID: <b>' . $email . ' /</b> <b>' . $phone . ' /</b></span>
+                                                                <span style="position: relative; font-family: sans-serif; color: #444; font-size: 15px; line-height: 1.4;">User ID: <b>' . $email . ' /</b> <b>' . $phone . '</b></span>
                                                             </p>
                                                             <p style="position: relative;">
                                                                 <span style="position: relative; font-family: sans-serif; color: #444; font-size: 15px; line-height: 1.4;">Password: <b>' . $password . '</b></span>
