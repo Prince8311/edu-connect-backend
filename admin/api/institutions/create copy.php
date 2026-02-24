@@ -41,7 +41,7 @@ if ($requestMethod === 'POST') {
     $phone = mysqli_real_escape_string($conn, $inputData['phone']);
     $email = mysqli_real_escape_string($conn, $inputData['email']);
 
-    $nameCheckSql = "SELECT * FROM `registered_institutions` WHERE `inst_name`='$institutionName'`";
+    $nameCheckSql = "SELECT * FROM `registered_institutions` WHERE `inst_name`='$institutionName'";
     $nameCheckResult = mysqli_query($conn, $nameCheckSql);
     if ($nameCheckResult && mysqli_num_rows($nameCheckResult) === 1) {
         $data = [
@@ -53,7 +53,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $phoneCheckSql = "SELECT * FROM `registered_institutions` WHERE `phone`='$phone'`";
+    $phoneCheckSql = "SELECT * FROM `registered_institutions` WHERE `phone`='$phone'";
     $phoneCheckResult = mysqli_query($conn, $phoneCheckSql);
     if ($phoneCheckResult && mysqli_num_rows($phoneCheckResult) === 1) {
         $data = [
@@ -65,7 +65,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $emailCheckSql = "SELECT * FROM `registered_institutions` WHERE `email`='$email'`";
+    $emailCheckSql = "SELECT * FROM `registered_institutions` WHERE `email`='$email'";
     $emailCheckResult = mysqli_query($conn, $emailCheckSql);
     if ($emailCheckResult && mysqli_num_rows($emailCheckResult) === 1) {
         $data = [
