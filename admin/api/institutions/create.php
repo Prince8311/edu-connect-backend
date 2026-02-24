@@ -109,10 +109,10 @@ if ($requestMethod === 'POST') {
             $mail->isSMTP();
             $mail->Host       = 'mail.ticketbay.in';
             $mail->SMTPAuth   = true;
-            $mail->Username   = getenv('SMTP_MAIL');
-            $mail->Password   = getenv('SMTP_PASSWORD');
+            $mail->Username   = 'noreply@ticketbay.in';
+            $mail->Password   = 'abhay$ticketbay@2024';
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            $mail->Port       = getenv('SMTP_PORT');
+            $mail->Port       = 465;
             $mail->CharSet = 'UTF-8';
 
             $mail->isHTML(true);
