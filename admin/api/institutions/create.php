@@ -41,18 +41,6 @@ if ($requestMethod === 'POST') {
     $phone = mysqli_real_escape_string($conn, $inputData['phone']);
     $email = mysqli_real_escape_string($conn, $inputData['email']);
 
-    $nameCheckSql = "SELECT * FROM `registered_institutions` WHERE `inst_name`='$institutionName'`";
-    $nameCheckResult = mysqli_query($conn, $nameCheckSql);
-    if ($nameCheckResult && mysqli_num_rows($nameCheckResult) === 1) {
-        $data = [
-            'status' => 400,
-            'message' => 'Institution already registered.'
-        ];
-        header("HTTP/1.0 400 Already exists");
-        echo json_encode($data);
-        exit;
-    }
-
     $data = [
         'status' => 200,
         'message' => 'Institution added successfully.'
