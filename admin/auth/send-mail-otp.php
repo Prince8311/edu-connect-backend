@@ -121,6 +121,7 @@ if ($requestMethod === 'POST') {
                     'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
                 ];
                 header("HTTP/1.0 500 Message could not be sent");
+                echo json_encode($data);
             }
         } else {
             $data = [
