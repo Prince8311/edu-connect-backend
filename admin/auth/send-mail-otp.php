@@ -36,7 +36,7 @@ if ($requestMethod === 'POST') {
             $userEmail = $data['email'];
             $userType = $data['user_type'];
 
-            if ($userType != "super_admin" && $userType != "employee") {
+            if ($userType != "super_admin" && $userType != "inst_admin") {
                 $data = [
                     'status' => 400,
                     'message' => 'Permission denied.',
