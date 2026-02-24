@@ -53,42 +53,6 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $phoneCheckSql = "SELECT * FROM `registered_institutions` WHERE `phone`='$phone'`";
-    $phoneCheckResult = mysqli_query($conn, $phoneCheckSql);
-    if ($phoneCheckResult && mysqli_num_rows($phoneCheckResult) === 1) {
-        $data = [
-            'status' => 400,
-            'message' => 'Contact no. already registered.'
-        ];
-        header("HTTP/1.0 400 Already exists");
-        echo json_encode($data);
-        exit;
-    }
-
-    $emailCheckSql = "SELECT * FROM `registered_institutions` WHERE `email`='$email'`";
-    $emailCheckResult = mysqli_query($conn, $emailCheckSql);
-    if ($emailCheckResult && mysqli_num_rows($emailCheckResult) === 1) {
-        $data = [
-            'status' => 400,
-            'message' => 'Email address already registered.'
-        ];
-        header("HTTP/1.0 400 Already exists");
-        echo json_encode($data);
-        exit;
-    }
-
-    $location = mysqli_real_escape_string($conn, $inputData['location']);
-    $cleanName = preg_replace("/[^a-zA-Z]/", "", $institutionName);
-    if (strlen($cleanName) < 3) {
-        $data = [
-            'status' => 400,
-            'message' => 'Institution name must be at least 3 letters'
-        ];
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode($data);
-        exit;
-    }
-
     $data = [
         'status' => 200,
         'message' => 'Institution added successfully.'
