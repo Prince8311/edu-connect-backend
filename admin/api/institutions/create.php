@@ -129,7 +129,7 @@ if ($requestMethod === 'POST') {
                                             </head>
                                             <body style="position: relative; margin: 0; padding: 0;">
                                                 <div class="template_wrapper" style="position: relative; width: 100%;  padding: 10px; box-sizing: border-box; ">
-                                                    <div class="template" style="position: relative; background: #FFF; padding-bottom: 50px; border-radius: 5px;" >
+                                                    <div class="template" style="position: relative; background: #FFF; padding: 20px; border-radius: 6px;" >
                                                         <div class="logo" style="position: relative; text-align: center;"><img src="https://ticketbay.in/Backend/Images/Logo.png" alt="Logo" style="width: 30px;"></div>
                                                         <div class="body_message" style="position: relative; margin-top: 15px;">
                                                             <p style="position: relative;">

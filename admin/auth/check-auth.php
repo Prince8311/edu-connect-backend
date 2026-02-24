@@ -18,8 +18,7 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'GET') {
     require "../../_db-connect.php";
     global $conn;
-
-    $authToken = $authResult['token'];
+    $authToken = mysqli_real_escape_string($conn, $authResult['token']);
 
     // Fetch user
     $sql = "SELECT * FROM `admin_users` WHERE `auth_token` = '$authToken'";

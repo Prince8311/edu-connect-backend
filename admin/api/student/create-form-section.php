@@ -17,7 +17,7 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require "../../../_db-connect.php";
     global $conn;
-    $authToken = $authResult['token'];
+    $authToken = mysqli_real_escape_string($conn, $authResult['token']);
 
     $inputData = json_decode(file_get_contents("php://input"), true);
 
@@ -31,12 +31,24 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $instSql = "SELECT * FROM `registered_institutions` WHERE";
+    $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.auth_token = '$authToken' LIMIT 1";
+    $adminResult = mysqli_query($conn, $adminSql);
+
+    if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
+        echo json_encode([
+            "status" => 401,
+            "message" => "Invalid token or institute not found"
+        ]);
+        exit;
+    }
+
+    $adminData = mysqli_fetch_assoc($adminResult);
+    $instituteId = $adminData['inst_id'];
 
     $section = mysqli_real_escape_string($conn, $inputData['section']);
     $sectionType = mysqli_real_escape_string($conn, $inputData['sectionType']);
 
-    $checkSql = "SELECT * FROM `student_form_fields` WHERE `inst_name`='$institutionName' AND `form_section`='$section'";
+    $checkSql = "SELECT * FROM `student_form_fields` WHERE `inst_id`='$instituteId' AND `form_section`='$section'";
     $checkResult = mysqli_query($conn, $checkSql);
 
     if ($checkResult && mysqli_num_rows($checkResult) === 1) {
@@ -49,7 +61,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $insertSql = "INSERT INTO `student_form_fields`(`inst_name`, `form_section`, `section_type`) VALUES ('[$institutionName','$section','$sectionType')";
+    $insertSql = "INSERT INTO `student_form_fields`(`inst_id`, `form_section`, `section_type`) VALUES ('$instituteId','$section','$sectionType')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {
