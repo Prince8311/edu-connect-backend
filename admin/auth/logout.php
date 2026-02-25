@@ -36,7 +36,7 @@ if ($requestMethod === 'POST') {
     );
     $data = [
         'status' => 200,
-        'message' => 'Logged out successfylly.',
+        'message' => 'Logged out successfully.',
     ];
     header("HTTP/1.0 200 Logged Out");
     echo json_encode($data);
