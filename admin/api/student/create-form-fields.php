@@ -17,6 +17,7 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require "../../../_db-connect.php";
     global $conn;
+    $authToken = mysqli_real_escape_string($conn, $authResult['token']);
 
     $inputData = json_decode(file_get_contents("php://input"), true);
 
@@ -30,11 +31,24 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $institutionName = mysqli_real_escape_string($conn, $inputData['institutionName']);
-    $section = mysqli_real_escape_string($conn, $inputData['section']);
+    $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.auth_token = '$authToken' LIMIT 1";
+    $adminResult = mysqli_query($conn, $adminSql);
+
+    if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
+        echo json_encode([
+            "status" => 401,
+            "message" => "Invalid token or institute not found"
+        ]);
+        exit;
+    }
+
+    $adminData = mysqli_fetch_assoc($adminResult);
+    $instituteId = $adminData['inst_id'];
+
+    $sectionId = mysqli_real_escape_string($conn, $inputData['sectionId']);
     $fieldName = mysqli_real_escape_string($conn, $inputData['fieldName']);
 
-    $checkSql = "SELECT * FROM `student_form_fields` WHERE `inst_name`='$institutionName' AND `form_section`='$section' AND `form_field`='$fieldName'";
+    $checkSql = "SELECT * FROM `student_form_fields` WHERE `inst_id`='$instituteId' AND `section_id`='$sectionId' AND `form_field`='$fieldName'";
     $checkResult = mysqli_query($conn, $checkSql);
 
     if ($checkResult && mysqli_num_rows($checkResult) === 1) {
