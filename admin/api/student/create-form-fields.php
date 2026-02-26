@@ -47,6 +47,8 @@ if ($requestMethod === 'POST') {
 
     $sectionId = mysqli_real_escape_string($conn, $inputData['sectionId']);
     $fieldName = mysqli_real_escape_string($conn, $inputData['fieldName']);
+    $fieldType = mysqli_real_escape_string($conn, $inputData['fieldType']);
+    $mendatory = (isset($inputData['mendatory']) && $inputData['mendatory'] === true) ? 1 : 0;
 
     $checkSql = "SELECT * FROM `student_form_fields` WHERE `inst_id`='$instituteId' AND `section_id`='$sectionId' AND `form_field`='$fieldName'";
     $checkResult = mysqli_query($conn, $checkSql);
@@ -59,6 +61,25 @@ if ($requestMethod === 'POST') {
         header("HTTP/1.0 400 Already exists");
         echo json_encode($data);
         exit;
+    }
+
+    $insertSql = "INSERT INTO `student_form_fields`(`inst_id`, `section_id`, `form_field`, `field_type`, `mendatory`) VALUES ('$instituteId','$sectionId','$fieldName','$fieldType','$mendatory')";
+    $insertResult = mysqli_query($conn, $insertSql);
+
+    if ($insertResult) {
+        $data = [
+            'status' => 200,
+            'message' => 'Field created successfully.'
+        ];
+        header("HTTP/1.0 200 OK");
+        echo json_encode($data);
+    } else {
+        $data = [
+            'status' => 500,
+            'message' => 'Database error: ' . mysqli_error($conn)
+        ];
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode($data);
     }
 } else {
     $data = [
