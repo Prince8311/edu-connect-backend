@@ -47,11 +47,14 @@ if ($requestMethod === 'GET') {
     $checkSectionResult = mysqli_query($conn, $checkSectionSql);
 
     if ($checkSectionResult && mysqli_num_rows($checkSectionResult) === 1) {
-        $fieldSql = "SELECT `id`, `form_field`, `field_type`, `mendatory` FROM `student_form_fields` WHERE `inst_id`='$instituteId' AND `section_id`='$sectionId'";
+        $fieldSql = "SELECT `id`, `form_field`, `field_type`, `is_required` FROM `student_form_fields` WHERE `inst_id`='$instituteId' AND `section_id`='$sectionId'";
         $fieldResult = mysqli_query($conn, $fieldSql);
 
         if ($fieldResult) {
             $fields = mysqli_fetch_all($fieldResult, MYSQLI_ASSOC);
+            foreach ($fields as &$field) {
+                $field['is_required'] = (bool) $field['is_required'];
+            }
             $data = [
                 'status' => 200,
                 'message' => 'Form fields fetched.',
