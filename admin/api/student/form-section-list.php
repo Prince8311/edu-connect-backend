@@ -50,6 +50,7 @@ if ($requestMethod === 'GET') {
     if ($sectionResult && mysqli_num_rows($sectionResult) > 0) {
         while ($row = mysqli_fetch_assoc($sectionResult)) {
             $sections[] = [
+                "id" => $row['id'],
                 "name" => $row['form_section'],
                 "total_fields" => (int)$row['total_fields']
             ];
