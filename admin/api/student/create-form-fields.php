@@ -48,7 +48,7 @@ if ($requestMethod === 'POST') {
     $sectionId = mysqli_real_escape_string($conn, $inputData['sectionId']);
     $fieldName = mysqli_real_escape_string($conn, $inputData['fieldName']);
     $fieldType = mysqli_real_escape_string($conn, $inputData['fieldType']);
-    $mendatory = (isset($inputData['mendatory']) && $inputData['mendatory'] === true) ? 1 : 0;
+    $isRequired = (isset($inputData['isRequired']) && $inputData['isRequired'] === true) ? 1 : 0;
 
     $checkSql = "SELECT * FROM `student_form_fields` WHERE `inst_id`='$instituteId' AND `section_id`='$sectionId' AND `form_field`='$fieldName'";
     $checkResult = mysqli_query($conn, $checkSql);
@@ -63,7 +63,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $insertSql = "INSERT INTO `student_form_fields`(`inst_id`, `section_id`, `form_field`, `field_type`, `mendatory`) VALUES ('$instituteId','$sectionId','$fieldName','$fieldType','$mendatory')";
+    $insertSql = "INSERT INTO `student_form_fields`(`inst_id`, `section_id`, `form_field`, `field_type`, `is_required`) VALUES ('$instituteId','$sectionId','$fieldName','$fieldType','$isRequired')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {
