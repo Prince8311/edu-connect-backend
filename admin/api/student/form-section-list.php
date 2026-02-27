@@ -59,7 +59,7 @@ if ($requestMethod === 'GET') {
 
     $data = [
         'status' => 200,
-        'message' => 'Profile information sections.',
+        'message' => 'Form sections fetched.',
         'sections' => $sections
     ];
     header("HTTP/1.0 200 OK");
