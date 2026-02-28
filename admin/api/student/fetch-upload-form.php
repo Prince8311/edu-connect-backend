@@ -33,7 +33,7 @@ if ($requestMethod === 'GET') {
     $adminData = mysqli_fetch_assoc($adminResult);
     $instituteId = $adminData['inst_id'];
 
-    $sql = "SELECT s.id AS section_id, s.form_section, f.id AS field_id, f.form_field, f.field_type, f.is_required FROM student_form_sections s LEFT JOIN student_form_fields f ON s.id = f.section_id AND s.inst_id = f.inst_id WHERE s.inst_id = '$instituteId' ORDER BY s.id";
+    $sql = "SELECT s.id AS section_id, s.form_section, f.id AS field_id, f.form_field, f.field_type, f.is_required FROM student_form_sections s LEFT JOIN student_form_fields f ON s.id = f.section_id AND s.inst_id = f.inst_id WHERE s.inst_id = '$instituteId' ORDER BY s.id ASC, f.id ASC";
     $result = mysqli_query($conn, $sql);
 
     $sections = [];
