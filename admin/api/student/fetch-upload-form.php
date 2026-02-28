@@ -58,6 +58,10 @@ if ($requestMethod === 'GET') {
         }
     }
 
+    $sections = array_filter($sections, function ($section) {
+        return !empty($section['fields']);
+    });
+
     $data = [
         'status' => 200,
         'message' => 'Student form fetched.',
