@@ -43,7 +43,7 @@ if ($requestMethod === 'GET') {
         if (!isset($sections[$sectionId])) {
             $sections[$sectionId] = [
                 "id" => $sectionId,
-                "form_section" => $row['form_section'],
+                "name" => $row['form_section'],
                 "fields" => []
             ];
         }
@@ -51,8 +51,8 @@ if ($requestMethod === 'GET') {
         if ($row['field_id'] !== null) {
             $sections[$sectionId]['fields'][] = [
                 "id" => $row['field_id'],
-                "form_field" => $row['form_field'],
-                "field_type" => $row['field_type'],
+                "name" => $row['form_field'],
+                "type" => $row['field_type'],
                 "is_required" => $row['is_required']
             ];
         }
