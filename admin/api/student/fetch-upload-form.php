@@ -53,7 +53,7 @@ if ($requestMethod === 'GET') {
                 "id" => $row['field_id'],
                 "name" => $row['form_field'],
                 "type" => $row['field_type'],
-                "is_required" => $row['is_required']
+                "is_required" => (bool) $row['is_required']
             ];
         }
     }
