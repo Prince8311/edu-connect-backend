@@ -47,13 +47,23 @@ if ($requestMethod === 'GET') {
     $checkSectionResult = mysqli_query($conn, $checkSectionSql);
 
     if ($checkSectionResult && mysqli_num_rows($checkSectionResult) === 1) {
-        $fieldSql = "SELECT `id`, `form_field`, `field_type`, `is_required` FROM `student_form_fields` WHERE `inst_id`='$instituteId' AND `section_id`='$sectionId'";
+        $fieldSql = "SELECT `id`, `form_field`, `field_type`, `is_required`, `items` FROM `student_form_fields` WHERE `inst_id`='$instituteId' AND `section_id`='$sectionId'";
         $fieldResult = mysqli_query($conn, $fieldSql);
 
         if ($fieldResult) {
             $fields = mysqli_fetch_all($fieldResult, MYSQLI_ASSOC);
             foreach ($fields as &$field) {
                 $field['is_required'] = (bool) $field['is_required'];
+                if (!empty($field['items'])) {
+                    $decodedItems = json_decode($field['items'], true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $field['items'] = $decodedItems;
+                    } else {
+                        $field['items'] = null;
+                    }
+                } else {
+                    $field['items'] = null;
+                }
             }
             $data = [
                 'status' => 200,
