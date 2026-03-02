@@ -76,7 +76,13 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $insertSql = "INSERT INTO `student_form_fields`(`inst_id`, `section_id`, `form_field`, `field_type`, `is_required`, `items`) VALUES ('$instituteId','$sectionId','$fieldName','$fieldType','$isRequired'," . ($items !== NULL ? "'$items'" : "NULL") . ")";
+    $orderSql = "SELECT MAX(sort_order) as max_order FROM student_form_fields WHERE inst_id='$instituteId' AND section_id='$sectionId'";
+    $orderResult = mysqli_query($conn, $orderSql);
+    $orderRow = mysqli_fetch_assoc($orderResult);
+
+    $nextOrder = ($orderRow['max_order'] !== NULL) ? ((int)$orderRow['max_order'] + 1) : 1;
+
+    $insertSql = "INSERT INTO `student_form_fields`(`inst_id`, `section_id`, `form_field`, `field_type`, `is_required`, `items`, `sort_order`) VALUES ('$instituteId','$sectionId','$fieldName','$fieldType','$isRequired'," . ($items !== NULL ? "'$items'" : "NULL") . ",'$nextOrder')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {
