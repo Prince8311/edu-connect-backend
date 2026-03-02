@@ -33,7 +33,7 @@ if ($requestMethod === 'GET') {
     $adminData = mysqli_fetch_assoc($adminResult);
     $instituteId = $adminData['inst_id'];
 
-    $sql = "SELECT s.id AS section_id, s.form_section, f.id AS field_id, f.form_field, f.field_type, f.is_required FROM student_form_sections s LEFT JOIN student_form_fields f ON s.id = f.section_id AND s.inst_id = f.inst_id WHERE s.inst_id = '$instituteId' ORDER BY s.id ASC, f.id ASC";
+    $sql = "SELECT s.id AS section_id, s.form_section, f.id AS field_id, f.form_field, f.field_type, f.is_required, f.items FROM student_form_sections s LEFT JOIN student_form_fields f ON s.id = f.section_id AND s.inst_id = f.inst_id WHERE s.inst_id = '$instituteId' ORDER BY s.id ASC, f.id ASC";
     $result = mysqli_query($conn, $sql);
 
     $sections = [];
@@ -49,11 +49,19 @@ if ($requestMethod === 'GET') {
         }
 
         if ($row['field_id'] !== null) {
+            $decodedItems = null;
+            if (!empty($row['items'])) {
+                $decodedItems = json_decode($row['items'], true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $decodedItems = null;
+                }
+            }
             $sections[$sectionId]['fields'][] = [
                 "id" => $row['field_id'],
                 "name" => $row['form_field'],
                 "type" => $row['field_type'],
-                "is_required" => (bool) $row['is_required']
+                "is_required" => (bool) $row['is_required'],
+                "items" => $decodedItems
             ];
         }
     }
