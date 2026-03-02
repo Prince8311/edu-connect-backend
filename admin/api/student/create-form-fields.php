@@ -49,6 +49,19 @@ if ($requestMethod === 'POST') {
     $fieldName = mysqli_real_escape_string($conn, $inputData['fieldName']);
     $fieldType = mysqli_real_escape_string($conn, $inputData['fieldType']);
     $isRequired = (isset($inputData['isRequired']) && $inputData['isRequired'] === true) ? 1 : 0;
+    $items = NULL;
+
+    if (($fieldType === 'dropdown' || $fieldType === 'multi-select-dropdown') && isset($inputData['items'])) {
+        $items = mysqli_real_escape_string($conn, $inputData['items']);
+    }
+
+    if (($fieldType === 'dropdown' || $fieldType === 'multi-select-dropdown') && empty($items)) {
+        echo json_encode([
+            "status" => 400,
+            "message" => "Items are required for this field type"
+        ]);
+        exit;
+    }
 
     $checkSql = "SELECT * FROM `student_form_fields` WHERE `inst_id`='$instituteId' AND `section_id`='$sectionId' AND `form_field`='$fieldName'";
     $checkResult = mysqli_query($conn, $checkSql);
@@ -63,7 +76,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $insertSql = "INSERT INTO `student_form_fields`(`inst_id`, `section_id`, `form_field`, `field_type`, `is_required`) VALUES ('$instituteId','$sectionId','$fieldName','$fieldType','$isRequired')";
+    $insertSql = "INSERT INTO `student_form_fields`(`inst_id`, `section_id`, `form_field`, `field_type`, `is_required`, `items`) VALUES ('$instituteId','$sectionId','$fieldName','$fieldType','$isRequired'," . ($items !== NULL ? "'$items'" : "NULL") . ")";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {
