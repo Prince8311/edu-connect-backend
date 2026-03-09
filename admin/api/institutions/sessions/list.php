@@ -1,7 +1,7 @@
 <?php
 
-require "../../../../../utils/headers.php";
-require "../../../../../utils/middleware.php";
+require "../../../../utils/headers.php";
+require "../../../../utils/middleware.php";
 
 $authResult = adminAuthenticateRequest();
 if (!$authResult['authenticated']) {
@@ -13,21 +13,10 @@ if (!$authResult['authenticated']) {
     exit;
 }
 
-if ($requestMethod === 'POST') {
-    require "../../../../../_db-connect.php";
+if ($requestMethod === 'GET') {
+    require "../../../../_db-connect.php";
     global $conn;
     $authToken = mysqli_real_escape_string($conn, $authResult['token']);
-
-    $inputData = json_decode(file_get_contents("php://input"), true);
-    if (empty($inputData)) {
-        $data = [
-            'status' => 400,
-            'message' => 'Empty request data'
-        ];
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode($data);
-        exit;
-    }
 
     $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.auth_token = '$authToken' LIMIT 1";
     $adminResult = mysqli_query($conn, $adminSql);
@@ -42,26 +31,20 @@ if ($requestMethod === 'POST') {
 
     $adminData = mysqli_fetch_assoc($adminResult);
     $instituteId = $adminData['inst_id'];
-    $levelName = mysqli_real_escape_string($conn, $inputData['levelName']);
 
-    $checkSql = "SELECT * FROM `academic_levels` WHERE `inst_id`='$instituteId' AND `level_name`='$levelName'";
-    $checkResult = mysqli_query($conn, $checkSql);
-
-    if (mysqli_num_rows($checkResult) === 1) {
-        echo json_encode([
-            "status" => 401,
-            "message" => "This academic level already created."
-        ]);
-        exit;
+    $sql = "SELECT * FROM `academic_sessions` WHERE `inst_id`='$instituteId'";
+    if (isset($_GET['type']) && trim($_GET['type']) !== '') {
+        $sessionType = mysqli_real_escape_string($conn, $_GET['type']);
+        $sql .= " AND `status`='$sessionType'";
     }
+    $result = mysqli_query($conn, $sql);
 
-    $insertSql = "INSERT INTO `academic_levels`(`inst_id`, `level_name`) VALUES ('$instituteId','$levelName')";
-    $insertResult = mysqli_query($conn, $insertSql);
-
-    if ($insertResult) {
+    if ($result) {
+        $sessions = mysqli_fetch_all($result, MYSQLI_ASSOC);
         $data = [
             'status' => 200,
-            'message' => 'Academic level created successfully.'
+            'message' => 'Student form fetched.',
+            'sessions' => $sessions
         ];
         header("HTTP/1.0 200 OK");
         echo json_encode($data);

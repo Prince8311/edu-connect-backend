@@ -1,7 +1,7 @@
 <?php
 
-require "../../../../../utils/headers.php";
-require "../../../../../utils/middleware.php";
+require "../../../../utils/headers.php";
+require "../../../../utils/middleware.php";
 
 $authResult = adminAuthenticateRequest();
 if (!$authResult['authenticated']) {
@@ -14,7 +14,7 @@ if (!$authResult['authenticated']) {
 }
 
 if ($requestMethod === 'POST') {
-    require "../../../../../_db-connect.php";
+    require "../../../../_db-connect.php";
     global $conn;
     $authToken = mysqli_real_escape_string($conn, $authResult['token']);
 
@@ -42,26 +42,29 @@ if ($requestMethod === 'POST') {
 
     $adminData = mysqli_fetch_assoc($adminResult);
     $instituteId = $adminData['inst_id'];
-    $levelName = mysqli_real_escape_string($conn, $inputData['levelName']);
+    $sessionName = mysqli_real_escape_string($conn, $inputData['sessionName']);
+    $startDate = mysqli_real_escape_string($conn, $inputData['startDate']);
+    $endDate = mysqli_real_escape_string($conn, $inputData['endDate']);
+    $status = mysqli_real_escape_string($conn, $inputData['status']);
 
-    $checkSql = "SELECT * FROM `academic_levels` WHERE `inst_id`='$instituteId' AND `level_name`='$levelName'";
+    $checkSql = "SELECT * FROM `academic_sessions` WHERE `inst_id`='$instituteId' AND `sesssion_name`='$sessionName'";
     $checkResult = mysqli_query($conn, $checkSql);
 
     if (mysqli_num_rows($checkResult) === 1) {
         echo json_encode([
             "status" => 401,
-            "message" => "This academic level already created."
+            "message" => "This session already created."
         ]);
         exit;
     }
 
-    $insertSql = "INSERT INTO `academic_levels`(`inst_id`, `level_name`) VALUES ('$instituteId','$levelName')";
+    $insertSql = "INSERT INTO `academic_sessions`(`inst_id`, `sesssion_name`, `start_date`, `end_date`, `status`) VALUES ('$instituteId','$sessionName','$startDate','$endDate','$status')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {
         $data = [
             'status' => 200,
-            'message' => 'Academic level created successfully.'
+            'message' => 'Session created successfully.'
         ];
         header("HTTP/1.0 200 OK");
         echo json_encode($data);
