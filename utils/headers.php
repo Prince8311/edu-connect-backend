@@ -13,7 +13,9 @@ session_set_cookie_params([
 ]);
 session_start();
 $allowedOrigins = [
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://edu-connect.ticketbay.in',
+    'https://edu-connect.ticketbay.in',
 ];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, $allowedOrigins, true)) {
