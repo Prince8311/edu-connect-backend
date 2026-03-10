@@ -34,8 +34,8 @@ if ($requestMethod === 'GET') {
 
     $sql = "SELECT * FROM `academic_sessions` WHERE `inst_id`='$instituteId'";
     if (isset($_GET['type']) && trim($_GET['type']) !== '') {
-        $sessionType = mysqli_real_escape_string($conn, $_GET['type']);
-        $sql .= " AND `status`='$sessionType'";
+        $sessionStatus = mysqli_real_escape_string($conn, $_GET['status']);
+        $sql .= " AND `status`='$sessionStatus'";
     }
     $result = mysqli_query($conn, $sql);
 
