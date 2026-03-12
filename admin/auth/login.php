@@ -173,9 +173,9 @@ if ($requestMethod === 'POST') {
                     $authToken = base64_encode($tokenData);
                     $expiresAt = date("Y-m-d H:i:s", time() + 86400);
 
-                    $updateUserSql = "UPDATE `admin_users` SET `mail_otp`=NULL, `auth_token`='$authToken', `expires_at`='$expiresAt' WHERE `id` = '$userId'";
-                    $updateResult = mysqli_query($conn, $updateUserSql);
-                    if ($updateResult) {
+                    $insertSql = "INSERT INTO `admin_auth_tokens`(`admin_id`, `auth_token`, `expires_at`) VALUES ('$userId','$authToken','$expiresAt')";
+                    $insertResult = mysqli_query($conn, $insertSql);
+                    if ($insertResult) {
                         setcookie(
                             "authToken",
                             $authToken,
