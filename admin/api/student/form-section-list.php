@@ -43,7 +43,7 @@ if ($requestMethod === 'GET') {
     $adminData = mysqli_fetch_assoc($adminResult);
     $instituteId = $adminData['inst_id'];
 
-    $sectionSql = "SELECT s.id, s.form_section, COUNT(f.id) AS total_fields FROM student_form_sections s LEFT JOIN student_form_fields f ON s.id = f.section_id AND f.inst_id = '$instituteId' WHERE s.inst_id = '$instituteId' AND s.section_type = '$type' GROUP BY s.id ORDER BY s.id ASC";
+    $sectionSql = "SELECT s.id, s.form_section, COUNT(f.id) AS total_fields FROM student_form_sections s LEFT JOIN student_form_fields f ON s.id = f.section_id AND f.inst_id = '$instituteId' WHERE (s.inst_id = '$instituteId' OR s.inst_id IS NULL) AND s.section_type = '$type' GROUP BY s.id ORDER BY s.id ASC";
     $sectionResult = mysqli_query($conn, $sectionSql);
 
     $sections = [];
@@ -52,7 +52,8 @@ if ($requestMethod === 'GET') {
             $sections[] = [
                 "id" => $row['id'],
                 "name" => $row['form_section'],
-                "total_fields" => (int)$row['total_fields']
+                "total_fields" => (int)$row['total_fields'],
+                "isRemoval" => $row['inst_id'] !== null
             ];
         }
     }
