@@ -47,6 +47,6 @@ function adminAuthenticateRequest()
     return [
         'authenticated' => true,
         'token' => $token,
-        'userId' => $row['id']
+        'userId' => $row['admin_id']
     ];
 }
