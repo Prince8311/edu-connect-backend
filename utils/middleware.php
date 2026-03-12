@@ -6,50 +6,47 @@ require_once __DIR__ . '/../_db-connect.php';
 
 function adminAuthenticateRequest()
 {
-    $cookieToken = $_COOKIE['authToken'] ?? '';
+    global $conn;
     $authHeader  = getAuthorizationHeader();
-    $frontendToken = null;
+    $token = null;
 
     if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-        $frontendToken = $matches[1];
+        $token = $matches[1];
     }
 
-    // 1. Cookie empty & Header empty → NOT authenticated
-    if (empty($cookieToken) && empty($frontendToken)) {
+    if (empty($token)) {
         return [
             'authenticated' => false,
             'status' => 401,
-            'message' => 'Authentication error',
-            'cookieToken' => $cookieToken,
-            'frontendToken' => $frontendToken
+            'message' => 'Authentication required'
         ];
     }
 
-    // 2. Cookie present & Header present → Must match
-    if (!empty($cookieToken) && !empty($frontendToken)) {
-        if ($cookieToken !== $frontendToken) {
-            return [
-                'authenticated' => false,
-                'status' => 401,
-                'message' => 'Authentication mismatch',
-                'cookieToken' => $cookieToken,
-                'frontendToken' => $frontendToken
-            ];
-        }
-    }
+    $escapedToken = mysqli_real_escape_string($conn, $token);
+    $sql = "SELECT * FROM `admin_auth_tokens` WHERE `auth_token`='$escapedToken'";
+    $result = mysqli_query($conn, $sql);
 
-    // 3. Token expired 
-    if (empty($cookieToken) && !empty($frontendToken)) {
+    if (mysqli_num_rows($result) === 0) {
         return [
             'authenticated' => false,
             'status' => 401,
-            'message' => 'Token expired',
-            'current_token' => $frontendToken
+            'message' => 'Invalid token'
+        ];
+    }
+
+    $row = mysqli_fetch_assoc($result);
+
+    if (time() > strtotime($row['expires_at'])) {
+        return [
+            'authenticated' => false,
+            'status' => 401,
+            'message' => 'Token expired'
         ];
     }
 
     return [
         'authenticated' => true,
-        'token' => $cookieToken
+        'token' => $token,
+        'userId' => $row['id']
     ];
 }

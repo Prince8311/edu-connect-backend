@@ -33,11 +33,40 @@ if ($requestMethod === 'POST') {
             $userRole = $data['user_role'];
             if ($userType != "super_admin" && $userType != "inst_admin") {
                 $data = [
-                    'status' => 400,
+                    'status' => 403,
                     'message' => 'Authentication denied.',
                     'userType' => $userType
                 ];
-                header("HTTP/1.0 400 Forbidden");
+                header("HTTP/1.0 403 Forbidden");
+                echo json_encode($data);
+                exit;
+            }
+            $authCheck = "SELECT * FROM `admin_auth_tokens` WHERE `admin_id`='$userId'";
+            $authResult = mysqli_query($conn, $authCheck);
+            if (!$authResult) {
+                $data = [
+                    'status' => 500,
+                    'message' => 'Database error: ' . mysqli_error($conn)
+                ];
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode($data);
+            }
+            $loginCount = mysqli_num_rows($authResult);
+            if ($userType === "super_admin" && $loginCount > 2) {
+                $data = [
+                    'status' => 403,
+                    'message' => 'Maximum device limit reached. You are already logged in on 4 devices. Please log out from another device to continue.'
+                ];
+                header("HTTP/1.0 403 Forbidden");
+                echo json_encode($data);
+                exit;
+            }
+            if ($userType === "inst_admin" && $loginCount > 4) {
+                $data = [
+                    'status' => 403,
+                    'message' => 'Maximum device limit reached. You are already logged in on 4 devices. Please log out from another device to continue.'
+                ];
+                header("HTTP/1.0 403 Forbidden");
                 echo json_encode($data);
                 exit;
             }
@@ -79,10 +108,10 @@ if ($requestMethod === 'POST') {
                     $authToken = base64_encode($tokenData);
                     $expiresAt = date("Y-m-d H:i:s", time() + 86400);
 
-                    $updateUserSql = "UPDATE `admin_users` SET `mail_otp`=NULL, `auth_token`='$authToken', `expires_at`='$expiresAt' WHERE `id` = '$userId'";
-                    $updateResult = mysqli_query($conn, $updateUserSql);
+                    $insertSql = "INSERT INTO `admin_auth_tokens`(`admin_id`, `auth_token`, `expires_at`) VALUES ('$userId','$authToken','$expiresAt')";
+                    $insertResult = mysqli_query($conn, $insertSql);
 
-                    if ($updateResult) {
+                    if ($insertResult) {
                         setcookie(
                             "authToken",
                             $authToken,

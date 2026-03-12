@@ -19,7 +19,7 @@ if ($requestMethod === 'POST') {
     global $conn;
 
     $authToken = $authResult['token'];
-    $sql = "UPDATE `admin_users` SET `auth_token`=NULL,`expires_at`=NULL WHERE `auth_token`='$authToken'";
+    $sql = "DELETE FROM `admin_auth_tokens` WHERE `auth_token`='$authToken'";
     $result = mysqli_query($conn, $sql);
     session_destroy();
     setcookie(
