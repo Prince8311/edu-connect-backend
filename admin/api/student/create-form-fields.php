@@ -17,7 +17,7 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require "../../../_db-connect.php";
     global $conn;
-    $authToken = mysqli_real_escape_string($conn, $authResult['token']);
+    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
     $inputData = json_decode(file_get_contents("php://input"), true);
 
@@ -31,7 +31,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.auth_token = '$authToken' LIMIT 1";
+    $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
     $adminResult = mysqli_query($conn, $adminSql);
 
     if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
