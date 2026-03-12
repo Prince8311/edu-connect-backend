@@ -52,6 +52,7 @@ if ($requestMethod === 'GET') {
             $sections[] = [
                 "id" => $row['id'],
                 "name" => $row['form_section'],
+                "inst_id" => $row['inst_id'],
                 "total_fields" => (int)$row['total_fields'],
                 "isRemoval" => $row['inst_id'] !== null
             ];
