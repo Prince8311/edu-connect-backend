@@ -52,16 +52,16 @@ if ($requestMethod === 'POST') {
                 echo json_encode($data);
             }
             $loginCount = mysqli_num_rows($authResult);
-            if ($userType === "super_admin" && $loginCount > 2) {
+            if ($userType === "super_admin" && $loginCount >= 2) {
                 $data = [
                     'status' => 403,
-                    'message' => 'Maximum device limit reached. You are already logged in on 4 devices. Please log out from another device to continue.'
+                    'message' => 'Maximum device limit reached. You are already logged in on 2 devices. Please log out from another device to continue.'
                 ];
                 header("HTTP/1.0 403 Forbidden");
                 echo json_encode($data);
                 exit;
             }
-            if ($userType === "inst_admin" && $loginCount > 4) {
+            if ($userType === "inst_admin" && $loginCount >= 4) {
                 $data = [
                     'status' => 403,
                     'message' => 'Maximum device limit reached. You are already logged in on 4 devices. Please log out from another device to continue.'
