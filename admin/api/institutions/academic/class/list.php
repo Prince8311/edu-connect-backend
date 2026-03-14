@@ -18,6 +18,16 @@ if ($requestMethod === 'GET') {
     global $conn;
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
+    if (!isset($_GET['levelId'])) {
+        $data = [
+            'status' => 400,
+            'message' => 'Academic level id required.'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+    }
+
+    $levelId = mysqli_real_escape_string($conn, $_GET['levelId']);
     $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
     $adminResult = mysqli_query($conn, $adminSql);
 
@@ -32,7 +42,7 @@ if ($requestMethod === 'GET') {
     $adminData = mysqli_fetch_assoc($adminResult);
     $instituteId = $adminData['inst_id'];
 
-    $sql = "SELECT `id`, `level_id`, `class`, `sections` FROM `academic_class_sections` WHERE `inst_id`='$instituteId'";
+    $sql = "SELECT `id`, `level_id`, `class`, `sections` FROM `academic_class_sections` WHERE `inst_id`='$instituteId' AND `level_id`='$levelId'";
     $result = mysqli_query($conn, $sql);
 
     if ($result) {
