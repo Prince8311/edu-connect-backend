@@ -30,7 +30,7 @@ function adminAuthenticateRequest()
         return [
             'authenticated' => false,
             'status' => 401,
-            'message' => 'Invalid token'
+            'message' => 'Invalid token',
         ];
     }
 
@@ -40,7 +40,9 @@ function adminAuthenticateRequest()
         return [
             'authenticated' => false,
             'status' => 401,
-            'message' => 'Token expired'
+            'message' => 'Token expired',
+            'token' => $token,
+            'userId' => $row['admin_id']
         ];
     }
 

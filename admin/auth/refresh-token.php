@@ -5,11 +5,12 @@ require "../../utils/headers.php";
 require "../../utils/middleware.php";
 
 $authResult = adminAuthenticateRequest();
-if (!$authResult['current_token']) {
+if ($authResult['message'] !== 'Token expired') {
     $data = [
         'status' => $authResult['status'],
         'message' => $authResult['message']
     ];
+
     header("HTTP/1.0 " . $authResult['status']);
     echo json_encode($data);
     exit;
@@ -18,24 +19,8 @@ if (!$authResult['current_token']) {
 if ($requestMethod === 'GET') {
     require "../../_db-connect.php";
     global $conn;
-
-    $currentToken = $authResult['current_token'];
-
-    $escapedToken = mysqli_real_escape_string($conn, $currentToken);
-    $userSql = "SELECT * FROM `admin_users` WHERE `auth_token`='$escapedToken'";
-    $userResult = mysqli_query($conn, $userSql);
-
-    $tokenRow = mysqli_fetch_assoc($userResult);
-    $userId = $tokenRow['id'];
-    $currentTime = time();
-
-    if (mysqli_num_rows($userResult) === 0) {
-        return [
-            'authenticated' => false,
-            'status' => 401,
-            'message' => 'Invalid token'
-        ];
-    }
+    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
+    $currentToken = $authResult['token'];
 
     // ------------------------------------------------
     // TOKEN EXPIRED → Extract user data and refresh
@@ -61,7 +46,7 @@ if ($requestMethod === 'GET') {
 
     // Update DB token
     $newExpiry = date("Y-m-d H:i:s", time() + 86400);
-    $updateSql = "UPDATE `admin_users` SET `auth_token`='$newToken',`expires_at`='$newExpiry' WHERE `id`='$userId'";
+    $updateSql = "UPDATE `admin_auth_tokens` SET `auth_token`='$newToken',`expires_at`='$newExpiry' WHERE `admin_id`='$userId' AND `auth_token`='$currentToken'";
     mysqli_query($conn, $updateSql);
 
     setcookie(
