@@ -37,11 +37,20 @@ if ($requestMethod === 'GET') {
         ? (int) $_GET['page']
         : 1;
     $offset = ($page - 1) * $limit;
+    
+    // -----------------------
+    // SEARCH CONDITION
+    // -----------------------
+    $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
+    $searchCondition = "";
+    if (!empty($search)) {
+        $searchCondition = " AND subject_name LIKE '%$search%'";
+    }
 
     // -----------------------
     // COUNT QUERY
     // -----------------------
-    $countSql = "SELECT COUNT(*) AS total FROM `institution_subjects` WHERE `inst_id` = '$instituteId'";
+    $countSql = "SELECT COUNT(*) AS total FROM `institution_subjects` WHERE `inst_id` = '$instituteId' $searchCondition";
     $countResult  = mysqli_query($conn, $countSql);
     $countRow = mysqli_fetch_assoc($countResult);
     $totalSubjects = (int) $countRow['total'];
@@ -49,7 +58,7 @@ if ($requestMethod === 'GET') {
     // -----------------------
     // DATA QUERY (with LIMIT)
     // -----------------------
-    $sql = "SELECT `id`, `inst_id`, `subject_name` FROM `institution_subjects` WHERE `inst_id` = '$instituteId' ORDER BY id ASC, LIMIT $limit OFFSET $offset";
+    $sql = "SELECT `id`, `inst_id`, `subject_name` FROM `institution_subjects` WHERE `inst_id` = '$instituteId' $searchCondition ORDER BY id ASC, LIMIT $limit OFFSET $offset";
     $result = mysqli_query($conn, $sql);
 
     if ($result) {
