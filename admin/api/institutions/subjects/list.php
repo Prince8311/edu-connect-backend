@@ -58,7 +58,7 @@ if ($requestMethod === 'GET') {
     // -----------------------
     // DATA QUERY (with LIMIT)
     // -----------------------
-    $sql = "SELECT `id`, `inst_id`, `subject_name` FROM `institution_subjects` WHERE `inst_id` = '$instituteId' $searchCondition ORDER BY id ASC, LIMIT $limit OFFSET $offset";
+    $sql = "SELECT `id`, `inst_id`, `subject_name` FROM `institution_subjects` WHERE `inst_id` = '$instituteId' $searchCondition ORDER BY id ASC LIMIT $limit OFFSET $offset";
     $result = mysqli_query($conn, $sql);
 
     if ($result) {
