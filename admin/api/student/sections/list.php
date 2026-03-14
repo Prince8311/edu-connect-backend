@@ -1,7 +1,7 @@
-<?php
+<?php 
 
-require "../../../utils/headers.php";
-require "../../../utils/middleware.php";
+require "../../../../utils/headers.php";
+require "../../../../utils/middleware.php";
 
 $authResult = adminAuthenticateRequest();
 if (!$authResult['authenticated']) {
@@ -15,7 +15,7 @@ if (!$authResult['authenticated']) {
 }
 
 if ($requestMethod === 'GET') {
-    require "../../../_db-connect.php";
+    require "../../../../_db-connect.php";
     global $conn;
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
@@ -43,7 +43,7 @@ if ($requestMethod === 'GET') {
     $adminData = mysqli_fetch_assoc($adminResult);
     $instituteId = $adminData['inst_id'];
 
-    $sectionSql = "SELECT s.id, s.form_section, s.inst_id, COUNT(f.id) AS total_fields FROM student_form_sections s LEFT JOIN student_form_fields f ON s.id = f.section_id AND f.inst_id = '$instituteId' WHERE (s.inst_id = '$instituteId' OR s.inst_id IS NULL) AND s.section_type = '$type' GROUP BY s.id ORDER BY s.id ASC";
+    $sectionSql = "SELECT s.id, s.form_section, s.inst_id, COUNT(f.id) AS total_fields FROM student_form_sections s LEFT JOIN student_form_fields f ON s.id = f.section_id AND (f.inst_id = '$instituteId' OR f.inst_id IS NULL) WHERE (s.inst_id = '$instituteId' OR s.inst_id IS NULL) AND s.section_type = '$type' GROUP BY s.id ORDER BY s.id ASC";
     $sectionResult = mysqli_query($conn, $sectionSql);
 
     $sections = [];
@@ -73,3 +73,5 @@ if ($requestMethod === 'GET') {
     header("HTTP/1.0 405 Method Not Allowed");
     echo json_encode($data);
 }
+
+?>
