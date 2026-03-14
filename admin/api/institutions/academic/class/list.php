@@ -13,21 +13,10 @@ if (!$authResult['authenticated']) {
     exit;
 }
 
-if ($requestMethod === 'POST') {
+if ($requestMethod === 'GET') {
     require "../../../../../_db-connect.php";
     global $conn;
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
-
-    $inputData = json_decode(file_get_contents("php://input"), true);
-    if (empty($inputData)) {
-        $data = [
-            'status' => 400,
-            'message' => 'Empty request data'
-        ];
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode($data);
-        exit;
-    }
 
     $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
     $adminResult = mysqli_query($conn, $adminSql);
@@ -43,29 +32,28 @@ if ($requestMethod === 'POST') {
     $adminData = mysqli_fetch_assoc($adminResult);
     $instituteId = $adminData['inst_id'];
 
-    $academicLevelId = mysqli_real_escape_string($conn, $inputData['academicLevelId']);
-    $class = mysqli_real_escape_string($conn, $inputData['class']);
+    $sql = "SELECT `id`, `level_id`, `class`, `sections` FROM `academic_class_sections` WHERE `inst_id`='$instituteId'";
+    $result = mysqli_query($conn, $sql);
 
-    $checkSql = "SELECT * FROM `academic_class_sections` WHERE `inst_id`='$instituteId' AND `class`='$class'";
-    $checkResult = mysqli_query($conn, $checkSql);
+    if ($result) {
+        $classes = [];
 
-    if ($checkResult && mysqli_num_rows($checkResult) === 1) {
-        $data = [
-            'status' => 400,
-            'message' => 'This class already created.'
-        ];
-        header("HTTP/1.0 400 Already exists");
-        echo json_encode($data);
-        exit;
-    }
-
-    $insertSql = "INSERT INTO `academic_class_sections`(`inst_id`, `level_id`, `class`) VALUES ('$instituteId','$academicLevelId','$class')";
-    $insertResult = mysqli_query($conn, $insertSql);
-
-    if ($insertResult) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $sectionsArray = [];
+            if (!empty($row['sections'])) {
+                $sectionsArray = explode(',', $row['sections']);
+            }
+            $classes[] = [
+                "id" => $row['id'],
+                "level_id" => $row['level_id'],
+                "class" => $row['class'],
+                "sections" => $sectionsArray
+            ];
+        }
         $data = [
             'status' => 200,
-            'message' => 'Class added successfully.'
+            'message' => 'Classes fetched.',
+            'classes' => $classes
         ];
         header("HTTP/1.0 200 OK");
         echo json_encode($data);

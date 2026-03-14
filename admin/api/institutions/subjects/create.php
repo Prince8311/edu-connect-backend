@@ -51,8 +51,7 @@ if ($requestMethod === 'POST') {
     if ($checkResult && mysqli_num_rows($checkResult) === 1) {
         $data = [
             'status' => 400,
-            'message' => 'This subject already added
-            .'
+            'message' => 'This subject already added.'
         ];
         header("HTTP/1.0 400 Already exists");
         echo json_encode($data);
