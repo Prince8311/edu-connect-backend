@@ -49,51 +49,54 @@ if ($requestMethod === 'POST') {
     $checkSql = "SELECT * FROM `academic_class_sections` WHERE `inst_id`='$instituteId' AND `class`='$class' AND `level_id`='$academicLevelId' LIMIT 1";
     $checkResult = mysqli_query($conn, $checkSql);
 
-    if ($checkResult && mysqli_num_rows($checkResult) > 0) {
-        $row = mysqli_fetch_assoc($checkResult);
-        $sections = $row['sections'];
+    if (!$checkResult) {
+        $data = [
+            'status' => 500,
+            'message' => 'Internal Server Error.'
+        ];
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode($data);
+    }
 
-        $sectionsArray = explode(",", $sections);
-        $lastSection = end($sectionsArray);
-        $nextSection = chr(ord($lastSection) + 1);
-        $sectionsArray[] = $nextSection;
-        $updatedSections = implode(",", $sectionsArray);
+    $row = mysqli_fetch_assoc($checkResult);
+    $sections = $row['sections'];
 
-        $updateSql = "UPDATE `academic_class_sections` SET `sections`='$updatedSections' WHERE `id`='{$row['id']}'";
-        $updateResult = mysqli_query($conn, $updateSql);
-        if ($updateResult) {
-            $data = [
-                'status' => 200,
-                'message' => 'Section added successfully.'
-            ];
-            header("HTTP/1.0 200 OK");
-            echo json_encode($data);
-        } else {
-            $data = [
-                'status' => 500,
-                'message' => 'Failed to update section.'
-            ];
-            header("HTTP/1.0 500 Internal Server Error");
-            echo json_encode($data);
-        }
+    if (empty($sections)) {
+        $updatedSections = "A";
+        $newSection = "A";
     } else {
-        $insertSql = "INSERT INTO `academic_class_sections`(`inst_id`,`level_id`,`class`,`sections`) VALUES ('$instituteId','$academicLevelId','$class','A')";
-        $insertResult = mysqli_query($conn, $insertSql);
-        if ($insertResult) {
-            $data = [
-                'status' => 200,
-                'message' => 'Section added successfully.'
-            ];
-            header("HTTP/1.0 200 OK");
-            echo json_encode($data);
-        } else {
-            $data = [
-                'status' => 500,
-                'message' => 'Failed to update section.'
-            ];
-            header("HTTP/1.0 500 Internal Server Error");
-            echo json_encode($data);
+        $sectionsArray = explode(",", $sections);
+        $lastSection = trim(end($sectionsArray));
+
+        if ($lastSection === 'Z') {
+            echo json_encode([
+                "status" => 400,
+                "message" => "Maximum section limit reached"
+            ]);
+            exit;
         }
+
+        $newSection = chr(ord($lastSection) + 1);
+        $sectionsArray[] = $newSection;
+        $updatedSections = implode(",", $sectionsArray);
+    }
+
+    $updateSql = "UPDATE `academic_class_sections` SET `sections`='$updatedSections' WHERE `id`='{$row['id']}'";
+    $updateResult = mysqli_query($conn, $updateSql);
+    if ($updateResult) {
+        $data = [
+            'status' => 200,
+            'message' => 'Section added successfully.'
+        ];
+        header("HTTP/1.0 200 OK");
+        echo json_encode($data);
+    } else {
+        $data = [
+            'status' => 500,
+            'message' => 'Failed to update section.'
+        ];
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode($data);
     }
 } else {
     $data = [
