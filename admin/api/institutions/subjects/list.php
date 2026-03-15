@@ -36,7 +36,7 @@ if ($requestMethod === 'GET') {
     $page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0
         ? (int) $_GET['page']
         : 1;
-    $showAll = isset($_GET['showAll']) && $_GET['showAll'] === 'true';
+    $showAll = isset($_GET['showAll']) && $_GET['showAll'] === 'false';
     $offset = ($page - 1) * $limit;
 
     // -----------------------
