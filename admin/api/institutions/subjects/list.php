@@ -36,8 +36,9 @@ if ($requestMethod === 'GET') {
     $page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0
         ? (int) $_GET['page']
         : 1;
+    $showAll = isset($_GET['showAll']) && $_GET['showAll'] === 'true';
     $offset = ($page - 1) * $limit;
-    
+
     // -----------------------
     // SEARCH CONDITION
     // -----------------------
@@ -58,7 +59,11 @@ if ($requestMethod === 'GET') {
     // -----------------------
     // DATA QUERY (with LIMIT)
     // -----------------------
-    $sql = "SELECT `id`, `inst_id`, `subject_name` FROM `institution_subjects` WHERE `inst_id` = '$instituteId' $searchCondition ORDER BY id ASC LIMIT $limit OFFSET $offset";
+    if ($showAll) {
+        $sql = "SELECT `id`, `inst_id`, `subject_name` FROM `institution_subjects` WHERE `inst_id` = '$instituteId' $searchCondition ORDER BY id ASC";
+    } else {
+        $sql = "SELECT `id`, `inst_id`, `subject_name` FROM `institution_subjects` WHERE `inst_id` = '$instituteId' $searchCondition ORDER BY id ASC LIMIT $limit OFFSET $offset";
+    }
     $result = mysqli_query($conn, $sql);
 
     if ($result) {
@@ -68,7 +73,7 @@ if ($requestMethod === 'GET') {
             'status' => 200,
             'message' => 'All subjects fetched.',
             'totalCount' => $totalSubjects,
-            'currentPage' => $page,
+            'currentPage' => $showAll ? null : $page,
             'subjects' => $subjects
         ];
         header("HTTP/1.0 200 subjects");
