@@ -80,7 +80,7 @@ if ($requestMethod === 'POST') {
         foreach ($students as $student) {
             $enrollmentId = generateEnrollmentId($instituteId, $session);
 
-            $studentInsertSql = "INSERT INTO `students` (`inst_id`, `enrollment_id`, `created_at`) VALUES ('$instituteId', '$enrollmentId', NOW())";
+            $studentInsertSql = "INSERT INTO `students`(`inst_id`, `enrollment_id`, `created_at`) VALUES ('$instituteId', '$enrollmentId', NOW())";
 
             if (!mysqli_query($conn, $studentInsertSql)) {
                 throw new Exception("Failed to insert student");
@@ -94,7 +94,7 @@ if ($requestMethod === 'POST') {
                 $fieldName = mysqli_real_escape_string($conn, $field['field_name']);
                 $value = mysqli_real_escape_string($conn, $field['value']);
 
-                $fieldInsertSql = "INSERT INTO `student_field_values` (`inst_id`, `student_id`, `section_id`, `field_name`, `value`) VALUES ('$instituteId', '$studentId', '$sectionId', '$fieldName', '$value')";
+                $fieldInsertSql = "INSERT INTO `student_field_values`(`inst_id`, `student_id`, `section_id`, `field_name`, `value`) VALUES ('$instituteId', '$studentId', '$sectionId', '$fieldName', '$value')";
 
                 if (!mysqli_query($conn, $fieldInsertSql)) {
                     throw new Exception("Failed to insert student field value");
