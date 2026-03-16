@@ -20,7 +20,7 @@ if ($requestMethod === 'GET') {
     global $conn;
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
-    $sql = "SELECT a.id, a.name, a.image, a.email, a.phone, a.status, a.user_role, i.inst_id, i.location FROM admin_users a JOIN institutions i ON i.admin_id = a.id WHERE a.id = '$userId' LIMIT 1";
+    $sql = "SELECT a.id, a.name, a.image, a.email, a.phone, a.status, a.user_type, a.user_role, i.inst_id, i.location FROM admin_users a JOIN institutions i ON i.admin_id = a.id WHERE a.id = '$userId' LIMIT 1";
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) > 0) {
