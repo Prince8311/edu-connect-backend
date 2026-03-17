@@ -43,7 +43,7 @@ if ($requestMethod === 'POST') {
         $data = [
             'status' => 400,
             'message' => "This field doesn't exists.",
-            'inst_id' => $instituteId
+            'fieldId' => $fieldId
         ];
         header("HTTP/1.0 400 Bad request");
         echo json_encode($data);
