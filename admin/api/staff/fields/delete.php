@@ -46,7 +46,7 @@ if ($requestMethod === 'POST') {
     $sectionId = mysqli_real_escape_string($conn, $inputData['sectionId']);
     $fieldId = mysqli_real_escape_string($conn, $inputData['fieldId']);
 
-    $checkSql = "SELECT * FROM `student_form_fields` WHERE `id`='$fieldId' AND `inst_id`='$instituteId' AND `section_id`='$sectionId'";
+    $checkSql = "SELECT * FROM `staff_form_fields` WHERE `id`='$fieldId' AND `inst_id`='$instituteId' AND `section_id`='$sectionId'";
     $checkResult = mysqli_query($conn, $checkSql);
 
     if ($checkResult && mysqli_num_rows($checkResult) === 0) {
@@ -59,7 +59,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $deleteSql = "DELETE FROM `student_form_fields` WHERE `id`='$fieldId' AND `inst_id`='$instituteId' AND `section_id`='$sectionId'";
+    $deleteSql = "DELETE FROM `staff_form_fields` WHERE `id`='$fieldId' AND `inst_id`='$instituteId' AND `section_id`='$sectionId'";
     $deleteResult = mysqli_query($conn, $deleteSql);
 
     if ($deleteResult) {
