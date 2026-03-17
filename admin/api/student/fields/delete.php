@@ -19,6 +19,18 @@ if ($requestMethod === 'POST') {
     global $conn;
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
+    $inputData = json_decode(file_get_contents("php://input"), true);
+
+    if (empty($inputData)) {
+        $data = [
+            'status' => 400,
+            'message' => 'Empty request data'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+    
     $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
     $adminResult = mysqli_query($conn, $adminSql);
 

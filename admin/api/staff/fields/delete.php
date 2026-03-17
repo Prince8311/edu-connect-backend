@@ -19,6 +19,18 @@ if ($requestMethod === 'POST') {
     global $conn;
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
+    $inputData = json_decode(file_get_contents("php://input"), true);
+
+    if (empty($inputData)) {
+        $data = [
+            'status' => 400,
+            'message' => 'Empty request data'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+
     $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
     $adminResult = mysqli_query($conn, $adminSql);
 
@@ -36,14 +48,13 @@ if ($requestMethod === 'POST') {
     $sectionId = mysqli_real_escape_string($conn, $inputData['sectionId']);
     $fieldId = mysqli_real_escape_string($conn, $inputData['fieldId']);
 
-    $checkSql = "SELECT * FROM `staff_form_fields` WHERE `id`='$fieldId'";
+    $checkSql = "SELECT * FROM `staff_form_fields` WHERE `id`='$fieldId' AND `inst_id`='$instituteId' AND `section_id`='$sectionId'";
     $checkResult = mysqli_query($conn, $checkSql);
 
     if ($checkResult && mysqli_num_rows($checkResult) === 0) {
         $data = [
             'status' => 400,
             'message' => "This field doesn't exists.",
-            'fieldId' => $fieldId
         ];
         header("HTTP/1.0 400 Bad request");
         echo json_encode($data);
