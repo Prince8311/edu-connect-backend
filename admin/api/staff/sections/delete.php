@@ -45,29 +45,29 @@ if ($requestMethod === 'POST') {
     $adminData = mysqli_fetch_assoc($adminResult);
     $instituteId = $adminData['inst_id'];
 
+    $sectionId = mysqli_real_escape_string($conn, $inputData['sectionId']);
     $section = mysqli_real_escape_string($conn, $inputData['section']);
-    $sectionType = mysqli_real_escape_string($conn, $inputData['sectionType']);
 
-    $checkSql = "SELECT * FROM `student_form_sections` WHERE `inst_id`='$instituteId' AND `form_section`='$section'";
+    $checkSql = "SELECT * FROM `staff_form_sections` WHERE `id`='$sectionId' AND `inst_id`='$instituteId' AND `form_section`='$section'";
     $checkResult = mysqli_query($conn, $checkSql);
 
-    if ($checkResult && mysqli_num_rows($checkResult) === 1) {
+    if ($checkResult && mysqli_num_rows($checkResult) === 0) {
         $data = [
             'status' => 400,
-            'message' => 'This section already created.'
+            'message' => "This section doesn't exists."
         ];
-        header("HTTP/1.0 400 Already exists");
+        header("HTTP/1.0 400 Bad request");
         echo json_encode($data);
         exit;
     }
 
-    $insertSql = "INSERT INTO `student_form_sections`(`inst_id`, `form_section`, `section_type`) VALUES ('$instituteId','$section','$sectionType')";
-    $insertResult = mysqli_query($conn, $insertSql);
+    $deleteSql = "DELETE FROM `student_form_sections` WHERE `id`='$sectionId' AND `inst_id`='$instituteId' AND `form_section`='$section'";
+    $deleteResult = mysqli_query($conn, $deleteSql);
 
-    if ($insertResult) {
+    if ($deleteResult) {
         $data = [
             'status' => 200,
-            'message' => 'Section created successfully.'
+            'message' => "Section removed successfully."
         ];
         header("HTTP/1.0 200 OK");
         echo json_encode($data);

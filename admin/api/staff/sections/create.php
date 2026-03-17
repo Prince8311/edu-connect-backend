@@ -5,12 +5,11 @@ require "../../../../utils/middleware.php";
 
 $authResult = adminAuthenticateRequest();
 if (!$authResult['authenticated']) {
-    $data = [
+    header("HTTP/1.0 " . $authResult['status']);
+    echo json_encode([
         'status' => $authResult['status'],
         'message' => $authResult['message']
-    ];
-    header("HTTP/1.0 " . $authResult['status']);
-    echo json_encode($data);
+    ]);
     exit;
 }
 
@@ -48,7 +47,7 @@ if ($requestMethod === 'POST') {
     $section = mysqli_real_escape_string($conn, $inputData['section']);
     $sectionType = mysqli_real_escape_string($conn, $inputData['sectionType']);
 
-    $checkSql = "SELECT * FROM `student_form_sections` WHERE `inst_id`='$instituteId' AND `form_section`='$section'";
+    $checkSql = "SELECT * FROM `staff_form_sections` WHERE `inst_id`='$instituteId' AND `form_section`='$section'";
     $checkResult = mysqli_query($conn, $checkSql);
 
     if ($checkResult && mysqli_num_rows($checkResult) === 1) {
@@ -61,7 +60,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $insertSql = "INSERT INTO `student_form_sections`(`inst_id`, `form_section`, `section_type`) VALUES ('$instituteId','$section','$sectionType')";
+    $insertSql = "INSERT INTO `staff_form_sections`(`inst_id`, `form_section`, `section_type`) VALUES ('$instituteId','$section','$sectionType')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {
