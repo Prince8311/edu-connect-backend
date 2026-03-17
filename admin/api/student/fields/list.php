@@ -47,7 +47,7 @@ if ($requestMethod === 'GET') {
     $checkSectionResult = mysqli_query($conn, $checkSectionSql);
 
     if ($checkSectionResult && mysqli_num_rows($checkSectionResult) === 1) {
-        $fieldSql = "SELECT `id`, `inst_id`, `form_field`, `field_type`, `is_required`, `items`, `sort_order` FROM `student_form_fields` WHERE (`inst_id`='$instituteId' OR inst_id IS NULL) AND `section_id`='$sectionId' ORDER BY sort_order ASC";
+        $fieldSql = "SELECT `id`, `inst_id`, `section_id`, `form_field`, `field_type`, `is_required`, `items`, `sort_order` FROM `student_form_fields` WHERE (`inst_id`='$instituteId' OR inst_id IS NULL) AND `section_id`='$sectionId' ORDER BY sort_order ASC";
         $fieldResult = mysqli_query($conn, $fieldSql);
 
         if ($fieldResult) {
