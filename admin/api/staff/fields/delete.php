@@ -42,7 +42,8 @@ if ($requestMethod === 'POST') {
     if ($checkResult && mysqli_num_rows($checkResult) === 0) {
         $data = [
             'status' => 400,
-            'message' => "This field doesn't exists."
+            'message' => "This field doesn't exists.",
+            'inst_id' => $inst_id
         ];
         header("HTTP/1.0 400 Bad request");
         echo json_encode($data);
