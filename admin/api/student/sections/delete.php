@@ -61,17 +61,31 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $deleteSql = "DELETE FROM `student_form_sections` WHERE `id`='$sectionId' AND `inst_id`='$instituteId' AND `form_section`='$section'";
-    $deleteResult = mysqli_query($conn, $deleteSql);
+    mysqli_begin_transaction($conn);
 
-    if ($deleteResult) {
-        $data = [
+    try {
+        $deleteFieldsSql = "DELETE FROM `student_form_fields` WHERE `inst_id`='$instituteId' AND `section_id`='$sectionId'";
+        $deleteFieldsResult = mysqli_query($conn, $deleteFieldsSql);
+        if (!$deleteFieldsResult) {
+            throw new Exception("Failed to delete fields: " . mysqli_error($conn));
+        }
+
+        $deleteSectionSql = "DELETE FROM `student_form_sections` WHERE `id`='$sectionId' AND `inst_id`='$instituteId' AND `form_section`='$section'";
+        $deleteSectionResult = mysqli_query($conn, $deleteSectionSql);
+
+        if (!$deleteSectionResult) {
+            throw new Exception("Failed to delete section: " . mysqli_error($conn));
+        }
+
+        mysqli_commit($conn);
+
+        echo json_encode([
             'status' => 200,
             'message' => "Section removed successfully."
-        ];
-        header("HTTP/1.0 200 OK");
-        echo json_encode($data);
-    } else {
+        ]);
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+
         $data = [
             'status' => 500,
             'message' => 'Database error: ' . mysqli_error($conn)
