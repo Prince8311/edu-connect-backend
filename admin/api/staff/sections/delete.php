@@ -61,7 +61,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $deleteSql = "DELETE FROM `student_form_sections` WHERE `id`='$sectionId' AND `inst_id`='$instituteId' AND `form_section`='$section'";
+    $deleteSql = "DELETE FROM `staff_form_sections` WHERE `id`='$sectionId' AND `inst_id`='$instituteId' AND `form_section`='$section'";
     $deleteResult = mysqli_query($conn, $deleteSql);
 
     if ($deleteResult) {
