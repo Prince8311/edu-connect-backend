@@ -6,12 +6,11 @@ require "../../utils/middleware.php";
 $authResult = adminAuthenticateRequest();
 
 if (!$authResult['authenticated']) {
-    $data = [
+    echo json_encode([
         'status' => $authResult['status'],
         'message' => $authResult['message']
-    ];
+    ]);
     header("HTTP/1.0 " . $authResult['status']);
-    echo json_encode($data);
     exit;
 }
 
@@ -20,52 +19,57 @@ if ($requestMethod === 'GET') {
     global $conn;
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
-    $sql = "SELECT a.id, a.name, a.image, a.email, a.phone, a.status, a.user_type, a.user_role, i.inst_id, i.location FROM admin_users a JOIN institutions i ON i.admin_id = a.id WHERE a.id = '$userId' LIMIT 1";
-    $result = mysqli_query($conn, $sql);
+    $userSql = "SELECT `id`, `name`, `image`, `email`, `phone`, `status`, `user_type`, `user_role` FROM `admin_users` WHERE `id` = '$userId' LIMIT 1";
+    $userResult = mysqli_query($conn, $userSql);
 
-    if (mysqli_num_rows($result) > 0) {
-        $user = mysqli_fetch_assoc($result);
-        $session = null;
+    if ($userResult && mysqli_num_rows($userResult) > 0) {
+        $user = mysqli_fetch_assoc($userResult);
+        $user['inst_id'] = null;
+        $user['location'] = null;
+        $user['session'] = null;
 
         if ($user['user_type'] === 'inst_admin') {
-            $instId = $user['inst_id'];
+            $instSql = "SELECT `inst_id`, `location` FROM `institutions` WHERE `admin_id` = '{$user['id']}' LIMIT 1";
+            $instResult = mysqli_query($conn, $instSql);
 
-            $sessionSql = "SELECT `sesssion_name`, `start_date`, `end_date` FROM `academic_sessions` WHERE `inst_id` = '$instId' AND `status` = 'Ongoing' LIMIT 1";
-            $sessionResult = mysqli_query($conn, $sessionSql);
+            if ($instResult && mysqli_num_rows($instResult) > 0) {
+                $inst = mysqli_fetch_assoc($instResult);
 
-            if ($sessionResult && mysqli_num_rows($sessionResult) > 0) {
-                $sessionRow = mysqli_fetch_assoc($sessionResult);
+                $user['inst_id'] = $inst['inst_id'];
+                $user['location'] = $inst['location'];
+                $instId = $inst['inst_id'];
 
-                $session = [
-                    "name" => $sessionRow['sesssion_name'],
-                    "start" => $sessionRow['start_date'],
-                    "end" => $sessionRow['end_date']
-                ];
+                $sessionSql = "SELECT `sesssion_name`, `start_date`, `end_date` FROM `academic_sessions` WHERE `inst_id` = '$instId' AND `status` = 'Ongoing' LIMIT 1";
+                $sessionResult = mysqli_query($conn, $sessionSql);
+
+                if ($sessionResult && mysqli_num_rows($sessionResult) > 0) {
+                    $sessionRow = mysqli_fetch_assoc($sessionResult);
+                    $user['session'] = [
+                        "name" => $sessionRow['sesssion_name'],
+                        "start" => $sessionRow['start_date'],
+                        "end" => $sessionRow['end_date']
+                    ];
+                }
             }
         }
 
-        $user['session'] = $session;
-        $data = [
+        echo json_encode([
             'status' => 200,
             'message' => 'Authenticated',
             'user' => $user
-        ];
-
+        ]);
         header("HTTP/1.0 200 Authenticated");
-        echo json_encode($data);
     } else {
-        $data = [
+        echo json_encode([
             'status' => 400,
             'message' => 'No Authentication'
-        ];
+        ]);
         header("HTTP/1.0 400 No Authentication");
-        echo json_encode($data);
     }
 } else {
-    $data = [
+    echo json_encode([
         'status' => 405,
         'message' => $requestMethod . ' Method Not Allowed',
-    ];
+    ]);
     header("HTTP/1.0 405 Method Not Allowed");
-    echo json_encode($data);
 }
