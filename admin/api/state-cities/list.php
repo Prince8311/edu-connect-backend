@@ -19,7 +19,7 @@ if ($requestMethod === 'GET') {
     global $conn;
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
-    $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
+    $adminSql = "SELECT * FROM `admin_users` WHERE `id` = '$userId' LIMIT 1";;
     $adminResult = mysqli_query($conn, $adminSql);
 
     if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
