@@ -25,20 +25,23 @@ if ($requestMethod === 'GET') {
 
     if (mysqli_num_rows($result) > 0) {
         $user = mysqli_fetch_assoc($result);
-        $instId = $user['inst_id'];
-
-        $sessionSql = "SELECT sesssion_name, start_date, end_date FROM academic_sessions WHERE inst_id = '$instId' AND status = 'Ongoing' LIMIT 1";
-        $sessionResult = mysqli_query($conn, $sessionSql);
         $session = null;
 
-        if ($sessionResult && mysqli_num_rows($sessionResult) > 0) {
-            $sessionRow = mysqli_fetch_assoc($sessionResult);
+        if ($user['user_type'] === 'inst_admin') {
+            $instId = $user['inst_id'];
 
-            $session = [
-                "name" => $sessionRow['sesssion_name'],
-                "start" => $sessionRow['start_date'],
-                "end" => $sessionRow['end_date']
-            ];
+            $sessionSql = "SELECT `sesssion_name`, `start_date`, `end_date` FROM `academic_sessions` WHERE `inst_id` = '$instId' AND `status` = 'Ongoing' LIMIT 1";
+            $sessionResult = mysqli_query($conn, $sessionSql);
+
+            if ($sessionResult && mysqli_num_rows($sessionResult) > 0) {
+                $sessionRow = mysqli_fetch_assoc($sessionResult);
+
+                $session = [
+                    "name" => $sessionRow['sesssion_name'],
+                    "start" => $sessionRow['start_date'],
+                    "end" => $sessionRow['end_date']
+                ];
+            }
         }
 
         $user['session'] = $session;
