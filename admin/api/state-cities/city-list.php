@@ -29,6 +29,7 @@ if ($requestMethod === 'GET') {
     }
 
     $stateName = mysqli_real_escape_string($conn, $_GET['name']);
+    $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
     $adminSql = "SELECT * FROM `admin_users` WHERE `id` = '$userId' LIMIT 1";;
     $adminResult = mysqli_query($conn, $adminSql);
 
@@ -41,6 +42,11 @@ if ($requestMethod === 'GET') {
     }
 
     $sql = "SELECT `city` AS `name` FROM `state_cities` WHERE `state`='$stateName'";
+    if (!empty($search)) {
+        $sql .= " AND `city` LIKE '%$search%'";
+    }
+    $sql .= " ORDER BY `city` ASC";
+    
     $result = mysqli_query($conn, $sql);
 
     if ($result) {
