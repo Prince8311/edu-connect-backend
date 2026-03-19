@@ -8,7 +8,8 @@ $authResult = adminAuthenticateRequest();
 if (!$authResult['authenticated']) {
     echo json_encode([
         'status' => $authResult['status'],
-        'message' => $authResult['message']
+        'message' => $authResult['message'],
+        'token' => $authResult['token']
     ]);
     header("HTTP/1.0 " . $authResult['status']);
     exit;
