@@ -40,7 +40,7 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
-    $sql = "SELECT `city` FROM `state_cities` WHERE `state`='$stateName'";
+    $sql = "SELECT `city` AS `name` FROM `state_cities` WHERE `state`='$stateName'";
     $result = mysqli_query($conn, $sql);
 
     if ($result) {
