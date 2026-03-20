@@ -43,7 +43,7 @@ if ($requestMethod === 'GET') {
         $sessions = mysqli_fetch_all($result, MYSQLI_ASSOC);
         $data = [
             'status' => 200,
-            'message' => 'Student form fetched.',
+            'message' => 'Sessions fetched.',
             'sessions' => $sessions
         ];
         header("HTTP/1.0 200 OK");

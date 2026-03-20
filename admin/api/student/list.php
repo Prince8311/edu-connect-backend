@@ -97,8 +97,8 @@ if ($requestMethod === 'GET') {
         }
         $data = [
             'status' => 200,
-            'message' => 'Student list.',
-            'fields' => $fields
+            'message' => 'Student list fetched successfully',
+            'data' => $students
         ];
         header("HTTP/1.0 200 OK");
         echo json_encode($data);

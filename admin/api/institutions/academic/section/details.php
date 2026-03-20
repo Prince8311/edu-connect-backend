@@ -26,6 +26,7 @@ if ($requestMethod === 'GET') {
         ];
         header("HTTP/1.0 400 Bad Request");
         echo json_encode($data);
+        exit;
     }
 
     $class = mysqli_real_escape_string($conn, $_GET['class']);
