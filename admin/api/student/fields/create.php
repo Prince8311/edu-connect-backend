@@ -76,7 +76,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $orderSql = "SELECT MAX(sort_order) as max_order FROM student_form_fields WHERE inst_id='$instituteId' AND section_id='$sectionId'";
+    $orderSql = "SELECT MAX(sort_order) as max_order FROM student_form_fields WHERE (`inst_id`='$instituteId' OR inst_id IS NULL) AND section_id='$sectionId'";
     $orderResult = mysqli_query($conn, $orderSql);
     $orderRow = mysqli_fetch_assoc($orderResult);
 
