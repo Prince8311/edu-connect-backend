@@ -43,6 +43,12 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
+    $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 10;
+    $page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0
+        ? (int)$_GET['page']
+        : 1;
+    $offset = ($page - 1) * $limit;
+
     $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
     $adminResult = mysqli_query($conn, $adminSql);
 
@@ -73,7 +79,12 @@ if ($requestMethod === 'GET') {
 
     $where = implode(" AND ", $conditions);
 
-    $sql = "SELECT s.id, s.enrollment_id, s.status, s.profile_image, MAX(CASE WHEN sfv.field_name = 'First Name' THEN sfv.value END) AS first_name, MAX(CASE WHEN sfv.field_name = 'Middle Name' THEN sfv.value END) AS middle_name, MAX(CASE WHEN sfv.field_name = 'Last Name' THEN sfv.value END) AS last_name, MAX(CASE WHEN sfv.field_name = 'Contact No.' THEN sfv.value END) AS contact_no FROM academic_class_sections acs JOIN student_field_values sfv ON acs.id = sfv.section_id JOIN students s ON s.id = sfv.student_id WHERE $where GROUP BY s.id, s.enrollment_id, s.status";
+    $countSql = "SELECT COUNT(DISTINCT s.id) as total FROM academic_class_sections acs JOIN student_field_values sfv ON acs.id = sfv.section_id JOIN students s ON s.id = sfv.student_id WHERE $where";
+    $countResult = mysqli_query($conn, $countSql);
+    $totalRow = mysqli_fetch_assoc($countResult);
+    $totalStudents = (int)$totalRow['total'];
+
+    $sql = "SELECT s.id, s.enrollment_id, s.status, s.profile_image, MAX(CASE WHEN sfv.field_name = 'First Name' THEN sfv.value END) AS first_name, MAX(CASE WHEN sfv.field_name = 'Middle Name' THEN sfv.value END) AS middle_name, MAX(CASE WHEN sfv.field_name = 'Last Name' THEN sfv.value END) AS last_name, MAX(CASE WHEN sfv.field_name = 'Contact No.' THEN sfv.value END) AS contact_no FROM academic_class_sections acs JOIN student_field_values sfv ON acs.id = sfv.section_id JOIN students s ON s.id = sfv.student_id WHERE $where GROUP BY s.id, s.enrollment_id, s.status ORDER BY s.id DESC LIMIT $limit OFFSET $offset";
     $result = mysqli_query($conn, $sql);
 
     if ($result) {
@@ -98,6 +109,8 @@ if ($requestMethod === 'GET') {
         $data = [
             'status' => 200,
             'message' => 'Student list fetched successfully',
+            'totalCount' => $totalStudents,
+            'currentPage' => $page,
             'students' => $students
         ];
         header("HTTP/1.0 200 OK");
