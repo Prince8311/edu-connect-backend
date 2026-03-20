@@ -49,11 +49,15 @@ if ($requestMethod === 'GET') {
         }
 
         if ($row['field_id'] !== null) {
-            $decodedItems = null;
             if (!empty($row['items'])) {
-                $decodedItems = json_decode($row['items'], true);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    $decodedItems = null;
+                if ($row['source'] === 'server') {
+                    $decodedItems = $row['items'];
+                } else {
+                    $decodedItems = json_decode($row['items'], true);
+
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        $decodedItems = null;
+                    }
                 }
             }
             $sections[$sectionId]['fields'][] = [
