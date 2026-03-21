@@ -37,6 +37,7 @@ if ($requestMethod === 'POST') {
     $adminResult = mysqli_query($conn, $adminSql);
 
     if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
+        header("HTTP/1.0 401 Bad request");
         echo json_encode([
             "status" => 401,
             "message" => "Invalid token or institute not found"
@@ -51,6 +52,7 @@ if ($requestMethod === 'POST') {
     $checkResult = mysqli_query($conn, $checkSql);
 
     if (!$checkResult || mysqli_num_rows($checkResult) === 0) {
+        header("HTTP/1.0 404 Bad request");
         echo json_encode([
             'status' => 404,
             'message' => 'Class or sections not found'
@@ -62,6 +64,7 @@ if ($requestMethod === 'POST') {
     $sections = $row['sections'];
 
     if (empty($sections)) {
+        header("HTTP/1.0 404 Bad request");
         echo json_encode([
             'status' => 404,
             'message' => 'No sections available for this class'
@@ -80,6 +83,7 @@ if ($requestMethod === 'POST') {
             $duplicateResult = mysqli_query($conn, $duplicateSql);
 
             if (mysqli_num_rows($duplicateResult) > 0) {
+                header("HTTP/1.0 404 Bad request");
                 echo json_encode([
                     'status' => 404,
                     'message' => 'Subject already added to this section.'
@@ -87,7 +91,7 @@ if ($requestMethod === 'POST') {
                 exit;
             }
 
-            $insertSql = "INSERT INTO `class_wise_subjects`(`inst_id`, `subject`, `level_id`, `class`, `section`, `is_mandatory`, `students`) VALUES ('$instituteId', '$subject', '$academicLevelId', '$class', '$sectionValue', 0, NULL)";
+            $insertSql = "INSERT INTO `class_wise_subjects`(`inst_id`, `subject`, `level_id`, `class`, `section`, `is_mandatory`, `students`) VALUES ('$instituteId', '$subject', '$academicLevelId', '$class', '$sectionValue', 1, NULL)";
 
             if (!mysqli_query($conn, $insertSql)) {
                 throw new Exception("Insert failed for section: " . $sectionValue);

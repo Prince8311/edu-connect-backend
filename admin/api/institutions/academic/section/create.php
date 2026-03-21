@@ -36,6 +36,7 @@ if ($requestMethod === 'POST') {
     $adminResult = mysqli_query($conn, $adminSql);
 
     if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
+        header("HTTP/1.0 401 Bad request");
         echo json_encode([
             "status" => 401,
             "message" => "Invalid token or institute not found"
@@ -113,7 +114,7 @@ if ($requestMethod === 'POST') {
                 continue;
             }
 
-            $insertSql = "INSERT INTO `class_wise_subjects`(`inst_id`, `subject`, `level_id`, `class`, `section`, `is_mandatory`, `students`) VALUES ('$instituteId', '$subject', '$academicLevelId', '$class', '$newSection', 0, NULL)";
+            $insertSql = "INSERT INTO `class_wise_subjects`(`inst_id`, `subject`, `level_id`, `class`, `section`, `is_mandatory`, `students`) VALUES ('$instituteId', '$subject', '$academicLevelId', '$class', '$newSection', 1, NULL)";
 
             if (!mysqli_query($conn, $insertSql)) {
                 throw new Exception("Failed inserting subject for section");
