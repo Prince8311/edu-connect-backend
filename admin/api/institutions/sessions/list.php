@@ -44,7 +44,7 @@ if ($requestMethod === 'GET') {
         $data = [
             'status' => 200,
             'message' => 'Sessions fetched.',
-            'data' => $sessions
+            'sessions' => $sessions
         ];
         header("HTTP/1.0 200 OK");
         echo json_encode($data);
