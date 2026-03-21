@@ -50,32 +50,61 @@ if ($requestMethod === 'POST') {
     $checkSql = "SELECT `sections` FROM `academic_class_sections` WHERE `inst_id`='$instituteId' AND `level_id`='$academicLevelId' AND `class`='$class' LIMIT 1";
     $checkResult = mysqli_query($conn, $checkSql);
 
-    $subjectSections = null;
-    if ($checkResult && mysqli_num_rows($checkResult) > 0) {
-        $row = mysqli_fetch_assoc($checkResult);
-        $sections = $row['sections'];
-
-        if (!empty($sections)) {
-            $sectionsArray = explode(",", $sections);
-            $mappedSections = [];
-            foreach ($sectionsArray as $sec) {
-                $mappedSections[] = trim($sec) . "-1";
-            }
-            $subjectSections = implode(",", $mappedSections);
-        }
+    if (!$checkResult || mysqli_num_rows($checkResult) === 0) {
+        echo json_encode([
+            'status' => 404,
+            'message' => 'Class or sections not found'
+        ]);
+        exit;
     }
 
-    $insertSql = "INSERT INTO `class_wise_subjects` (`inst_id`, `subject`, `level_id`, `class`, `sections`) VALUES ('$instituteId', '$subject', '$academicLevelId', '$class', " . ($subjectSections ? "'$subjectSections'" : "NULL") . ")";
-    $insertResult = mysqli_query($conn, $insertSql);
+    $row = mysqli_fetch_assoc($checkResult);
+    $sections = $row['sections'];
 
-    if ($insertResult) {
+    if (empty($sections)) {
+        echo json_encode([
+            'status' => 404,
+            'message' => 'No sections available for this class'
+        ]);
+        exit;
+    }
+
+    $sectionsArray = explode(",", $sections);
+
+    mysqli_begin_transaction($conn);
+
+    try {
+        foreach ($sectionsArray as $sec) {
+            $sectionValue = mysqli_real_escape_string($conn, trim($sec));
+            $duplicateSql = "SELECT id FROM class_wise_subjects WHERE inst_id='$instituteId' AND level_id='$academicLevelId' AND class='$class' AND section='$sectionValue' AND subject='$subject' LIMIT 1";
+            $duplicateResult = mysqli_query($conn, $duplicateSql);
+
+            if (mysqli_num_rows($duplicateResult) > 0) {
+                echo json_encode([
+                    'status' => 404,
+                    'message' => 'Subject already added to this section.'
+                ]);
+                exit;
+            }
+
+            $insertSql = "INSERT INTO `class_wise_subjects`(`inst_id`, `subject`, `level_id`, `class`, `section`, `is_mandatory`, `students`) VALUES ('$instituteId', '$subject', '$academicLevelId', '$class', '$sectionValue', 0, NULL)";
+
+            if (!mysqli_query($conn, $insertSql)) {
+                throw new Exception("Insert failed for section: " . $sectionValue);
+            }
+        }
+
+        mysqli_commit($conn);
+
         $data = [
             'status' => 200,
             'message' => 'Subject added successfully.'
         ];
         header("HTTP/1.0 200 OK");
         echo json_encode($data);
-    } else {
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+
         $data = [
             'status' => 500,
             'message' => 'Failed to add subject.'

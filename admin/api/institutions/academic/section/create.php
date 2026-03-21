@@ -52,11 +52,11 @@ if ($requestMethod === 'POST') {
         // --------------------------------
         // FETCH CLASS SECTIONS
         // --------------------------------
-        $sql = "SELECT id, sections FROM academic_class_sections WHERE inst_id='$instituteId' AND class='$class' AND level_id='$academicLevelId' LIMIT 1";
+        $sql = "SELECT `id`, `sections` FROM `academic_class_sections` WHERE `inst_id`='$instituteId' AND `class`='$class' AND `level_id`='$academicLevelId' LIMIT 1";
         $result = mysqli_query($conn, $sql);
 
-        if (!$result) {
-            throw new Exception("Failed to fetch sections");
+        if (!$result || mysqli_num_rows($result) === 0) {
+            throw new Exception("Class not found");
         }
 
         $row = mysqli_fetch_assoc($result);
@@ -84,36 +84,39 @@ if ($requestMethod === 'POST') {
         // --------------------------------
         // UPDATE academic_class_sections
         // --------------------------------
-        $updateSql = "UPDATE academic_class_sections SET sections='$updatedSections' WHERE id='{$row['id']}'";
+        $updateSql = "UPDATE `academic_class_sections` SET `sections`='$updatedSections' WHERE `id`='{$row['id']}'";
 
         if (!mysqli_query($conn, $updateSql)) {
             throw new Exception("Failed to update class sections");
         }
 
         // --------------------------------
-        // UPDATE class_wise_subjects
+        // FETCH DISTINCT SUBJECTS
         // --------------------------------
-        $subjectSql = "SELECT id, sections FROM class_wise_subjects WHERE inst_id='$instituteId' AND level_id='$academicLevelId' AND class='$class'";
+        $subjectSql = "SELECT DISTINCT `subject` FROM `class_wise_subjects` WHERE `inst_id`='$instituteId' AND `level_id`='$academicLevelId' AND `class`='$class'";
         $subjectResult = mysqli_query($conn, $subjectSql);
 
         if (!$subjectResult) {
-            throw new Exception("Failed to fetch subject sections");
+            throw new Exception("Failed to fetch subjects");
         }
 
+        // --------------------------------
+        // INSERT NEW SECTION FOR EACH SUBJECT
+        // --------------------------------
         while ($subjectRow = mysqli_fetch_assoc($subjectResult)) {
-            $subjectSections = $subjectRow['sections'];
-            if (empty($subjectSections)) {
-                $updatedSubjectSections = $newSection . "-1";
-            } else {
-                $arr = explode(",", $subjectSections);
-                $arr[] = $newSection . "-1";
-                $updatedSubjectSections = implode(",", $arr);
+            $subject = mysqli_real_escape_string($conn, $subjectRow['subject']);
+
+            $checkSql = "SELECT `id` FROM `class_wise_subjects` WHERE `inst_id`='$instituteId' AND `level_id`='$academicLevelId' AND `class`='$class' AND `section`='$newSection' AND `subject`='$subject' LIMIT 1";
+            $checkResult = mysqli_query($conn, $checkSql);
+
+            if (mysqli_num_rows($checkResult) > 0) {
+                continue;
             }
 
-            $updateSubjectSql = "UPDATE class_wise_subjects SET sections='$updatedSubjectSections' WHERE id='{$subjectRow['id']}'";
+            $insertSql = "INSERT INTO `class_wise_subjects`(`inst_id`, `subject`, `level_id`, `class`, `section`, `is_mandatory`, `students`) VALUES ('$instituteId', '$subject', '$academicLevelId', '$class', '$newSection', 0, NULL)";
 
-            if (!mysqli_query($conn, $updateSubjectSql)) {
-                throw new Exception("Failed to update subject sections");
+            if (!mysqli_query($conn, $insertSql)) {
+                throw new Exception("Failed inserting subject for section");
             }
         }
 
@@ -121,6 +124,7 @@ if ($requestMethod === 'POST') {
         // COMMIT
         // --------------------------------
         mysqli_commit($conn);
+
         $data = [
             'status' => 200,
             'message' => 'Section added successfully.'
