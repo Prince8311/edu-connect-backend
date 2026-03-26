@@ -16,6 +16,7 @@ $allowedOrigins = [
     'http://localhost:3000',
     'http://edu-connect.ticketbay.in',
     'https://edu-connect.ticketbay.in',
+    'https://educonnekt.in/',
 ];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, $allowedOrigins, true)) {
