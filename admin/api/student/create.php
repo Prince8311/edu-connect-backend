@@ -3,6 +3,9 @@
 require "../../../utils/headers.php";
 require "../../../utils/middleware.php";
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
+
 $authResult = adminAuthenticateRequest();
 if (!$authResult['authenticated']) {
     header("HTTP/1.0 " . $authResult['status']);
@@ -16,6 +19,103 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require "../../../_db-connect.php";
     global $conn;
+    require "../../../PHPMailer/Exception.php";
+    require "../../../PHPMailer/PHPMailer.php";
+    require "../../../PHPMailer/SMTP.php";
+
+    function findFieldValue(array $fields, array $keys)
+    {
+        $keys = array_map('strtolower', $keys);
+        foreach ($fields as $field) {
+            if (!isset($field['field_name'])) {
+                continue;
+            }
+            $fieldName = strtolower(trim($field['field_name']));
+            if (in_array($fieldName, $keys, true)) {
+                return $field['value'] ?? null;
+            }
+        }
+        return null;
+    }
+
+    function getStudentEmail(array $studentFields)
+    {
+        return findFieldValue($studentFields, ['Email']);
+    }
+
+    function getStudentFullName(array $studentFields)
+    {
+        $firstName = findFieldValue($studentFields, ['first name', 'first_name', 'firstname']) ?: '';
+        $middleName = findFieldValue($studentFields, ['middle name', 'middle_name', 'middlename']) ?: '';
+        $lastName = findFieldValue($studentFields, ['last name', 'last_name', 'lastname']) ?: '';
+        $fullName = trim($firstName . ' ' . $middleName . ' ' . $lastName);
+        return $fullName ?: 'Student';
+    }
+
+    function generateRandomPassword($length = 10)
+    {
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $password = '';
+        for ($i = 0; $i < $length; $i++) {
+            $password .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+        return $password;
+    }
+
+    function sendStudentEnrollmentEmail($email, $studentName, $enrollmentId, $session, $password)
+    {
+        if (empty($email)) {
+            return;
+        }
+
+        $studentName = $studentName ?: 'Student';
+        $mail = new PHPMailer(true);
+
+        try {
+            $mail->isSMTP();
+            $mail->Host       = 'mail.ticketbay.in';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = 'noreply@ticketbay.in';
+            $mail->Password   = 'abhay$ticketbay@2024';
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port       = 465;
+            $mail->CharSet    = 'UTF-8';
+
+            $mail->isHTML(true);
+            $mail->setFrom('noreply@ticketbay.in', 'noreply@ticketbay.in');
+            $mail->addAddress($email, $studentName);
+            $mail->Subject = 'Student record created successfully';
+            $mail->Body = '<!DOCTYPE html>
+                            <html lang="en">
+                                <head>
+                                    <meta charset="UTF-8">
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                </head>
+                                <body style="margin:0;padding:0;font-family:Arial,sans-serif;color:#333;">
+                                    <div style="padding:20px;">
+                                        <h2 style="color:#333;">Welcome, ' . htmlspecialchars($studentName, ENT_QUOTES) . '</h2>
+                                        <p style="font-size:14px;line-height:1.6;">
+                                        Your student record has been created successfully.
+                                        </p>
+                                        <p style="font-size:14px;line-height:1.6;">
+                                        Enrollment ID: <strong>' . htmlspecialchars($enrollmentId, ENT_QUOTES) . '</strong><br>
+                                        Session: <strong>' . htmlspecialchars($session, ENT_QUOTES) . '</strong><br>
+                                        Password: <strong>' . htmlspecialchars($password, ENT_QUOTES) . '</strong>
+                                        </p>
+                                        <p style="font-size:14px;line-height:1.6;">
+                                        Please keep this information for your records.
+                                        </p>
+                                        <p style="font-size:14px;line-height:1.6;">Regards,<br>Shetty Ticket Counter Pvt. Ltd.</p>
+                                    </div>
+                                </body>
+                            </html>';
+
+            $mail->send();
+        } catch (PHPMailerException $e) {
+            throw new \Exception('Failed to send enrollment email: ' . $e->getMessage());
+        }
+    }
+
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
     $inputData = json_decode(file_get_contents("php://input"), true);
@@ -80,7 +180,10 @@ if ($requestMethod === 'POST') {
         foreach ($students as $student) {
             $enrollmentId = generateEnrollmentId($instituteId, $session);
 
-            $studentInsertSql = "INSERT INTO `students`(`inst_id`, `enrollment_id`, `created_at`) VALUES ('$instituteId', '$enrollmentId', NOW())";
+            $studentPassword = generateRandomPassword(10);
+            $studentPasswordHash = password_hash($studentPassword, PASSWORD_DEFAULT);
+            $studentPasswordHash = mysqli_real_escape_string($conn, $studentPasswordHash);
+            $studentInsertSql = "INSERT INTO `students`(`inst_id`, `enrollment_id`, `password`, `created_at`) VALUES ('$instituteId', '$enrollmentId', '$studentPasswordHash', NOW())";
 
             if (!mysqli_query($conn, $studentInsertSql)) {
                 throw new Exception("Failed to insert student");
@@ -99,6 +202,12 @@ if ($requestMethod === 'POST') {
                 if (!mysqli_query($conn, $fieldInsertSql)) {
                     throw new Exception("Failed to insert student field value");
                 }
+            }
+
+            $studentEmail = getStudentEmail($studentFields);
+            $studentName = getStudentFullName($studentFields);
+            if (!empty($studentEmail)) {
+                sendStudentEnrollmentEmail($studentEmail, $studentName, $enrollmentId, $session, $studentPassword);
             }
         }
 
