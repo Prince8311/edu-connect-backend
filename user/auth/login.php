@@ -221,14 +221,27 @@ if ($requestMethod === 'POST') {
                 $userPassword = $data['password'];
 
                 if (password_verify($password, $userPassword)) {
-                    $data = [
-                        'success' => true,
-                        'status' => 200,
-                        'message' => 'Welcome back! You have successfully logged in.',
-                        'authToken' => $authToken
-                    ];
-                    header("HTTP/1.0 200 OK");
-                    echo json_encode($data);
+                    $insertSql = "INSERT INTO `user_auth_tokens`(`user_id`, `auth_token`, `expires_at`) VALUES ('$userId','$authToken','$tokenExpiresAt')";
+                    $insertResult = mysqli_query($conn, $insertSql);
+
+                    if ($insertResult) {
+                        $data = [
+                            'success' => true,
+                            'status' => 200,
+                            'message' => 'Welcome back! You have successfully logged in.',
+                            'authToken' => $authToken
+                        ];
+                        header("HTTP/1.0 200 OK");
+                        echo json_encode($data);
+                    } else {
+                        $data = [
+                            'success' => false,
+                            'status' => 500,
+                            'message' => 'Database error: ' . mysqli_error($conn)
+                        ];
+                        header("HTTP/1.0 500 Internal Server Error");
+                        echo json_encode($data);
+                    }
                 } else {
                     $data = [
                         'success' => false,
