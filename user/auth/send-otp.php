@@ -34,7 +34,9 @@ if ($requestMethod === 'POST') {
             $userData = mysqli_fetch_assoc($result);
             $input = $inputData['name'];
             $userId = $userData['id'];
-            $userName = $userData['name'];
+            $userName = $userData['name'] ?? '';
+            $userName = trim($userName);
+            $firstName = explode(' ', $userName)[0];
             $otp = rand(100000, 999999);
             $otpPart1 = substr($otp, 0, 3);
             $otpPart2 = substr($otp, 3, 3);
@@ -161,7 +163,7 @@ if ($requestMethod === 'POST') {
                 $senderid = getenv('SMS_SENDER_ID');
                 $tempid = getenv('AUTH_OTP_SMS_TEMPLATE_ID');
 
-                $message = "Dear $userName, your OTP for mobile no. verification to Edu Connekt is $otp. OTP is valid for 10 minutes. Please do not share the OTP.SHETTY TICKET COUNTER";
+                $message = "Dear $firstName, your OTP for Edu Connekt to login is $otp. OTP is valid for 10 minutes. Please do not share the OTP.SHETTY TICKET COUNTER";
                 $message_content = urlencode($message);
 
                 $url = "https://smsfortius.work/V2/?apikey=$key&senderid=$senderid&templateid=$tempid&number=$input&message=$message_content";
