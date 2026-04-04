@@ -33,8 +33,13 @@ if ($requestMethod === 'POST') {
         if (mysqli_num_rows($result) === 1) {
             $userData = mysqli_fetch_assoc($result);
             $input = $inputData['name'];
+            $userId = $userData['id'];
             $userName = $userData['name'];
             $otp = rand(100000, 999999);
+            $otpPart1 = substr($otp, 0, 3);
+            $otpPart2 = substr($otp, 3, 3);
+            $expiresAt = date("Y-m-d H:i:s", time() + 600);
+
             if ($input === $userData['email']) {
                 $mail = new PHPMailer(true);
 
@@ -76,7 +81,7 @@ if ($requestMethod === 'POST') {
                                                 <div style="position: relative; width: 100%;">
                                                     <div style="position: relative; background: #FFF; padding: 25px; border-radius: 10px; text-align: center;">
                                                         <div class="logo" style="position: relative; text-align: center;"><img
-                                                                src="https://educonnekt.in/images/logo.png" alt="Logo" style="height: 22px;"></div>
+                                                                src="https://api.edu-connect.ticketbay.in/images/logo.png" alt="Logo" style="height: 22px;"></div>
                                                         <div
                                                             style="position: relative; width: 300px; padding: 20px; margin: 0 auto; margin-top: 25px; background-color: #FFF;  border-radius: 10px; box-shadow: 0 0 10px rgba(126, 126, 126, 0.3);">
                                                             <div style="position: relative; font-size: 15px; font-weight: 500;">Verify Your Identity</div>
@@ -85,21 +90,20 @@ if ($requestMethod === 'POST') {
                                                                 the following One-Time Password (OTP) to complete your sign-in. This code is valid for <span
                                                                     class="poppins-font" style="color: #1e1e1e; font-weight: 500;">10 minutes.</span> </div>
                                                             <div
-                                                                style="position: relative; width: 100%; padding: 10px; background-color: #EFF1F2; margin-top: 15px; border-radius: 6px;  letter-spacing: 1px; font-size: 20px; font-weight: 600; color: #0072C3; box-shadow: 0 0 8px rgba(103, 103, 103, 0.3);">
-                                                                456 789</div>
+                                                                style="position: relative; width: 100%; padding: 8px 10px; background-color: #EFF1F2; margin-top: 15px; border-radius: 6px;  letter-spacing: 1px; font-size: 22px; font-weight: 600; color: #0072C3; box-shadow: 0 0 8px rgba(103, 103, 103, 0.3);">' . $otpPart1 . ' ' . $otpPart2 . '789</div>
                                                             <div class="poppins-font"
                                                                 style="position: relative; margin-top: 25px; padding-top: 8px; border-top: 1px solid #E1E0EA; font-size: 10px; color: #838383; font-weight: 300;">
                                                                 If you did not request this code, please ignore this email or contact support.</div>
                                                         </div>
                                                         <div style="position: relative; width: max-content; margin: 0 auto; margin-top: 25px; text-align: center;">
                                                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"
-                                                                style="background-color: #E6E7E8; border-radius: 999px; padding: 8px 20px 8px 16px;">
+                                                                style="background-color: #E6E7E8; border-radius: 999px; padding: 6px 20px 6px 16px;">
                                                                 <tr>
                                                                     <td style="vertical-align: middle;">
-                                                                        <img src="https://cdn-icons-png.flaticon.com/512/3064/3064197.png" alt="Secure"
-                                                                            style="width: 16px; height: 16px; display: block;">
+                                                                        <img src="https://api.edu-connect.ticketbay.in/images/security.svg" alt="Secure"
+                                                                            style="width: 12px; display: block;">
                                                                     </td>
-                                                                    <td style="vertical-align: middle; padding-left: 8px;">
+                                                                    <td style="vertical-align: middle; padding-left: 5px; padding-bottom: 3px;">
                                                                         <span class="poppins-font" style="font-size: 10px; font-weight: 500; color: #555;">
                                                                             SECURE AUTHENTICATION PROTOCOL
                                                                         </span>
@@ -107,11 +111,43 @@ if ($requestMethod === 'POST') {
                                                                 </tr>
                                                             </table>
                                                         </div>
+                                                        <div style="position: relative; width: 300px; margin: 0 auto; margin-top: 25px;">
+                                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
+                                                                <tr>
+                                                                    <td style="vertical-align: middle;">
+                                                                        <a href="https://educonnekt.in/privacy-policy" class="poppins-font" style="position: relative; font-size: 10px; text-decoration: none; color: #b3b3b3;">PRIVACY POLICY</a>
+                                                                    </td>
+                                                                    <td style="vertical-align: middle;">
+                                                                        <a href="https://educonnekt.in/terms-conditions" class="poppins-font" style="position: relative; font-size: 10px; text-decoration: none; color: #b3b3b3; margin-left: 25px;">TERMS OF SERVICE</a>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </div>
+                                                        <div class="poppins-font" style="position: relative; margin: 0 auto; margin-top: 5px; font-size: 10px; line-height: 1.3; color: #b3b3b3;">©2026 Edu Connekt by Shetty Ticket Counter Private Limited. All righs reserved.</div>
                                                     </div>
                                                 </div>
                                             </body>
                                         </html>';
                     $mail->send();
+
+                    $updateSql = "UPDATE `users` SET `mail_otp`='$otp',`mail_otp_expires_at`='$expiresAt' WHERE `id`='$userId'";
+                    $updateResult = mysqli_query($conn, $updateSql);
+
+                    if ($updateResult) {
+                        $data = [
+                            'status' => 200,
+                            'message' => 'OTP has been sent to your email.'
+                        ];
+                        header("HTTP/1.0 200 OK");
+                        echo json_encode($data);
+                    } else {
+                        $data = [
+                            'status' => 500,
+                            'message' => 'Internal Server Error',
+                        ];
+                        header("HTTP/1.0 500 Internal Server Error");
+                        echo json_encode($data);
+                    }
                 } catch (Exception $e) {
                     $data = [
                         'status' => 500,
@@ -121,6 +157,34 @@ if ($requestMethod === 'POST') {
                     echo json_encode($data);
                 }
             } else if ($input === $userData['phone']) {
+                $key = getenv('SMS_API_KEY');
+                $senderid = getenv('SMS_SENDER_ID');
+                $tempid = getenv('AUTH_OTP_SMS_TEMPLATE_ID');
+
+                $message = "Dear $userName, your OTP for mobile no. verification to Edu Connekt is $otp. OTP is valid for 10 minutes. Please do not share the OTP.SHETTY TICKET COUNTER";
+                $message_content = urlencode($message);
+
+                $url = "https://smsfortius.work/V2/?apikey=$key&senderid=$senderid&templateid=$tempid&number=$input&message=$message_content";
+                $output = file_get_contents($url);
+
+                $updateSql = "UPDATE `users` SET `phone_otp`='$otp',`phone_otp_expires_at`='$expiresAt' WHERE `id`='$userId'";
+                $updateResult = mysqli_query($conn, $updateSql);
+
+                if ($updateResult) {
+                    $data = [
+                        'status' => 200,
+                        'message' => 'OTP has been sent to your mobile no.'
+                    ];
+                    header("HTTP/1.0 200 OK");
+                    echo json_encode($data);
+                } else {
+                    $data = [
+                        'status' => 500,
+                        'message' => 'Internal Server Error',
+                    ];
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode($data);
+                }
             }
         } else {
             $data = [
