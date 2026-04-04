@@ -81,6 +81,17 @@ if ($requestMethod === 'POST') {
                 exit;
             }
             if ($loginByOtp) {
+                $otp = isset($inputData['otp']) ? trim($inputData['otp']) : null;
+                if (empty($otp)) {
+                    $data = [
+                        'success' => false,
+                        'status' => 400,
+                        'message' => 'OTP is required',
+                    ];
+                    header("HTTP/1.0 400 Bad Request");
+                    echo json_encode($data);
+                    exit;
+                }
                 $otp = mysqli_real_escape_string($conn, $inputData['otp']);
                 if ($user === $userEmail) {
                     $savedOtp = $data['mail_otp'];
@@ -91,7 +102,6 @@ if ($requestMethod === 'POST') {
                             'success' => false,
                             'status' => 401,
                             'message' => 'Authentication error',
-                            'userId' => $userId
                         ];
                         header("HTTP/1.0 401 Authentication error");
                         echo json_encode($data);
@@ -153,7 +163,6 @@ if ($requestMethod === 'POST') {
                             'success' => false,
                             'status' => 401,
                             'message' => 'Authentication error',
-                            'userId' => $userId
                         ];
                         header("HTTP/1.0 401 Authentication error");
                         echo json_encode($data);
