@@ -90,7 +90,7 @@ if ($requestMethod === 'POST') {
                                                                 the following One-Time Password (OTP) to complete your sign-in. This code is valid for <span
                                                                     class="poppins-font" style="color: #1e1e1e; font-weight: 500;">10 minutes.</span> </div>
                                                             <div
-                                                                style="position: relative; width: 100%; padding: 8px 10px; background-color: #EFF1F2; margin-top: 15px; border-radius: 6px;  letter-spacing: 1px; font-size: 22px; font-weight: 600; color: #0072C3; box-shadow: 0 0 8px rgba(103, 103, 103, 0.3);">' . $otpPart1 . ' ' . $otpPart2 . '789</div>
+                                                                style="position: relative; width: 100%; padding: 8px 10px; background-color: #EFF1F2; margin-top: 15px; border-radius: 6px;  letter-spacing: 1px; font-size: 22px; font-weight: 600; color: #0072C3; box-shadow: 0 0 8px rgba(103, 103, 103, 0.3);">' . $otpPart1 . ' ' . $otpPart2 . '</div>
                                                             <div class="poppins-font"
                                                                 style="position: relative; margin-top: 25px; padding-top: 8px; border-top: 1px solid #E1E0EA; font-size: 10px; color: #838383; font-weight: 300;">
                                                                 If you did not request this code, please ignore this email or contact support.</div>
