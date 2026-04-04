@@ -38,11 +38,6 @@ if ($requestMethod === 'POST') {
         return null;
     }
 
-    function getStudentEmail(array $studentFields)
-    {
-        return findFieldValue($studentFields, ['Email']);
-    }
-
     function getStudentFullName(array $studentFields)
     {
         $firstName = findFieldValue($studentFields, ['first name', 'first_name', 'firstname']) ?: '';
@@ -133,6 +128,7 @@ if ($requestMethod === 'POST') {
     $adminResult = mysqli_query($conn, $adminSql);
 
     if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
+        header("HTTP/1.0 401 Unauthorized");
         echo json_encode([
             "status" => 401,
             "message" => "Invalid token or institute not found"
@@ -148,6 +144,7 @@ if ($requestMethod === 'POST') {
     $isBulkUpload = $inputData['isBulkUpload'] ?? false;
 
     if (empty($students)) {
+        header("HTTP/1.0 400 Bad Request");
         echo json_encode([
             "status" => 400,
             "message" => "No students found in request"
@@ -178,41 +175,87 @@ if ($requestMethod === 'POST') {
 
     try {
         foreach ($students as $student) {
+            $studentFields = $student['student_fields'] ?? [];
+
+            $studentName  = getStudentFullName($studentFields);
+            $studentEmail = findFieldValue($studentFields, ['email']);
+            $studentPhone = findFieldValue($studentFields, ['contact no.', 'phone', 'mobile']);
+
             $enrollmentId = generateEnrollmentId($instituteId, $session);
 
-            $studentPassword = generateRandomPassword(10);
-            $studentPasswordHash = password_hash($studentPassword, PASSWORD_DEFAULT);
-            $studentPasswordHash = mysqli_real_escape_string($conn, $studentPasswordHash);
-            $studentInsertSql = "INSERT INTO `students`(`inst_id`, `enrollment_id`, `password`, `created_at`) VALUES ('$instituteId', '$enrollmentId', '$studentPasswordHash', NOW())";
+            $plainPassword = generateRandomPassword(10);
+            $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
 
-            if (!mysqli_query($conn, $studentInsertSql)) {
-                throw new Exception("Failed to insert student");
+            $nameEsc  = mysqli_real_escape_string($conn, $studentName);
+            $emailEsc = mysqli_real_escape_string($conn, $studentEmail);
+            $phoneEsc = mysqli_real_escape_string($conn, $studentPhone);
+            $passEsc  = mysqli_real_escape_string($conn, $hashedPassword);
+
+            if (!empty($emailEsc)) {
+                $check = mysqli_query($conn, "SELECT id FROM users WHERE email = '$emailEsc' LIMIT 1");
+                if (mysqli_num_rows($check) > 0) {
+                    header("HTTP/1.0 400 Bad Request");
+                    echo json_encode([
+                        "status" => 400,
+                        "message" => "Email already exists: $studentEmail"
+                    ]);
+                    exit;
+                }
+            }
+
+            $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'student', '$passEsc')";
+            if (!mysqli_query($conn, $userSql)) {
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode([
+                    "status" => 500,
+                    "message" => "Failed to insert user"
+                ]);
+                exit;
+            }
+            $newUserId = mysqli_insert_id($conn);
+
+            $studentSql = "INSERT INTO students (inst_id, user_id, enrollment_id, created_at) VALUES ('$instituteId', '$newUserId', '$enrollmentId', NOW())";
+            if (!mysqli_query($conn, $studentSql)) {
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode([
+                    "status" => 500,
+                    "message" => "Failed to insert student"
+                ]);
+                exit;
             }
 
             $studentId = mysqli_insert_id($conn);
-            $studentFields = $student['student_fields'] ?? [];
 
             foreach ($studentFields as $field) {
                 $sectionId = mysqli_real_escape_string($conn, $field['section_id']);
                 $fieldName = mysqli_real_escape_string($conn, $field['field_name']);
-                $value = mysqli_real_escape_string($conn, $field['value']);
+                $value     = mysqli_real_escape_string($conn, $field['value']);
 
-                $fieldInsertSql = "INSERT INTO `student_field_values`(`inst_id`, `student_id`, `section_id`, `field_name`, `value`) VALUES ('$instituteId', '$studentId', '$sectionId', '$fieldName', '$value')";
-
-                if (!mysqli_query($conn, $fieldInsertSql)) {
-                    throw new Exception("Failed to insert student field value");
+                $sql = "INSERT INTO student_field_values (inst_id, student_id, section_id, field_name, value) VALUES ('$instituteId', '$studentId', '$sectionId', '$fieldName', '$value')";
+                if (!mysqli_query($conn, $sql)) {
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode([
+                        "status" => 500,
+                        "message" => "Failed to insert field values"
+                    ]);
+                    exit;
                 }
             }
 
-            $studentEmail = getStudentEmail($studentFields);
-            $studentName = getStudentFullName($studentFields);
             if (!empty($studentEmail)) {
-                sendStudentEnrollmentEmail($studentEmail, $studentName, $enrollmentId, $session, $studentPassword);
+                sendStudentEnrollmentEmail(
+                    $studentEmail,
+                    $studentName,
+                    $enrollmentId,
+                    $session,
+                    $plainPassword
+                );
             }
         }
 
         mysqli_commit($conn);
         $message = $isBulkUpload ? 'Students uploaded successfully' : 'Student uploaded successfully';
+        header("HTTP/1.0 200 OK");
         echo json_encode([
             "status" => 200,
             "message" => $message
