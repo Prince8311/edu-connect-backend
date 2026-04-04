@@ -1,9 +1,9 @@
 <?php
 
-require "../../../utils/headers.php";
+require __DIR__ . "/../../utils/headers.php";
 
 if ($requestMethod === 'POST') {
-    require "../../../_db-connect.php";
+    require __DIR__ . "/../../_db-connect.php";
     global $conn;
 
     $inputData = json_decode(file_get_contents("php://input"), true);
