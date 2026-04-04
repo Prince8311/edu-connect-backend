@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Kolkata');
 require_once __DIR__ . '/env.php';
 loadEnv(__DIR__ . '/../.env');
 ini_set('session.cookie_samesite', 'None');
