@@ -1,5 +1,148 @@
-<?php 
+<?php
 
-include "./"
+require __DIR__ . "/../../utils/headers.php";
 
-?>
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+if ($requestMethod === 'POST') {
+    require __DIR__ . "/../../_db-connect.php";
+    global $conn;
+
+    require_once __DIR__ . "/../../PHPMailer/Exception.php";
+    require_once __DIR__ . "/../../PHPMailer/PHPMailer.php";
+    require_once __DIR__ . "/../../PHPMailer/SMTP.php";
+
+    $inputData = json_decode(file_get_contents("php://input"), true);
+
+    if (!empty($inputData)) {
+        $user = mysqli_real_escape_string($conn, $inputData['name']);
+
+        $sql = "SELECT * FROM `admin_users` WHERE `name`='$user' OR `email`='$user' OR `phone`='$user'";
+        $result = mysqli_query($conn, $sql);
+
+        if (!$result) {
+            $data = [
+                'status' => 500,
+                'message' => 'Database error: ' . mysqli_error($conn)
+            ];
+            header("HTTP/1.0 500 Internal Server Error");
+            echo json_encode($data);
+        }
+
+        if (mysqli_num_rows($result) === 1) {
+            $userData = mysqli_fetch_assoc($result);
+            $input = $inputData['name'];
+            $userName = $userData['name'];
+            $otp = rand(100000, 999999);
+            if ($input === $userData['email']) {
+                $mail = new PHPMailer(true);
+
+                try {
+                    $mail->isSMTP();
+                    $mail->Host       = getenv('SMTP_HOST');
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = getenv('SMTP_MAIL');
+                    $mail->Password   = getenv('SMTP_PASSWORD');
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+                    $mail->Port       = getenv('SMTP_PORT');
+                    $mail->CharSet = 'UTF-8';
+
+                    $mail->isHTML(true);
+                    $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
+                    $mail->addAddress($input, $userName);
+                    $mail->Subject = 'OTP for Authentication';
+                    $mail->Body    = '<!DOCTYPE html>
+                                        <html lang="en">
+                                            <head>
+                                                <meta charset="UTF-8">
+                                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                                <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=SUSE:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+                                                <style>
+                                                    * {
+                                                        margin: 0;
+                                                        padding: 0;
+                                                        box-sizing: border-box;
+                                                        font-family: "SUSE", sans-serif;
+                                                    }
+
+                                                    .poppins-font {
+                                                        font-family: "Poppins", sans-serif;
+                                                    }
+                                                </style>
+                                            </head>
+                                            <body style="position: relative;">
+                                                <div style="position: relative; width: 100%;">
+                                                    <div style="position: relative; background: #FFF; padding: 25px; border-radius: 10px; text-align: center;">
+                                                        <div class="logo" style="position: relative; text-align: center;"><img
+                                                                src="https://educonnekt.in/images/logo.png" alt="Logo" style="height: 22px;"></div>
+                                                        <div
+                                                            style="position: relative; width: 300px; padding: 20px; margin: 0 auto; margin-top: 25px; background-color: #FFF;  border-radius: 10px; box-shadow: 0 0 10px rgba(126, 126, 126, 0.3);">
+                                                            <div style="position: relative; font-size: 15px; font-weight: 500;">Verify Your Identity</div>
+                                                            <div class="poppins-font"
+                                                                style="position: relative; font-size: 11px; margin-top: 10px; color: #838383; line-height: 1.3;">Use
+                                                                the following One-Time Password (OTP) to complete your sign-in. This code is valid for <span
+                                                                    class="poppins-font" style="color: #1e1e1e; font-weight: 500;">10 minutes.</span> </div>
+                                                            <div
+                                                                style="position: relative; width: 100%; padding: 10px; background-color: #EFF1F2; margin-top: 15px; border-radius: 6px;  letter-spacing: 1px; font-size: 20px; font-weight: 600; color: #0072C3; box-shadow: 0 0 8px rgba(103, 103, 103, 0.3);">
+                                                                456 789</div>
+                                                            <div class="poppins-font"
+                                                                style="position: relative; margin-top: 25px; padding-top: 8px; border-top: 1px solid #E1E0EA; font-size: 10px; color: #838383; font-weight: 300;">
+                                                                If you did not request this code, please ignore this email or contact support.</div>
+                                                        </div>
+                                                        <div style="position: relative; width: max-content; margin: 0 auto; margin-top: 25px; text-align: center;">
+                                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"
+                                                                style="background-color: #E6E7E8; border-radius: 999px; padding: 8px 20px 8px 16px;">
+                                                                <tr>
+                                                                    <td style="vertical-align: middle;">
+                                                                        <img src="https://cdn-icons-png.flaticon.com/512/3064/3064197.png" alt="Secure"
+                                                                            style="width: 16px; height: 16px; display: block;">
+                                                                    </td>
+                                                                    <td style="vertical-align: middle; padding-left: 8px;">
+                                                                        <span class="poppins-font" style="font-size: 10px; font-weight: 500; color: #555;">
+                                                                            SECURE AUTHENTICATION PROTOCOL
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </body>
+                                        </html>';
+                    $mail->send();
+                } catch (Exception $e) {
+                    $data = [
+                        'status' => 500,
+                        'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
+                    ];
+                    header("HTTP/1.0 500 Message could not be sen");
+                    echo json_encode($data);
+                }
+            } else if ($input === $userData['phone']) {
+            }
+        } else {
+            $data = [
+                'status' => 404,
+                'message' => 'User Not Found',
+            ];
+            header("HTTP/1.0 404 User Not Found");
+            echo json_encode($data);
+        }
+    } else {
+        $data = [
+            'status' => 400,
+            'message' => 'Empty request data'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+    }
+} else {
+    $data = [
+        'status' => 405,
+        'message' => $requestMethod . ' Method Not Allowed',
+    ];
+    header("HTTP/1.0 405 Method Not Allowed");
+    echo json_encode($data);
+}
