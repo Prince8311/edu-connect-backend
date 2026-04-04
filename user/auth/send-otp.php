@@ -23,6 +23,7 @@ if ($requestMethod === 'POST') {
 
         if (!$result) {
             $data = [
+                'success' => false,
                 'status' => 500,
                 'message' => 'Database error: ' . mysqli_error($conn)
             ];
@@ -137,6 +138,7 @@ if ($requestMethod === 'POST') {
 
                     if ($updateResult) {
                         $data = [
+                            'success' => true,
                             'status' => 200,
                             'message' => 'OTP has been sent to your email.'
                         ];
@@ -144,6 +146,7 @@ if ($requestMethod === 'POST') {
                         echo json_encode($data);
                     } else {
                         $data = [
+                            'success' => false,
                             'status' => 500,
                             'message' => 'Internal Server Error',
                         ];
@@ -152,6 +155,7 @@ if ($requestMethod === 'POST') {
                     }
                 } catch (Exception $e) {
                     $data = [
+                        'success' => false,
                         'status' => 500,
                         'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
                     ];
@@ -174,6 +178,7 @@ if ($requestMethod === 'POST') {
 
                 if ($updateResult) {
                     $data = [
+                        'success' => true,
                         'status' => 200,
                         'message' => 'OTP has been sent to your mobile no.'
                     ];
@@ -181,6 +186,7 @@ if ($requestMethod === 'POST') {
                     echo json_encode($data);
                 } else {
                     $data = [
+                        'success' => false,
                         'status' => 500,
                         'message' => 'Internal Server Error',
                     ];
@@ -190,6 +196,7 @@ if ($requestMethod === 'POST') {
             }
         } else {
             $data = [
+                'success' => false,
                 'status' => 404,
                 'message' => 'User Not Found',
             ];
@@ -198,6 +205,7 @@ if ($requestMethod === 'POST') {
         }
     } else {
         $data = [
+            'success' => false,
             'status' => 400,
             'message' => 'Empty request data'
         ];
@@ -206,6 +214,7 @@ if ($requestMethod === 'POST') {
     }
 } else {
     $data = [
+        'success' => false,
         'status' => 405,
         'message' => $requestMethod . ' Method Not Allowed',
     ];
