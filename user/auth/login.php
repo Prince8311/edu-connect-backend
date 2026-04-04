@@ -131,6 +131,7 @@ if ($requestMethod === 'POST') {
                             'success' => true,
                             'status' => 200,
                             'message' => 'Welcome back! You have successfully logged in.',
+                            'authToken' => $authToken
                         ];
                         header("HTTP/1.0 200 OK");
                         echo json_encode($data);
@@ -192,6 +193,7 @@ if ($requestMethod === 'POST') {
                             'success' => true,
                             'status' => 200,
                             'message' => 'Welcome back! You have successfully logged in.',
+                            'authToken' => $authToken
                         ];
                         header("HTTP/1.0 200 OK");
                         echo json_encode($data);
@@ -214,6 +216,7 @@ if ($requestMethod === 'POST') {
                         'success' => true,
                         'status' => 200,
                         'message' => 'Welcome back! You have successfully logged in.',
+                        'authToken' => $authToken
                     ];
                     header("HTTP/1.0 200 OK");
                     echo json_encode($data);
