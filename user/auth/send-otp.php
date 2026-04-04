@@ -81,21 +81,21 @@ if ($requestMethod === 'POST') {
                                                 <div style="position: relative; width: 100%;">
                                                     <div style="position: relative; background: #FFF; padding: 25px; border-radius: 10px; text-align: center;">
                                                         <div class="logo" style="position: relative; text-align: center;"><img
-                                                                src="https://api.edu-connect.ticketbay.in/images/logo.png" alt="Logo" style="height: 22px;"></div>
+                                                                src="https://api.edu-connect.ticketbay.in/images/logo.png" alt="Logo" style="height: 25px;"></div>
                                                         <div
                                                             style="position: relative; width: 300px; padding: 20px; margin: 0 auto; margin-top: 25px; background-color: #FFF;  border-radius: 10px; box-shadow: 0 0 10px rgba(126, 126, 126, 0.3);">
-                                                            <div style="position: relative; font-size: 15px; font-weight: 500;">Verify Your Identity</div>
+                                                            <div style="position: relative; font-size: 18px; font-weight: 500;">Verify Your Identity</div>
                                                             <div class="poppins-font"
-                                                                style="position: relative; font-size: 11px; margin-top: 10px; color: #838383; line-height: 1.3;">Use
+                                                                style="position: relative; font-size: 13px; margin-top: 10px; color: #838383; line-height: 1.3;">Use
                                                                 the following One-Time Password (OTP) to complete your sign-in. This code is valid for <span
                                                                     class="poppins-font" style="color: #1e1e1e; font-weight: 500;">10 minutes.</span> </div>
                                                             <div
-                                                                style="position: relative; width: 100%; padding: 8px 10px; background-color: #EFF1F2; margin-top: 15px; border-radius: 6px;  letter-spacing: 1px; font-size: 22px; font-weight: 600; color: #0072C3; box-shadow: 0 0 8px rgba(103, 103, 103, 0.3);">' . $otpPart1 . ' ' . $otpPart2 . '</div>
+                                                                style="position: relative; width: 100%; padding: 8px 10px; background-color: #EFF1F2; margin-top: 15px; border-radius: 6px;  letter-spacing: 1px; font-size: 26px; font-weight: 600; color: #0072C3; box-shadow: 0 0 8px rgba(103, 103, 103, 0.3);">' . $otpPart1 . ' ' . $otpPart2 . '</div>
                                                             <div class="poppins-font"
-                                                                style="position: relative; margin-top: 25px; padding-top: 8px; border-top: 1px solid #E1E0EA; font-size: 10px; color: #838383; font-weight: 300;">
+                                                                style="position: relative; margin-top: 25px; padding-top: 8px; border-top: 1px solid #E1E0EA; font-size: 12px; color: #838383; font-weight: 300;">
                                                                 If you did not request this code, please ignore this email or contact support.</div>
                                                         </div>
-                                                        <div style="position: relative; width: max-content; margin: 0 auto; margin-top: 25px; text-align: center;">
+                                                        <div style="position: relative; width: max-content; margin: 0 auto; margin-top: 15px; text-align: center;">
                                                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"
                                                                 style="background-color: #E6E7E8; border-radius: 999px; padding: 6px 20px 6px 16px;">
                                                                 <tr>
@@ -115,15 +115,15 @@ if ($requestMethod === 'POST') {
                                                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
                                                                 <tr>
                                                                     <td style="vertical-align: middle;">
-                                                                        <a href="https://educonnekt.in/privacy-policy" class="poppins-font" style="position: relative; font-size: 10px; text-decoration: none; color: #b3b3b3;">PRIVACY POLICY</a>
+                                                                        <a href="https://educonnekt.in/privacy-policy" class="poppins-font" style="position: relative; font-size: 12px; text-decoration: none; color: #b3b3b3;">PRIVACY POLICY</a>
                                                                     </td>
                                                                     <td style="vertical-align: middle;">
-                                                                        <a href="https://educonnekt.in/terms-conditions" class="poppins-font" style="position: relative; font-size: 10px; text-decoration: none; color: #b3b3b3; margin-left: 25px;">TERMS OF SERVICE</a>
+                                                                        <a href="https://educonnekt.in/terms-conditions" class="poppins-font" style="position: relative; font-size: 12px; text-decoration: none; color: #b3b3b3; margin-left: 25px;">TERMS OF SERVICE</a>
                                                                     </td>
                                                                 </tr>
                                                             </table>
                                                         </div>
-                                                        <div class="poppins-font" style="position: relative; margin: 0 auto; margin-top: 5px; font-size: 10px; line-height: 1.3; color: #b3b3b3;">©2026 Edu Connekt by Shetty Ticket Counter Private Limited. All righs reserved.</div>
+                                                        <div class="poppins-font" style="position: relative; margin: 0 auto; margin-top: 5px; font-size: 11px; line-height: 1.3; color: #b3b3b3;">©2026 Edu Connekt by Shetty Ticket Counter Private Limited. All righs reserved.</div>
                                                     </div>
                                                 </div>
                                             </body>
