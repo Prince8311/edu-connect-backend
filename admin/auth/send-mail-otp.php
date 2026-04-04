@@ -54,7 +54,7 @@ if ($requestMethod === 'POST') {
 
             try {
                 $mail->isSMTP();
-                $mail->Host       = 'mail.ticketbay.in';
+                $mail->Host       = getenv('SMTP_HOST');
                 $mail->SMTPAuth   = true;
                 $mail->Username   = getenv('SMTP_MAIL');
                 $mail->Password   = getenv('SMTP_PASSWORD');
@@ -63,7 +63,7 @@ if ($requestMethod === 'POST') {
                 $mail->CharSet = 'UTF-8';
 
                 $mail->isHTML(true);
-                $mail->setFrom('noreply@ticketbay.in', 'noreply@ticketbay.in');
+                $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
                 $mail->addAddress("$userEmail", 'User');
                 $mail->Subject = 'OTP for Authentication';
                 $mail->Body    = '<!DOCTYPE html>

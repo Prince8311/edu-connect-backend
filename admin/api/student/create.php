@@ -68,16 +68,16 @@ if ($requestMethod === 'POST') {
 
         try {
             $mail->isSMTP();
-            $mail->Host       = 'mail.ticketbay.in';
+            $mail->Host       = getenv('SMTP_HOST');
             $mail->SMTPAuth   = true;
-            $mail->Username   = 'noreply@ticketbay.in';
-            $mail->Password   = 'abhay$ticketbay@2024';
+            $mail->Username   = getenv('SMTP_MAIL');
+            $mail->Password   = getenv('SMTP_PASSWORD');
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            $mail->Port       = 465;
+            $mail->Port       = getenv('SMTP_PORT');
             $mail->CharSet    = 'UTF-8';
 
             $mail->isHTML(true);
-            $mail->setFrom('noreply@ticketbay.in', 'noreply@ticketbay.in');
+            $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
             $mail->addAddress($email, $studentName);
             $mail->Subject = 'Student record created successfully';
             $mail->Body = '<!DOCTYPE html>
