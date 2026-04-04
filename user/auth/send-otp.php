@@ -163,7 +163,7 @@ if ($requestMethod === 'POST') {
                 $senderid = getenv('SMS_SENDER_ID');
                 $tempid = getenv('AUTH_OTP_SMS_TEMPLATE_ID');
 
-                $message = "Dear $firstName, your OTP for Edu Connekt to login is $otp. OTP is valid for 10 minutes. Please do not share the OTP.SHETTY TICKET COUNTER";
+                $message = "Dear $firstName, your OTP for Edu Connekt to login is $otp. OTP is valid for 10 minutes. Please do not share the OTP. SHETTY TICKET COUNTER";
                 $message_content = urlencode($message);
 
                 $url = "https://smsfortius.work/V2/?apikey=$key&senderid=$senderid&templateid=$tempid&number=$input&message=$message_content";
