@@ -1,7 +1,7 @@
 <?php
 
 require "../../../utils/headers.php";
-require "/utils/middleware.php";
+require "../../../utils/middleware.php";
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
