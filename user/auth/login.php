@@ -269,7 +269,6 @@ if ($requestMethod === 'POST') {
             ];
             header("HTTP/1.0 404 Not Found");
             echo json_encode($response);
-            exit;
         }
     } else {
         $response = [
