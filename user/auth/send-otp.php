@@ -22,13 +22,13 @@ if ($requestMethod === 'POST') {
         $result = mysqli_query($conn, $sql);
 
         if (!$result) {
-            $data = [
+            $response = [
                 'success' => false,
                 'status' => 500,
                 'message' => 'Database error: ' . mysqli_error($conn)
             ];
             header("HTTP/1.0 500 Internal Server Error");
-            echo json_encode($data);
+            echo json_encode($response);
         }
 
         if (mysqli_num_rows($result) === 1) {
@@ -137,30 +137,30 @@ if ($requestMethod === 'POST') {
                     $updateResult = mysqli_query($conn, $updateSql);
 
                     if ($updateResult) {
-                        $data = [
+                        $response = [
                             'success' => true,
                             'status' => 200,
                             'message' => 'OTP has been sent to your email.'
                         ];
                         header("HTTP/1.0 200 OK");
-                        echo json_encode($data);
+                        echo json_encode($response);
                     } else {
-                        $data = [
+                        $response = [
                             'success' => false,
                             'status' => 500,
                             'message' => 'Internal Server Error',
                         ];
                         header("HTTP/1.0 500 Internal Server Error");
-                        echo json_encode($data);
+                        echo json_encode($response);
                     }
                 } catch (Exception $e) {
-                    $data = [
+                    $response = [
                         'success' => false,
                         'status' => 500,
                         'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
                     ];
                     header("HTTP/1.0 500 Message could not be sen");
-                    echo json_encode($data);
+                    echo json_encode($response);
                 }
             } else if ($input === $userData['phone']) {
                 $key = getenv('SMS_API_KEY');
@@ -177,47 +177,47 @@ if ($requestMethod === 'POST') {
                 $updateResult = mysqli_query($conn, $updateSql);
 
                 if ($updateResult) {
-                    $data = [
+                    $response = [
                         'success' => true,
                         'status' => 200,
                         'message' => 'OTP has been sent to your mobile no.'
                     ];
                     header("HTTP/1.0 200 OK");
-                    echo json_encode($data);
+                    echo json_encode($response);
                 } else {
-                    $data = [
+                    $response = [
                         'success' => false,
                         'status' => 500,
                         'message' => 'Internal Server Error',
                     ];
                     header("HTTP/1.0 500 Internal Server Error");
-                    echo json_encode($data);
+                    echo json_encode($response);
                 }
             }
         } else {
-            $data = [
+            $response = [
                 'success' => false,
                 'status' => 404,
                 'message' => 'User Not Found',
             ];
             header("HTTP/1.0 404 User Not Found");
-            echo json_encode($data);
+            echo json_encode($response);
         }
     } else {
-        $data = [
+        $response = [
             'success' => false,
             'status' => 400,
             'message' => 'Empty request data'
         ];
         header("HTTP/1.0 400 Bad Request");
-        echo json_encode($data);
+        echo json_encode($response);
     }
 } else {
-    $data = [
+    $response = [
         'success' => false,
         'status' => 405,
         'message' => $requestMethod . ' Method Not Allowed',
     ];
     header("HTTP/1.0 405 Method Not Allowed");
-    echo json_encode($data);
+    echo json_encode($response);
 }
