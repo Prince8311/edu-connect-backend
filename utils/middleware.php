@@ -52,3 +52,52 @@ function adminAuthenticateRequest()
         'userId' => $row['admin_id']
     ];
 }
+
+function userAuthenticateRequest()
+{
+    global $conn;
+    $authHeader  = getAuthorizationHeader();
+    $token = null;
+
+    if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+        $token = $matches[1];
+    }
+
+    if (empty($token)) {
+        return [
+            'authenticated' => false,
+            'status' => 401,
+            'message' => 'Authentication required'
+        ];
+    }
+
+    $escapedToken = mysqli_real_escape_string($conn, $token);
+    $sql = "SELECT * FROM `user_auth_tokens` WHERE `auth_token`='$escapedToken'";
+    $result = mysqli_query($conn, $sql);
+
+    if (mysqli_num_rows($result) === 0) {
+        return [
+            'authenticated' => false,
+            'status' => 401,
+            'message' => 'Invalid token',
+        ];
+    }
+
+    $row = mysqli_fetch_assoc($result);
+
+    if (time() > strtotime($row['expires_at'])) {
+        return [
+            'authenticated' => false,
+            'status' => 401,
+            'message' => 'Token expired',
+            'token' => $token,
+            'userId' => $row['user_id']
+        ];
+    }
+
+    return [
+        'authenticated' => true,
+        'token' => $token,
+        'userId' => $row['user_id']
+    ];
+}
