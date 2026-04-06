@@ -18,7 +18,7 @@ if ($requestMethod === 'GET') {
     global $conn;
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
-    $sql = "SELECT u.id AS user_id, u.name, u.profile_image, u.email, u.phone, u.user_type, MAX(CASE WHEN sfv.field_name = 'Class / Standard' THEN sfv.value END) AS class_standard, MAX(CASE WHEN sfv.field_name = 'Section' THEN sfv.value END) AS section FROM users u LEFT JOIN students s ON u.id = s.user_id LEFT JOIN student_field_values sfv ON s.id = sfv.student_id GROUP BY u.id, u.name, u.profile_image, u.email, u.phone, u.user_type";
+    $sql = "SELECT u.id AS user_id, u.name, u.profile_image, u.email, u.phone, u.user_type, MAX(CASE WHEN sfv.field_name = 'Class / Standard' THEN sfv.value END) AS class_standard, MAX(CASE WHEN sfv.field_name = 'Section' THEN sfv.value END) AS section FROM users u LEFT JOIN students s ON u.id = s.user_id LEFT JOIN student_field_values sfv ON s.id = sfv.student_id WHERE u.id = '$userId' GROUP BY u.id, u.name, u.profile_image, u.email, u.phone, u.user_type";
     $result = mysqli_query($conn, $sql);
 
     if (!$result) {
