@@ -18,7 +18,7 @@ if ($requestMethod === 'POST') {
     if (!empty($inputData)) {
         $user = mysqli_real_escape_string($conn, $inputData['name']);
 
-        $sql = "SELECT * FROM `admin_users` WHERE `name`='$user' OR `email`='$user' OR `phone`='$user'";
+        $sql = "SELECT * FROM `users` WHERE `name`='$user' OR `email`='$user' OR `phone`='$user'";
         $result = mysqli_query($conn, $sql);
 
         if (!$result) {
@@ -44,8 +44,19 @@ if ($requestMethod === 'POST') {
             $expiresAt = date("Y-m-d H:i:s", time() + 600);
 
             if ($input === $userData['email']) {
-                $mail = new PHPMailer(true);
+                $isMailVerified = (bool)$userData['is_mail_verified'];
 
+                if (!$isMailVerified) {
+                    $response = [
+                        'success' => false,
+                        'status' => 403,
+                        'message' => 'Email address not verified. Please verify your email or log in using your password.'
+                    ];
+                    header("HTTP/1.1 403 Forbidden");
+                    echo json_encode($response);
+                }
+
+                $mail = new PHPMailer(true);
                 try {
                     $mail->isSMTP();
                     $mail->Host       = getenv('SMTP_HOST');
@@ -163,6 +174,18 @@ if ($requestMethod === 'POST') {
                     echo json_encode($response);
                 }
             } else if ($input === $userData['phone']) {
+                $isPhoneVerified = (bool)$userData['is_phone_verified'];
+
+                if (!$isPhoneVerified) {
+                    $response = [
+                        'success' => false,
+                        'status' => 403,
+                        'message' => 'Phone no. not verified. Please verify your number or log in using your password.'
+                    ];
+                    header("HTTP/1.1 403 Forbidden");
+                    echo json_encode($response);
+                }
+
                 $key = getenv('SMS_API_KEY');
                 $senderid = getenv('SMS_SENDER_ID');
                 $tempid = getenv('AUTH_OTP_SMS_TEMPLATE_ID');
