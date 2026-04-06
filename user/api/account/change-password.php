@@ -28,6 +28,7 @@ if ($requestMethod === 'POST') {
         ];
         header("HTTP/1.0 400 Bad Request");
         echo json_encode($response);
+        exit;
     }
 
     $password = mysqli_real_escape_string($conn, $inputData['password']);
@@ -35,45 +36,63 @@ if ($requestMethod === 'POST') {
     $confirmPassword = mysqli_real_escape_string($conn, $inputData['confirmPassword']);
     $hashPass = password_hash($newPassword, PASSWORD_DEFAULT);
 
-    if ($password === $newPassword) {
-        $response = [
-            'success' => false,
-            'status' => 403,
-            'message' => 'New password should be different from the current one.'
-        ];
-        header("HTTP/1.0 403 Forbidden");
-        echo json_encode($response);
-    }
+    $userSql = "SELECT * FROM `users` WHERE `id`='$userId'";
+    $userResult = mysqli_query($conn, $userSql);
+    $userData = mysqli_fetch_assoc($userResult);
+    $savedPassword = $userData['password'];
 
-    if ($newPassword != $confirmPassword) {
-        $response = [
-            'success' => false,
-            'status' => 403,
-            'message' => 'Passwords not matched.'
-        ];
-        header("HTTP/1.0 403 Forbidden");
-        echo json_encode($response);
-    }
+    if (password_verify($password, $savedPassword)) {
+        if ($password === $newPassword) {
+            $response = [
+                'success' => false,
+                'status' => 403,
+                'message' => 'New password should be different from the current one.'
+            ];
+            header("HTTP/1.0 403 Forbidden");
+            echo json_encode($response);
+            exit;
+        }
 
-    $updateSql = "UPDATE `users` SET `password`='$hashPass' WHERE `id`='$userId'";
-    $updateResult = mysqli_query($conn, $updateSql);
+        if ($newPassword != $confirmPassword) {
+            $response = [
+                'success' => false,
+                'status' => 403,
+                'message' => 'Passwords not matched.'
+            ];
+            header("HTTP/1.0 403 Forbidden");
+            echo json_encode($response);
+            exit;
+        }
 
-    if ($updateResult) {
-        $response = [
-            'success' => true,
-            'status' => 200,
-            'message' => 'Password changed successfully.'
-        ];
-        header("HTTP/1.0 200 OK");
-        echo json_encode($response);
+        $updateSql = "UPDATE `users` SET `password`='$hashPass' WHERE `id`='$userId'";
+        $updateResult = mysqli_query($conn, $updateSql);
+
+        if ($updateResult) {
+            $response = [
+                'success' => true,
+                'status' => 200,
+                'message' => 'Password changed successfully.'
+            ];
+            header("HTTP/1.0 200 OK");
+            echo json_encode($response);
+        } else {
+            $response = [
+                'success' => false,
+                'status' => 500,
+                'message' => 'Database error: ' . mysqli_error($conn)
+            ];
+            header("HTTP/1.0 500 Internal Server Error");
+            echo json_encode($response);
+        }
     } else {
         $response = [
             'success' => false,
-            'status' => 500,
-            'message' => 'Database error: ' . mysqli_error($conn)
+            'status' => 403,
+            'message' => 'Current password is not valid.'
         ];
-        header("HTTP/1.0 500 Internal Server Error");
+        header("HTTP/1.0 403 Forbidden");
         echo json_encode($response);
+        exit;
     }
 } else {
     $response = [
