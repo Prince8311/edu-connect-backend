@@ -33,6 +33,8 @@ if ($requestMethod === 'GET') {
 
     if (mysqli_num_rows($result) === 1) {
         $userData = mysqli_fetch_assoc($result);
+        $userData['is_mail_verified'] = (bool)$userData['is_mail_verified'];
+        $userData['is_phone_verified'] = (bool)$userData['is_phone_verified'];
         $response = [
             'success' => true,
             'status' => 200,
