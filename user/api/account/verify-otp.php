@@ -189,7 +189,7 @@ if ($requestMethod === 'POST') {
             $response = [
                 'success' => false,
                 'status' => 404,
-                'message' => 'User not found with the provided email or phone number.'
+                'message' => 'User not found with the provided info.'
             ];
             header("HTTP/1.0 404 Not Found");
             echo json_encode($response);
