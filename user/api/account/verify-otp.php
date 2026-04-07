@@ -140,7 +140,7 @@ if ($requestMethod === 'POST') {
                     exit;
                 }
 
-                if (time() > strtotime($mailOtpExpiry)) {
+                if (time() > strtotime($phoneOtpExpiry)) {
                     $response = [
                         'success' => false,
                         'status' => 401,
