@@ -1,57 +1,81 @@
 <?php
 
-require __DIR__ . "/../../utils/headers.php";
+require __DIR__ . "/../../../utils/headers.php";
+require __DIR__ . "/../../../utils/middleware.php";
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+$authResult = userAuthenticateRequest();
+if (!$authResult['authenticated']) {
+    header("HTTP/1.0 " . $authResult['status']);
+    echo json_encode([
+        'status' => $authResult['status'],
+        'message' => $authResult['message']
+    ]);
+    exit;
+}
+
 if ($requestMethod === 'POST') {
-    require __DIR__ . "/../../_db-connect.php";
+    require __DIR__ . "/../../../_db-connect.php";
     global $conn;
 
-    require_once __DIR__ . "/../../PHPMailer/Exception.php";
-    require_once __DIR__ . "/../../PHPMailer/PHPMailer.php";
-    require_once __DIR__ . "/../../PHPMailer/SMTP.php";
+    require __DIR__ . "/../../../PHPMailer/Exception.php";
+    require __DIR__ . "/../../../PHPMailer/PHPMailer.php";
+    require __DIR__ . "/../../../PHPMailer/SMTP.php";
 
-    $inputData = json_decode(file_get_contents("php://input"), true);
+    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
-    if (!empty($inputData)) {
-        $user = mysqli_real_escape_string($conn, $inputData['name']);
+    $userSql = "SELECT * FROM `users` WHERE `id`='$userId'";
+    $userResult = mysqli_query($conn, $userSql);
 
-        $sql = "SELECT * FROM `users` WHERE `name`='$user' OR `email`='$user' OR `phone`='$user'";
-        $result = mysqli_query($conn, $sql);
+    if (!$userResult) {
+        $response = [
+            'success' => false,
+            'status' => 500,
+            'message' => 'Database error: ' . mysqli_error($conn)
+        ];
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode($response);
+        exit;
+    }
 
-        if (!$result) {
+    if (mysqli_num_rows($userResult) === 1) {
+        $userData = mysqli_fetch_assoc($userResult);
+        $userName = $userData['name'] ?? '';
+        $userName = trim($userName);
+        $firstName = explode(' ', $userName)[0];
+        $userMail = $userData['email'];
+        $isMailVerified = (bool)$userData['is_mail_verified'];
+        $userPhone = $userData['phone'];
+        $isPhoneVerified = (bool)$userData['is_phone_verified'];
+
+        $inputData = json_decode(file_get_contents("php://input"), true);
+        if (empty($inputData)) {
             $response = [
                 'success' => false,
-                'status' => 500,
-                'message' => 'Database error: ' . mysqli_error($conn)
+                'status' => 400,
+                'message' => 'Empty request data'
             ];
-            header("HTTP/1.0 500 Internal Server Error");
+            header("HTTP/1.0 400 Bad Request");
             echo json_encode($response);
             exit;
         }
 
-        if (mysqli_num_rows($result) === 1) {
-            $userData = mysqli_fetch_assoc($result);
-            $input = $inputData['name'];
-            $userId = $userData['id'];
-            $userName = $userData['name'] ?? '';
-            $userName = trim($userName);
-            $firstName = explode(' ', $userName)[0];
+        $input = $inputData['name'];
+
+        if ($input === $userData['email'] || $input === $userData['phone']) {
             $otp = rand(100000, 999999);
             $otpPart1 = substr($otp, 0, 3);
             $otpPart2 = substr($otp, 3, 3);
             $expiresAt = date("Y-m-d H:i:s", time() + 600);
 
             if ($input === $userData['email']) {
-                $isMailVerified = (bool)$userData['is_mail_verified'];
-
-                if (!$isMailVerified) {
+                if ($isMailVerified) {
                     $response = [
                         'success' => false,
                         'status' => 403,
-                        'message' => 'Email address not verified. Please verify your email or log in using your password.'
+                        'message' => 'Email address already verified.'
                     ];
                     header("HTTP/1.1 403 Forbidden");
                     echo json_encode($response);
@@ -72,7 +96,7 @@ if ($requestMethod === 'POST') {
                     $mail->isHTML(true);
                     $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
                     $mail->addAddress($input, $userName);
-                    $mail->Subject = 'OTP for Authentication';
+                    $mail->Subject = 'OTP for verification';
                     $mail->Body    = '<!DOCTYPE html>
                                         <html lang="en">
                                             <head>
@@ -176,13 +200,11 @@ if ($requestMethod === 'POST') {
                     echo json_encode($response);
                 }
             } else if ($input === $userData['phone']) {
-                $isPhoneVerified = (bool)$userData['is_phone_verified'];
-
-                if (!$isPhoneVerified) {
+                if ($isPhoneVerified) {
                     $response = [
                         'success' => false,
                         'status' => 403,
-                        'message' => 'Phone no. not verified. Please verify your number or log in using your password.'
+                        'message' => 'Phone no. already verified.'
                     ];
                     header("HTTP/1.1 403 Forbidden");
                     echo json_encode($response);
@@ -191,9 +213,9 @@ if ($requestMethod === 'POST') {
 
                 $key = getenv('SMS_API_KEY');
                 $senderid = getenv('SMS_SENDER_ID');
-                $tempid = getenv('AUTH_OTP_SMS_TEMPLATE_ID');
+                $tempid = getenv('VERIFICATION_SMS_TEMPLATE_ID');
 
-                $message = "Dear $firstName, your OTP for Edu Connekt to login is $otp. OTP is valid for 10 minutes. Please do not share the OTP. SHETTY TICKET COUNTER";
+                $message = "Dear $firstName, your OTP for mobile no. verification to Edu Connekt is $otp. OTP is valid for 10 minutes. Please do not share the OTP. SHETTY TICKET COUNTER";
                 $message_content = urlencode($message);
 
                 $url = "https://smsfortius.work/V2/?apikey=$key&senderid=$senderid&templateid=$tempid&number=$input&message=$message_content";
@@ -224,19 +246,20 @@ if ($requestMethod === 'POST') {
             $response = [
                 'success' => false,
                 'status' => 404,
-                'message' => 'User Not Found',
+                'message' => 'User not found with the provided email or phone number.'
             ];
-            header("HTTP/1.0 404 User Not Found");
+            header("HTTP/1.0 404 Not Found");
             echo json_encode($response);
         }
     } else {
         $response = [
             'success' => false,
-            'status' => 400,
-            'message' => 'Empty request data'
+            'status' => 401,
+            'message' => 'User not found.'
         ];
-        header("HTTP/1.0 400 Bad Request");
+        header("HTTP/1.0 401 Unauthorized");
         echo json_encode($response);
+        exit;
     }
 } else {
     $response = [
