@@ -108,7 +108,7 @@ if ($requestMethod === 'POST') {
                     exit;
                 }
 
-                $updateUserSql = "UPDATE `users` SET `mail_otp`=NULL, `mail_otp_expires_at`=NULL WHERE `id` = '$userId'";
+                $updateUserSql = "UPDATE `users` SET `is_mail_verified`=1, `mail_otp`=NULL, `mail_otp_expires_at`=NULL WHERE `id` = '$userId'";
                 $updateResult = mysqli_query($conn, $updateUserSql);
 
                 if ($updateResult) {
@@ -164,7 +164,7 @@ if ($requestMethod === 'POST') {
                     exit;
                 }
 
-                $updateUserSql = "UPDATE `users` SET `phone_otp`=NULL, `phone_otp_expires_at`=NULL WHERE `id` = '$userId'";
+                $updateUserSql = "UPDATE `users` SET `is_phone_verified`=1, `phone_otp`=NULL, `phone_otp_expires_at`=NULL WHERE `id` = '$userId'";
                 $updateResult = mysqli_query($conn, $updateUserSql);
 
                 if ($updateResult) {
