@@ -35,7 +35,7 @@ if ($requestMethod === 'GET') {
             exit;
         }
 
-        $$user = [
+        $user = [
             "id" => $userRow['id'],
             "name" => $userRow['name'],
             "image" => $userRow['image'],
