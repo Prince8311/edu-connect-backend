@@ -16,22 +16,9 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'GET') {
     require "../../../../_db-connect.php";
     global $conn;
-    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
-
-    $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
-    $adminResult = mysqli_query($conn, $adminSql);
-
-    if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
-        echo json_encode([
-            "status" => 401,
-            "message" => "Invalid token or institute not found"
-        ]);
-        exit;
-    }
-
-    $adminData = mysqli_fetch_assoc($adminResult);
-    $instituteId = $adminData['inst_id'];
+    $instituteId = $authResult['inst_id'];
     $isForm = isset($_GET['isForm']) && $_GET['isForm'] === 'true';
+    
     $sql = "SELECT * FROM `academic_sessions` WHERE `inst_id`='$instituteId'";
     if (isset($_GET['status']) && trim($_GET['status']) !== '') {
         $sessionStatus = mysqli_real_escape_string($conn, $_GET['status']);

@@ -17,7 +17,6 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require "../../../_db-connect.php";
     global $conn;
-    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
     $inputData = json_decode(file_get_contents("php://input"), true);
 
@@ -28,17 +27,6 @@ if ($requestMethod === 'POST') {
         ];
         header("HTTP/1.0 400 Bad Request");
         echo json_encode($data);
-        exit;
-    }
-
-    $adminSql = "SELECT * FROM `admin_users` WHERE `id` = '$userId' LIMIT 1";;
-    $adminResult = mysqli_query($conn, $adminSql);
-
-    if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
-        echo json_encode([
-            "status" => 401,
-            "message" => "Invalid token or institute not found"
-        ]);
         exit;
     }
 

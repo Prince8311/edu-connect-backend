@@ -59,6 +59,15 @@ function adminAuthenticateRequest()
     }
 
     $user = mysqli_fetch_assoc($userResult);
+    $allowedRoles = ['inst_admin', 'super_admin'];
+
+    if (!in_array($user['user_type'], $allowedRoles)) {
+        return [
+            'authenticated' => false,
+            'status' => 403,
+            'message' => "You don't have the permission"
+        ];
+    }
 
     if ($user['user_type'] === 'inst_admin') {
         if (empty($user['inst_id'])) {

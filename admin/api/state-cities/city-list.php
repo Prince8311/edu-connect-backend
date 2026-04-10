@@ -17,7 +17,6 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'GET') {
     require "../../../_db-connect.php";
     global $conn;
-    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
 
     if (!isset($_GET['name'])) {
         $data = [
@@ -30,16 +29,6 @@ if ($requestMethod === 'GET') {
 
     $stateName = mysqli_real_escape_string($conn, $_GET['name']);
     $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
-    $adminSql = "SELECT * FROM `admin_users` WHERE `id` = '$userId' LIMIT 1";;
-    $adminResult = mysqli_query($conn, $adminSql);
-
-    if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
-        echo json_encode([
-            "status" => 401,
-            "message" => "Invalid token or institute not found"
-        ]);
-        exit;
-    }
 
     $sql = "SELECT `city` AS `name` FROM `state_cities` WHERE `state`='$stateName'";
     if (!empty($search)) {

@@ -16,7 +16,7 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require "../../../../../_db-connect.php";
     global $conn;
-    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
+    $instituteId = $authResult['inst_id'];
 
     $inputData = json_decode(file_get_contents("php://input"), true);
     if (empty($inputData)) {
@@ -31,21 +31,6 @@ if ($requestMethod === 'POST') {
 
     $academicLevelId = mysqli_real_escape_string($conn, $inputData['academicLevelId']);
     $class = mysqli_real_escape_string($conn, $inputData['class']);
-
-    $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
-    $adminResult = mysqli_query($conn, $adminSql);
-
-    if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
-        header("HTTP/1.0 401 Bad request");
-        echo json_encode([
-            "status" => 401,
-            "message" => "Invalid token or institute not found"
-        ]);
-        exit;
-    }
-
-    $adminData = mysqli_fetch_assoc($adminResult);
-    $instituteId = $adminData['inst_id'];
 
     mysqli_begin_transaction($conn);
 

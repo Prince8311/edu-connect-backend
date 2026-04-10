@@ -17,18 +17,6 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'GET') {
     require "../../../_db-connect.php";
     global $conn;
-    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
-
-    $adminSql = "SELECT * FROM `admin_users` WHERE `id` = '$userId' LIMIT 1";;
-    $adminResult = mysqli_query($conn, $adminSql);
-
-    if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
-        echo json_encode([
-            "status" => 401,
-            "message" => "Invalid token or institute not found"
-        ]);
-        exit;
-    }
 
     $limit = 10;
     $page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0

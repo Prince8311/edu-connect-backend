@@ -17,7 +17,7 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'GET') {
     require "../../../_db-connect.php";
     global $conn;
-    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
+    $instituteId = $authResult['inst_id'];
 
     if (!isset($_GET['levelId'])) {
         $data = [
@@ -48,20 +48,6 @@ if ($requestMethod === 'GET') {
         ? (int)$_GET['page']
         : 1;
     $offset = ($page - 1) * $limit;
-
-    $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
-    $adminResult = mysqli_query($conn, $adminSql);
-
-    if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
-        echo json_encode([
-            "status" => 401,
-            "message" => "Invalid token or institute not found"
-        ]);
-        exit;
-    }
-
-    $adminData = mysqli_fetch_assoc($adminResult);
-    $instituteId = $adminData['inst_id'];
 
     $conditions = [
         "acs.level_id = '$levelId'",

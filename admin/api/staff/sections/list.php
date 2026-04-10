@@ -17,7 +17,7 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'GET') {
     require "../../../../_db-connect.php";
     global $conn;
-    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
+    $instituteId = $authResult['inst_id'];
 
     if (!isset($_GET['type'])) {
         $data = [
@@ -29,19 +29,6 @@ if ($requestMethod === 'GET') {
     }
 
     $type = mysqli_real_escape_string($conn, $_GET['type']);
-    $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
-    $adminResult = mysqli_query($conn, $adminSql);
-
-    if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
-        echo json_encode([
-            "status" => 401,
-            "message" => "Invalid token or institute not found"
-        ]);
-        exit;
-    }
-
-    $adminData = mysqli_fetch_assoc($adminResult);
-    $instituteId = $adminData['inst_id'];
 
     $sectionSql = "SELECT s.id, s.form_section, s.inst_id, COUNT(f.id) AS total_fields FROM staff_form_sections s LEFT JOIN staff_form_fields f ON s.id = f.section_id AND (f.inst_id = '$instituteId' OR f.inst_id IS NULL) WHERE (s.inst_id = '$instituteId' OR s.inst_id IS NULL) AND s.section_type = '$type' GROUP BY s.id ORDER BY s.id ASC";
     $sectionResult = mysqli_query($conn, $sectionSql);
