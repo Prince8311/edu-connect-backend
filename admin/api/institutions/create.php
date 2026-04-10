@@ -95,12 +95,19 @@ if ($requestMethod === 'POST') {
     $password = bin2hex(random_bytes(6));
     $hashPass = password_hash($password, PASSWORD_DEFAULT);
     $userRole = "Institution Admin";
+    $words = explode(" ", $institutionName);
+    $initials = "";
+    foreach ($words as $word) {
+        if (!empty($word)) {
+            $initials .= strtoupper($word[0]);
+        }
+    }
+    $receiptPrefix = $initials;
 
-    $adminAddSql = "INSERT INTO `admin_users`(`name`, `email`, `phone`, `password`, `status`, `user_role`) VALUES ('$institutionName','$email','$phone','$hashPass','$status','$userRole')";
+    $adminAddSql = "INSERT INTO `admin_users`(`name`, `inst_id`, `email`, `phone`, `password`, `status`, `user_role`) VALUES ('Administrator','$institutionId','$email','$phone','$hashPass','$status','$userRole')";
     $adminAddResult = mysqli_query($conn, $adminAddSql);
-    $adminId = mysqli_insert_id($conn);
 
-    $insertSql = "INSERT INTO `institutions`(`inst_id`, `admin_id`, `inst_name`, `phone`, `email`, `status`, `location`) VALUES ('$institutionId','$adminId','$institutionName','$phone','$email','$status','$location')";
+    $insertSql = "INSERT INTO `institutions`(`inst_id`, `inst_name`, `phone`, `email`, `receipt_prefix`, `status`, `location`) VALUES ('$institutionId','$institutionName','$phone','$email','$receiptPrefix','$status','$location')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult && $adminAddResult) {
