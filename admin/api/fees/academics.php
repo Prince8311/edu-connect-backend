@@ -16,21 +16,7 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'GET') {
     require __DIR__ . "/../../../_db-connect.php";
     global $conn;
-    $userId = mysqli_real_escape_string($conn, $authResult['userId']);
-
-    $adminSql = "SELECT i.inst_id FROM admin_users a JOIN institutions i ON a.id = i.admin_id WHERE a.id = '$userId' LIMIT 1";
-    $adminResult = mysqli_query($conn, $adminSql);
-
-    if (!$adminResult || mysqli_num_rows($adminResult) === 0) {
-        echo json_encode([
-            "status" => 401,
-            "message" => "Invalid token or institute not found"
-        ]);
-        exit;
-    }
-
-    $adminData = mysqli_fetch_assoc($adminResult);
-    $instituteId = $adminData['inst_id'];
+    $instituteId = $authResult['inst_id'];
 
     $sql = "SELECT al.id AS level_id, al.level_name, acs.class, acs.sections FROM academic_levels al LEFT JOIN academic_class_sections acs ON al.id = acs.level_id AND al.inst_id = acs.inst_id WHERE al.inst_id = '$instituteId' ORDER BY al.id, acs.class";
     $result = mysqli_query($conn, $sql);

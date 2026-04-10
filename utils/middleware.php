@@ -46,10 +46,48 @@ function adminAuthenticateRequest()
         ];
     }
 
+    $userId = $row['admin_id'];
+    $userSql = "SELECT `id`, `user_type`, `inst_id` FROM `admin_users` WHERE `id` = '$userId' LIMIT 1";
+    $userResult = mysqli_query($conn, $userSql);
+
+    if (!$userResult || mysqli_num_rows($userResult) === 0) {
+        return [
+            'authenticated' => false,
+            'status' => 404,
+            'message' => 'User not found'
+        ];
+    }
+
+    $user = mysqli_fetch_assoc($userResult);
+
+    if ($user['user_type'] === 'inst_admin') {
+        if (empty($user['inst_id'])) {
+            return [
+                'authenticated' => false,
+                'status' => 404,
+                'message' => 'Institute not found'
+            ];
+        }
+
+        $instId = $user['inst_id'];
+        $instCheckSql = "SELECT `inst_id` FROM `institutions` WHERE `inst_id` = '$instId' LIMIT 1";
+        $instResult = mysqli_query($conn, $instCheckSql);
+
+        if (!$instResult || mysqli_num_rows($instResult) === 0) {
+            return [
+                'authenticated' => false,
+                'status' => 404,
+                'message' => 'Institute not found'
+            ];
+        }
+    }
+
     return [
         'authenticated' => true,
         'token' => $token,
-        'userId' => $row['admin_id']
+        'userId' => $userId,
+        'user_type' => $user['user_type'],
+        'inst_id' => $user['inst_id'] ?? null
     ];
 }
 
