@@ -19,7 +19,7 @@ if ($requestMethod === 'GET') {
     global $conn;
     $instituteId = $authResult['inst_id'];
 
-    $sql = "SELECT `types` FROM `fees_types` WHERE `inst_id`='$instituteId'";
+    $sql = "SELECT `types` FROM `fee_types` WHERE `inst_id`='$instituteId'";
     $result = mysqli_query($conn, $sql);
 
     if ($result) {

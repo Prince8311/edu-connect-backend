@@ -32,7 +32,7 @@ if ($requestMethod === 'POST') {
 
     $types = mysqli_real_escape_string($conn, $inputData['types']);
 
-    $checkSql = "SELECT * FROM `fees_types` WHERE `inst_id`='$instituteId'";
+    $checkSql = "SELECT * FROM `fee_types` WHERE `inst_id`='$instituteId'";
     $checkResult = mysqli_query($conn, $checkSql);
 
     if (!$checkResult) {
@@ -46,7 +46,7 @@ if ($requestMethod === 'POST') {
     }
 
     if (mysqli_num_rows($checkResult) === 1) {
-        $updateSql = "UPDATE `fees_types` SET `types`='$types' WHERE `inst_id`='$instituteId'";
+        $updateSql = "UPDATE `fee_types` SET `types`='$types' WHERE `inst_id`='$instituteId'";
         $updateResult = mysqli_query($conn, $updateSql);
 
         if ($updateResult) {
@@ -65,7 +65,7 @@ if ($requestMethod === 'POST') {
             echo json_encode($data);
         }
     } else {
-        $insertSql = "INSERT INTO `fees_types`(`inst_id`, `types`) VALUES ('$instituteId','$types')";
+        $insertSql = "INSERT INTO `fee_types`(`inst_id`, `types`) VALUES ('$instituteId','$types')";
         $insertResult = mysqli_query($conn, $insertSql);
 
         if ($insertResult) {
