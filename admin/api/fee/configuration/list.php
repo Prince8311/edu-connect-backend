@@ -19,7 +19,17 @@ if ($requestMethod === 'GET') {
     global $conn;
     $instituteId = $authResult['inst_id'];
 
-    $configurationsSql = "SELECT * FROM `fee_configurations` WHERE `inst_id`='$instituteId' ORDER BY `id` DESC";
+    if (!isset($_GET['feeType'])) {
+        echo json_encode([
+            'status' => 400,
+            'message' => 'Fee type required.'
+        ]);
+        header("HTTP/1.0 400 Bad Request");
+        exit;
+    }
+
+    $feeType = isset($_GET['feeType']) ? mysqli_real_escape_string($conn, $_GET['feeType']) : null;
+    $configurationsSql = "SELECT * FROM `fee_configurations` WHERE `inst_id`='$instituteId' AND `type`='$feeType' ORDER BY `id` DESC";
     $configurationsResult = mysqli_query($conn, $configurationsSql);
 
     if (!$configurationsResult) {
