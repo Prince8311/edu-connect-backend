@@ -36,6 +36,13 @@ if ($requestMethod === 'GET') {
     $configurationIds = [];
 
     while ($row = mysqli_fetch_assoc($configurationsResult)) {
+        if (!empty($row['classes'])) {
+            $decodedClasses = json_decode($row['classes'], true);
+            $row['classes'] = json_last_error() === JSON_ERROR_NONE ? $decodedClasses : [];
+        } else {
+            $row['classes'] = [];
+        }
+
         $row['installments'] = [];
         $configurations[$row['id']] = $row;
         $configurationIds[] = $row['id'];
