@@ -20,11 +20,11 @@ if ($requestMethod === 'GET') {
     $isForm = isset($_GET['isForm']) && $_GET['isForm'] === 'true';
 
     if (!$isForm && !isset($_GET['levelId'])) {
+        header("HTTP/1.0 400 Bad Request");
         echo json_encode([
             'status' => 400,
             'message' => 'Academic level id required.'
         ]);
-        header("HTTP/1.0 400 Bad Request");
         exit;
     }
 

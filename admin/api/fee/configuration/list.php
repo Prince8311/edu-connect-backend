@@ -20,11 +20,11 @@ if ($requestMethod === 'GET') {
     $instituteId = $authResult['inst_id'];
 
     if (!isset($_GET['feeType'])) {
+        header("HTTP/1.0 400 Bad Request");
         echo json_encode([
             'status' => 400,
             'message' => 'Fee type required.'
         ]);
-        header("HTTP/1.0 400 Bad Request");
         exit;
     }
 
