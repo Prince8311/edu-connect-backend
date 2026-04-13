@@ -39,7 +39,7 @@ if ($requestMethod === 'POST') {
     $classesInput = isset($inputData['classes']) ? $inputData['classes'] : '';
     $scheduledPaymentsInput = isset($inputData['scheduled_payments']) ? $inputData['scheduled_payments'] : '';
 
-    if ($applicableType === '' || $feeType === '' || $receiptPrefix === '') {
+    if ($applicableType === '' || $configurationTypeInput === '' || $receiptPrefix === '') {
         $data = [
             'status' => 400,
             'message' => 'applicable_type, fee_type and receipt_prefix are required.'
