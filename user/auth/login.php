@@ -70,7 +70,7 @@ if ($requestMethod === 'POST') {
                 exit;
             }
             $loginCount = mysqli_num_rows($authResult);
-            if ($loginCount >= 5) {
+            if ($loginCount >= 5000) {
                 $response = [
                     'success' => false,
                     'status' => 403,
