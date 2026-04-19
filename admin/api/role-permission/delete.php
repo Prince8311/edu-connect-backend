@@ -20,7 +20,7 @@ if ($requestMethod === 'POST') {
     $instituteId = $authResult['inst_id'];
     $roleId = isset($_GET['id']) ? mysqli_real_escape_string($conn, $_GET['id']) : '';
 
-    if (empty($roleName)) {
+    if (empty($roleId)) {
         header("HTTP/1.0 400 Bad Request");
         echo json_encode([
             'status' => 400,
