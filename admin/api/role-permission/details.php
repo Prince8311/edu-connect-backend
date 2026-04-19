@@ -53,10 +53,11 @@ if ($requestMethod === 'GET') {
             exit;
         }
         $row = mysqli_fetch_assoc($result);
+        $permissions = array_filter(array_map('trim', explode(',', $row['permissions'])));
         $roleDetails = [
             'id' => $row['id'],
             'role_name' => $row['role_name'],
-            'permissions' => json_decode($row['permissions'], true),
+            'permissions' => $permissions,
             'status' => (bool)$row['status']
         ];
         $data = [
