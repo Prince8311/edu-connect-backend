@@ -18,9 +18,11 @@ if ($requestMethod === 'POST') {
     global $conn;
     $userType = $authResult['user_type'];
     $instituteId = $authResult['inst_id'];
-    $roleId = isset($_GET['id']) ? mysqli_real_escape_string($conn, $_GET['id']) : '';
 
-    if (empty($roleId)) {
+    $inputData = json_decode(file_get_contents("php://input"), true);
+    $roleId = $inputData['id'] ?? null;
+
+    if (!$roleId) {
         header("HTTP/1.0 400 Bad Request");
         echo json_encode([
             'status' => 400,
