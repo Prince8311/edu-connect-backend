@@ -35,7 +35,7 @@ if ($requestMethod === 'POST') {
 
     if (mysqli_num_rows($checkResult) === 1) {
         echo json_encode([
-            "status" => 401,
+            "status" => 409,
             "message" => "This academic level already created."
         ]);
         exit;

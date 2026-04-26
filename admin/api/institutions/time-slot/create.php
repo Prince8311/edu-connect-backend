@@ -1,7 +1,7 @@
 <?php
 
-require "../../../../../utils/headers.php";
-require "../../../../../utils/middleware.php";
+require __DIR__ . "/../../../../utils/headers.php";
+require __DIR__ . "/../../../../utils/middleware.php";
 
 $authResult = adminAuthenticateRequest();
 if (!$authResult['authenticated']) {
@@ -14,7 +14,7 @@ if (!$authResult['authenticated']) {
 }
 
 if ($requestMethod === 'POST') {
-    require "../../../../../_db-connect.php";
+    require __DIR__ . "/../../../../_db-connect.php";
     global $conn;
     $instituteId = $authResult['inst_id'];
 
@@ -29,36 +29,35 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $academicLevelId = mysqli_real_escape_string($conn, $inputData['academicLevelId']);
-    $class = mysqli_real_escape_string($conn, $inputData['class']);
+    $name = mysqli_real_escape_string($conn, $inputData['name']);
+    $start = mysqli_real_escape_string($conn, $inputData['start']);
+    $end = mysqli_real_escape_string($conn, $inputData['end']);
 
-    $checkSql = "SELECT * FROM `academic_class_sections` WHERE `inst_id`='$instituteId' AND `class`='$class'";
+    $checkSql = "SELECT * FROM `time_slots` WHERE `inst_id`='$instituteId' AND `name`='$name' AND `start`='$start' AND `end`='$end'";
     $checkResult = mysqli_query($conn, $checkSql);
-
-    if ($checkResult && mysqli_num_rows($checkResult) === 1) {
+    if (mysqli_num_rows($checkResult) > 0) {
         $data = [
             'status' => 409,
-            'message' => 'This class already created.'
+            'message' => 'Time slot already exists.'
         ];
         header("HTTP/1.0 409 Conflict");
         echo json_encode($data);
         exit;
     }
 
-    $insertSql = "INSERT INTO `academic_class_sections`(`inst_id`, `level_id`, `class`) VALUES ('$instituteId','$academicLevelId','$class')";
+    $insertSql = "INSERT INTO `time_slots` (`inst_id`, `name`, `start`, `end`) VALUES ('$instituteId', '$name', '$start', '$end')";
     $insertResult = mysqli_query($conn, $insertSql);
-
     if ($insertResult) {
         $data = [
             'status' => 200,
-            'message' => 'Class added successfully.'
+            'message' => 'Time slot created successfully.'
         ];
         header("HTTP/1.0 200 OK");
         echo json_encode($data);
     } else {
         $data = [
             'status' => 500,
-            'message' => 'Database error: ' . mysqli_error($conn)
+            'message' => 'Failed to create time slot'
         ];
         header("HTTP/1.0 500 Internal Server Error");
         echo json_encode($data);
