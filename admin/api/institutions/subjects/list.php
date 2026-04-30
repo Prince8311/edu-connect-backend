@@ -1,7 +1,7 @@
 <?php
 
-require "../../../../utils/headers.php";
-require "../../../../utils/middleware.php";
+require __DIR__ . "/../../../../utils/headers.php";
+require __DIR__ . "/../../../../utils/middleware.php";
 
 $authResult = adminAuthenticateRequest();
 if (!$authResult['authenticated']) {
@@ -14,7 +14,7 @@ if (!$authResult['authenticated']) {
 }
 
 if ($requestMethod === 'GET') {
-    require "../../../../_db-connect.php";
+    require __DIR__ . "/../../../../_db-connect.php";
     global $conn;
     $instituteId = $authResult['inst_id'];
 
@@ -62,7 +62,7 @@ if ($requestMethod === 'GET') {
             'currentPage' => $showAll ? null : $page,
             'subjects' => $subjects
         ];
-        header("HTTP/1.0 200 subjects");
+        header("HTTP/1.0 200 OK");
         echo json_encode($data);
     } else {
         $data = [

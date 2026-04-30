@@ -1,7 +1,7 @@
 <?php
 
-require "../../../utils/headers.php";
-require "../../../utils/middleware.php";
+require __DIR__ . "/../../../utils/headers.php";
+require __DIR__ . "/../../../utils/middleware.php";
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -18,12 +18,12 @@ if (!$authResult['authenticated']) {
 }
 
 if ($requestMethod === 'POST') {
-    require "../../../_db-connect.php";
+    require __DIR__ . "/../../../_db-connect.php";
     global $conn;
 
-    require "../../../PHPMailer/Exception.php";
-    require "../../../PHPMailer/PHPMailer.php";
-    require "../../../PHPMailer/SMTP.php";
+    require __DIR__ . "/../../../PHPMailer/Exception.php";
+    require __DIR__ . "/../../../PHPMailer/PHPMailer.php";
+    require __DIR__ . "/../../../PHPMailer/SMTP.php";
 
     $inputData = json_decode(file_get_contents("php://input"), true);
 

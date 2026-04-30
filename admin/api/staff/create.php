@@ -128,7 +128,7 @@ if ($requestMethod === 'POST') {
     $staffType = mysqli_real_escape_string($conn, $inputData['staffType']);
     $isBulkUpload = $inputData['isBulkUpload'] ?? false;
 
-    if (empty($students)) {
+    if (empty($staffs)) {
         header("HTTP/1.0 400 Bad Request");
         echo json_encode([
             "status" => 400,
@@ -197,18 +197,18 @@ if ($requestMethod === 'POST') {
             $newUserId = mysqli_insert_id($conn);
 
             $staffSql = "INSERT INTO staffs (inst_id, user_id, staff_id, staff_type, created_at) VALUES ('$instituteId', '$newUserId', '$staffId','$staffType', NOW())";
-            if (!mysqli_query($conn, $studentSql)) {
+            if (!mysqli_query($conn, $staffSql)) {
                 header("HTTP/1.0 500 Internal Server Error");
                 echo json_encode([
                     "status" => 500,
-                    "message" => "Failed to insert student"
+                    "message" => "Failed to insert staff"
                 ]);
                 exit;
             }
 
             $staffDataId = mysqli_insert_id($conn);
 
-            foreach ($studentFields as $field) {
+            foreach ($staffFields as $field) {
                 $sectionId = mysqli_real_escape_string($conn, $field['section_id']);
                 $fieldName = mysqli_real_escape_string($conn, $field['field_name']);
                 $value     = mysqli_real_escape_string($conn, $field['value']);

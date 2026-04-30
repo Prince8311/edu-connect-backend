@@ -1,7 +1,7 @@
 <?php
 
-require "../../../utils/headers.php";
-require "../../../utils/middleware.php";
+require __DIR__ . "/../../../utils/headers.php";
+require __DIR__ . "/../../../utils/middleware.php";
 
 $authResult = adminAuthenticateRequest();
 if (!$authResult['authenticated']) {
@@ -15,7 +15,7 @@ if (!$authResult['authenticated']) {
 }
 
 if ($requestMethod === 'GET') {
-    require "../../../_db-connect.php";
+    require __DIR__ . "/../../../_db-connect.php";
     global $conn;
 
     if (!isset($_GET['name'])) {

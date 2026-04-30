@@ -1,8 +1,7 @@
 <?php
 
-date_default_timezone_set('Asia/Kolkata');
-require "../../utils/headers.php";
-require "../../utils/middleware.php";
+require __DIR__ . "/../../utils/headers.php";
+require __DIR__ . "/../../utils/middleware.php";
 
 $authResult = adminAuthenticateRequest();
 if ($authResult['message'] !== 'Token expired') {
@@ -17,7 +16,7 @@ if ($authResult['message'] !== 'Token expired') {
 }
 
 if ($requestMethod === 'GET') {
-    require "../../_db-connect.php";
+    require __DIR__ . "/../../_db-connect.php";
     global $conn;
     $userId = mysqli_real_escape_string($conn, $authResult['userId']);
     $currentToken = $authResult['token'];
@@ -55,7 +54,7 @@ if ($requestMethod === 'GET') {
         [
             'expires' => time() + 86400,
             'path' => '/',
-            'domain' => 'ticketbay.in',
+            'domain' => '.educonnekt.in',
             'secure' => true,
             'httponly' => true,
             'samesite' => 'None'

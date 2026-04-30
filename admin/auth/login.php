@@ -1,9 +1,9 @@
 <?php
 
-require "../../utils/headers.php";
+require __DIR__ . "/../../utils/headers.php";
 
 if ($requestMethod === 'POST') {
-    require "../../_db-connect.php";
+    require __DIR__ . "/../../_db-connect.php";
     global $conn;
 
     $inputData = json_decode(file_get_contents("php://input"), true);
@@ -29,6 +29,7 @@ if ($requestMethod === 'POST') {
             $userId = $data['id'];
             $userName = $data['name'];
             $userEmail = $data['email'];
+            $userPhone = $data['phone'];
             $userType = $data['user_type'];
             $userRole = $data['user_role'];
             if ($userType != "super_admin" && $userType != "inst_admin") {
@@ -118,7 +119,7 @@ if ($requestMethod === 'POST') {
                             [
                                 'expires' => time() + 86400,
                                 'path' => '/',
-                                'domain' => '.ticketbay.in',
+                                'domain' => '.educonnekt.in',
                                 'secure' => true,
                                 'httponly' => true,
                                 'samesite' => 'None'
