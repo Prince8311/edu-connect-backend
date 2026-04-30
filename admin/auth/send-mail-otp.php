@@ -146,7 +146,8 @@ if ($requestMethod === 'POST') {
                         $_SESSION['userId'] = $userId;
                         $data = [
                             'status' => 200,
-                            'message' => 'OTP has been sent to your email.'
+                            'message' => 'OTP has been sent to your email.',
+                            'userEmail' => $userEmail
                         ];
                         header("HTTP/1.0 200 OTP Sent");
                         echo json_encode($data);
