@@ -1,9 +1,9 @@
 <?php
 
     $server = "localhost";
-    $username = "ticketbay_abhay";
-    $password = 'abhay$ticketbay@2024';
-    $database = "ticketbay_educonnect";
+    $username = "u181314319_sourish";
+    $password = 'Abhay$educonnect@2026';
+    $database = "u181314319_educonnect";
 
     $conn = mysqli_connect($server, $username, $password, $database);
 
