@@ -183,7 +183,7 @@ if ($requestMethod === 'POST') {
                             [
                                 'expires' => time() + 86400,
                                 'path' => '/',
-                                'domain' => '.ticketbay.in',
+                                'domain' => '.educonnekt.in',
                                 'secure' => true,
                                 'httponly' => true,
                                 'samesite' => 'None'

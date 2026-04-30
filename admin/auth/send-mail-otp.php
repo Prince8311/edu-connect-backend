@@ -32,15 +32,18 @@ if ($requestMethod === 'POST') {
 
         if (mysqli_num_rows($result) === 1) {
             $data = mysqli_fetch_assoc($result);
+            $input = $inputData['name'];
             $userId = $data['id'];
+            $userName = $data['name'] ?? '';
+            $userName = trim($userName);
+            $firstName = explode(' ', $userName)[0];
             $userEmail = $data['email'];
             $userType = $data['user_type'];
 
             if ($userType != "super_admin" && $userType != "inst_admin") {
                 $data = [
                     'status' => 400,
-                    'message' => 'Permission denied.',
-                    'userType' => $userType
+                    'message' => 'Permission denied.'
                 ];
                 header("HTTP/1.0 400 Forbidden");
                 echo json_encode($data);
@@ -50,78 +53,148 @@ if ($requestMethod === 'POST') {
             $otp = rand(100000, 999999);
             $otpPart1 = substr($otp, 0, 3);
             $otpPart2 = substr($otp, 3, 3);
-            $mail = new PHPMailer(true);
+            $expiresAt = date("Y-m-d H:i:s", time() + 600);
 
-            try {
-                $mail->isSMTP();
-                $mail->Host       = getenv('SMTP_HOST');
-                $mail->SMTPAuth   = true;
-                $mail->Username   = getenv('SMTP_MAIL');
-                $mail->Password   = getenv('SMTP_PASSWORD');
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-                $mail->Port       = getenv('SMTP_PORT');
-                $mail->CharSet = 'UTF-8';
+            if ($input === $data['email']) {
+                $mail = new PHPMailer(true);
+                try {
+                    $mail->isSMTP();
+                    $mail->Host       = getenv('SMTP_HOST');
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = getenv('SMTP_MAIL');
+                    $mail->Password   = getenv('SMTP_PASSWORD');
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+                    $mail->Port       = getenv('SMTP_PORT');
+                    $mail->CharSet = 'UTF-8';
 
-                $mail->isHTML(true);
-                $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
-                $mail->addAddress("$userEmail", 'User');
-                $mail->Subject = 'OTP for Authentication';
-                $mail->Body    = '<!DOCTYPE html>
-                                <html lang="en">
-                                    <head>
-                                        <meta charset="UTF-8">
-                                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                        <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
-                                    </head>
-                                    <body style="position: relative; margin: 0; padding: 0;">
-                                        <div class="template_wrapper" style="position: relative; width: 100%;  padding: 10px; box-sizing: border-box; ">
-                                            <div class="template" style="position: relative; background: #FFF; padding-bottom: 50px; border-radius: 5px;" >
-                                                <div class="logo" style="position: relative; text-align: center;"><img src="https://ticketbay.in/Backend/Images/Logo.png" alt="Logo" style="width: 50px;"></div>
-                                                <div class="body_message" style="position: relative; margin-top: 15px;">
-                                                    <p style="position: relative; text-align: center;">
-                                                        <span style="position: relative; text-align: center; font-family: sans-serif; color: #444; font-size: 15px; line-height: 1.4;">Your OTP for authentication in <a href="" style="color: #FC6736;" >superadmin.ticketbay.in</a> is,</span>
-                                                    </p>
+                    $mail->isHTML(true);
+                    $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
+                    $mail->addAddress("$userEmail", 'User');
+                    $mail->Subject = 'OTP for Authentication';
+                    $mail->Body    = '<!DOCTYPE html>
+                                        <html lang="en">
+                                            <head>
+                                                <meta charset="UTF-8">
+                                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                                <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=SUSE:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+                                                <style>
+                                                    * {
+                                                        margin: 0;
+                                                        padding: 0;
+                                                        box-sizing: border-box;
+                                                        font-family: "SUSE", sans-serif;
+                                                    }
+
+                                                    .poppins-font {
+                                                        font-family: "Poppins", sans-serif;
+                                                    }
+                                                </style>
+                                            </head>
+                                            <body style="position: relative;">
+                                                <div style="position: relative; width: 100%;">
+                                                    <div style="position: relative; background: #FFF; padding: 25px; border-radius: 10px; text-align: center;">
+                                                        <div class="logo" style="position: relative; text-align: center;"><img
+                                                                src="https://api.educonnekt.in/images/logo.png" alt="Logo" style="height: 25px;"></div>
+                                                        <div
+                                                            style="position: relative; width: 300px; padding: 20px; margin: 0 auto; margin-top: 25px; background-color: #FFF;  border-radius: 10px; box-shadow: 0 0 10px rgba(126, 126, 126, 0.3);">
+                                                            <div style="position: relative; font-size: 18px; font-weight: 500;">Verify Your Identity</div>
+                                                            <div class="poppins-font"
+                                                                style="position: relative; font-size: 13px; margin-top: 10px; color: #838383; line-height: 1.3;">Use the following One-Time Password (OTP) to complete your sign-in. This code is valid for <span class="poppins-font" style="color: #1e1e1e; font-weight: 500;">10 minutes.</span> </div>
+                                                            <div
+                                                                style="position: relative; width: 100%; padding: 8px 10px; background-color: #EFF1F2; margin-top: 15px; border-radius: 6px;  letter-spacing: 1px; font-size: 26px; font-weight: 600; color: #0072C3; box-shadow: 0 0 8px rgba(103, 103, 103, 0.3);">' . $otpPart1 . ' ' . $otpPart2 . '</div>
+                                                            <div class="poppins-font" style="position: relative; margin-top: 25px; padding-top: 8px; border-top: 1px solid #E1E0EA; font-size: 12px; color: #838383; font-weight: 300;">If you did not request this code, please ignore this email or contact support.</div>
+                                                        </div>
+                                                        <div style="position: relative; width: max-content; margin: 0 auto; margin-top: 15px; text-align: center;">
+                                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"
+                                                                style="background-color: #E6E7E8; border-radius: 999px; padding: 6px 20px 6px 16px;">
+                                                                <tr>
+                                                                    <td style="vertical-align: middle;">
+                                                                        <img src="https://api.educonnekt.in/images/security.svg" alt="Secure"
+                                                                            style="width: 12px; display: block;">
+                                                                    </td>
+                                                                    <td style="vertical-align: middle; padding-left: 5px; padding-bottom: 3px;">
+                                                                        <span class="poppins-font" style="font-size: 10px; font-weight: 500; color: #555;">
+                                                                            SECURE AUTHENTICATION PROTOCOL
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </div>
+                                                        <div style="position: relative; width: 300px; margin: 0 auto; margin-top: 25px;">
+                                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
+                                                                <tr>
+                                                                    <td style="vertical-align: middle;">
+                                                                        <a href="https://educonnekt.in/privacy-policy" class="poppins-font" style="position: relative; font-size: 12px; text-decoration: none; color: #b3b3b3;">PRIVACY POLICY</a>
+                                                                    </td>
+                                                                    <td style="vertical-align: middle;">
+                                                                        <a href="https://educonnekt.in/terms-conditions" class="poppins-font" style="position: relative; font-size: 12px; text-decoration: none; color: #b3b3b3; margin-left: 25px;">TERMS OF SERVICE</a>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </div>
+                                                        <div class="poppins-font" style="position: relative; margin: 0 auto; margin-top: 5px; font-size: 11px; line-height: 1.3; color: #b3b3b3;">©2026 Edu Connekt by Shetty Ticket Counter Private Limited. All righs reserved.</div>
+                                                    </div>
                                                 </div>
-                                                <div class="body_message" style="position: relative; margin-top: 5px;">
-                                                    <p style="position: relative; text-align: center;">
-                                                        <span style="position: relative; text-align: center; font-family: sans-serif; color: #02C0FF; font-size: 20px; line-height: 1; font-weight: 600;">' . $otpPart1 . '  ' . $otpPart2 . '</span>
-                                                    </p>
-                                                </div>
-                                                <div style="position: relative; margin-top: 30px;">
-                                                    <p style="position: relative;"><b style="position: relative; font-family: sans-serif; font-size: 13px; color: #f00;">*NOTE:- Please do not share this message with anyone else.</b></p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </body>
-                                </html>';
-                $mail->send();
-                $updateSql = "UPDATE `admin_users` SET `mail_otp`='$otp' WHERE `id` = '$userId'";
+                                            </body>
+                                        </html>';
+                    $mail->send();
+                    $updateSql = "UPDATE `admin_users` SET `mail_otp`='$otp', `mail_otp_expires_at`='$expiresAt' WHERE `id` = '$userId'";
+                    $updateResult = mysqli_query($conn, $updateSql);
+
+                    if ($updateResult) {
+                        $_SESSION['userId'] = $userId;
+                        $data = [
+                            'status' => 200,
+                            'message' => 'OTP has been sent to your email.'
+                        ];
+                        header("HTTP/1.0 200 OTP Sent");
+                        echo json_encode($data);
+                    } else {
+                        $data = [
+                            'status' => 500,
+                            'message' => 'Internal Server Error',
+                        ];
+                        header("HTTP/1.0 500 Internal Server Error");
+                        echo json_encode($data);
+                    }
+                } catch (Exception $e) {
+                    $data = [
+                        'status' => 500,
+                        'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
+                    ];
+                    header("HTTP/1.0 500 Message could not be sent");
+                    echo json_encode($data);
+                }
+            } else if ($input === $data['phone']) {
+                $key = getenv('SMS_API_KEY');
+                $senderid = getenv('SMS_SENDER_ID');
+                $tempid = getenv('AUTH_OTP_SMS_TEMPLATE_ID');
+
+                $message = "Dear $firstName, your OTP for Edu Connekt to login is $otp. OTP is valid for 10 minutes. Please do not share the OTP. SHETTY TICKET COUNTER";
+                $message_content = urlencode($message);
+
+                $url = "https://smsfortius.work/V2/?apikey=$key&senderid=$senderid&templateid=$tempid&number=$input&message=$message_content";
+                $output = file_get_contents($url);
+
+                $updateSql = "UPDATE `users` SET `phone_otp`='$otp',`phone_otp_expires_at`='$expiresAt' WHERE `id`='$userId'";
                 $updateResult = mysqli_query($conn, $updateSql);
 
                 if ($updateResult) {
-                    $_SESSION['userId'] = $userId;
-                    $data = [
+                    $response = [
                         'status' => 200,
-                        'message' => 'OTP has been sent.',
-                        'userEmail' => $userEmail
+                        'message' => 'OTP has been sent to your mobile no.'
                     ];
-                    header("HTTP/1.0 200 OTP Sent");
-                    echo json_encode($data);
+                    header("HTTP/1.0 200 OK");
+                    echo json_encode($response);
                 } else {
-                    $data = [
+                    $response = [
                         'status' => 500,
                         'message' => 'Internal Server Error',
                     ];
                     header("HTTP/1.0 500 Internal Server Error");
-                    echo json_encode($data);
+                    echo json_encode($response);
                 }
-            } catch (Exception $e) {
-                $data = [
-                    'status' => 500,
-                    'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
-                ];
-                header("HTTP/1.0 500 Message could not be sent");
-                echo json_encode($data);
             }
         } else {
             $data = [

@@ -102,14 +102,10 @@ if ($requestMethod === 'POST') {
                                                             style="position: relative; width: 300px; padding: 20px; margin: 0 auto; margin-top: 25px; background-color: #FFF;  border-radius: 10px; box-shadow: 0 0 10px rgba(126, 126, 126, 0.3);">
                                                             <div style="position: relative; font-size: 18px; font-weight: 500;">Verify Your Identity</div>
                                                             <div class="poppins-font"
-                                                                style="position: relative; font-size: 13px; margin-top: 10px; color: #838383; line-height: 1.3;">Use
-                                                                the following One-Time Password (OTP) to complete your sign-in. This code is valid for <span
-                                                                    class="poppins-font" style="color: #1e1e1e; font-weight: 500;">10 minutes.</span> </div>
+                                                                style="position: relative; font-size: 13px; margin-top: 10px; color: #838383; line-height: 1.3;">Use the following One-Time Password (OTP) to complete your sign-in. This code is valid for <span class="poppins-font" style="color: #1e1e1e; font-weight: 500;">10 minutes.</span> </div>
                                                             <div
                                                                 style="position: relative; width: 100%; padding: 8px 10px; background-color: #EFF1F2; margin-top: 15px; border-radius: 6px;  letter-spacing: 1px; font-size: 26px; font-weight: 600; color: #0072C3; box-shadow: 0 0 8px rgba(103, 103, 103, 0.3);">' . $otpPart1 . ' ' . $otpPart2 . '</div>
-                                                            <div class="poppins-font"
-                                                                style="position: relative; margin-top: 25px; padding-top: 8px; border-top: 1px solid #E1E0EA; font-size: 12px; color: #838383; font-weight: 300;">
-                                                                If you did not request this code, please ignore this email or contact support.</div>
+                                                            <div class="poppins-font" style="position: relative; margin-top: 25px; padding-top: 8px; border-top: 1px solid #E1E0EA; font-size: 12px; color: #838383; font-weight: 300;">If you did not request this code, please ignore this email or contact support.</div>
                                                         </div>
                                                         <div style="position: relative; width: max-content; margin: 0 auto; margin-top: 15px; text-align: center;">
                                                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"

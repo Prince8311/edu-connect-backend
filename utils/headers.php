@@ -7,7 +7,7 @@ ini_set('session.cookie_secure', 'true');
 session_set_cookie_params([
     'lifetime' => 86400,
     'path' => '/',
-    'domain' => '.ticketbay.in',
+    'domain' => '.educonnekt.in',
     'secure' => true,
     'httponly' => true,
     'samesite' => 'None'
@@ -15,9 +15,8 @@ session_set_cookie_params([
 session_start();
 $allowedOrigins = [
     'http://localhost:3000',
-    'http://edu-connect.ticketbay.in',
-    'https://edu-connect.ticketbay.in',
-    'https://educonnekt.in',
+    'http://educonnekt.in/',
+    'https://educonnekt.in/',
 ];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, $allowedOrigins, true)) {
