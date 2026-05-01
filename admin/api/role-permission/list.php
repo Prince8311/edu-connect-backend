@@ -19,33 +19,9 @@ if ($requestMethod === 'GET') {
     $userType = $authResult['user_type'];
     $instituteId = $authResult['inst_id'];
 
-    if ($userType === 'super_admin') {
-        $sql = "SELECT rp.*, COUNT(au.id) AS user_count FROM roles_permissions rp LEFT JOIN admin_users au ON au.user_type = rp.created_by AND au.user_role = rp.role_name WHERE rp.created_by = '$userType' GROUP BY rp.id";
-    } else if ($userType === 'inst_admin') {
-        $sql = "SELECT rp.*, COUNT(au.id) AS user_count FROM roles_permissions rp LEFT JOIN admin_users au ON au.user_type = rp.created_by AND au.user_role = rp.role_name WHERE rp.created_by = '$userType' AND rp.inst_id = '$instituteId' GROUP BY rp.id";
-    } else {
-        header("HTTP/1.0 403 Forbidden");
-        echo json_encode([
-            'status' => 403,
-            'message' => 'Unauthorized access'
-        ]);
-        exit;
-    }
-
-    $result = mysqli_query($conn, $sql);
-    $rolesPermissions = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $rolesPermissions[] = [
-            'id' => $row['id'],
-            'role_name' => $row['role_name'],
-            'user_count' => (int)$row['user_count']
-        ];
-    }
-
     $data = [
         'status' => 200,
-        'message' => 'Roles and permissions retrieved successfully',
-        'roles' => $rolesPermissions
+        'message' => 'Roles and permissions retrieved successfully'
     ];
     header("HTTP/1.0 200 OK");
     echo json_encode($data);
