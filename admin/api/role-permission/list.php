@@ -19,7 +19,7 @@ if ($requestMethod === 'GET') {
     $userType = $authResult['user_type'];
     $instituteId = $authResult['inst_id'];
 
-    $sql = "SELECT * FROM `roles_permissions` WHERE `institute_id` = '$instituteId'";
+    $sql = "SELECT * FROM `roles_permissions` WHERE `inst_id` = '$instituteId'";
 
     $result = mysqli_query($conn, $sql);
     if (!$result) {
