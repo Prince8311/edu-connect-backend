@@ -18,6 +18,7 @@ if ($requestMethod === 'GET') {
     global $conn;
     $instituteId = $authResult['inst_id'];
 
+    $isForm = isset($_GET['isForm']) && $_GET['isForm'] === 'true';
     $limit = 12;
     $page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0
         ? (int) $_GET['page']
@@ -45,7 +46,7 @@ if ($requestMethod === 'GET') {
     // -----------------------
     // DATA QUERY (with LIMIT)
     // -----------------------
-    if ($showAll) {
+    if ($showAll || $isForm) {
         $sql = "SELECT `id`, `inst_id`, `subject_name` FROM `institution_subjects` WHERE `inst_id` = '$instituteId' $searchCondition ORDER BY id ASC";
     } else {
         $sql = "SELECT `id`, `inst_id`, `subject_name` FROM `institution_subjects` WHERE `inst_id` = '$instituteId' $searchCondition ORDER BY id ASC LIMIT $limit OFFSET $offset";
@@ -54,14 +55,27 @@ if ($requestMethod === 'GET') {
 
     if ($result) {
         $subjects = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        if ($isForm) {
+            $subjects = array_map(function ($item) {
+                return $item['subject_name'];
+            }, $subjects);
 
-        $data = [
-            'status' => 200,
-            'message' => 'All subjects fetched.',
-            'totalCount' => $totalSubjects,
-            'currentPage' => $showAll ? null : $page,
-            'subjects' => $subjects
-        ];
+            $subjects = array_values(array_unique($subjects));
+
+            $data = [
+                'status' => 200,
+                'message' => 'Subjects fetched for form.',
+                'data' => $subjects
+            ];
+        } else {
+            $data = [
+                'status' => 200,
+                'message' => 'All subjects fetched.',
+                'totalCount' => $totalSubjects,
+                'currentPage' => $showAll ? null : $page,
+                'subjects' => $subjects
+            ];
+        }
         header("HTTP/1.0 200 OK");
         echo json_encode($data);
     } else {
