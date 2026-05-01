@@ -18,7 +18,7 @@ if ($requestMethod === 'GET') {
     global $conn;
     $instituteId = $authResult['inst_id'];
     $isForm = isset($_GET['isForm']) && $_GET['isForm'] === 'true';
-    
+
     $sql = "SELECT * FROM `academic_sessions` WHERE `inst_id`='$instituteId'";
     if (isset($_GET['status']) && trim($_GET['status']) !== '') {
         $sessionStatus = mysqli_real_escape_string($conn, $_GET['status']);
@@ -30,11 +30,8 @@ if ($requestMethod === 'GET') {
         $sessions = mysqli_fetch_all($result, MYSQLI_ASSOC);
         if ($isForm) {
             $sessions = array_map(function ($item) {
-                return [
-                    'name' => $item['sesssion_name']
-                ];
+                return $item['sesssion_name'];
             }, $sessions);
-
             $data = [
                 'status' => 200,
                 'message' => 'Sessions fetched for form.',
