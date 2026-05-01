@@ -21,7 +21,8 @@ if ($requestMethod === 'GET') {
 
     $data = [
         'status' => 200,
-        'message' => 'Roles and permissions retrieved successfully'
+        'message' => 'Roles and permissions retrieved successfully',
+        'userType' => $userType
     ];
     header("HTTP/1.0 200 OK");
     echo json_encode($data);
