@@ -29,7 +29,7 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
-    $staffType = mysqli_real_escape_string($conn, $_GET['staff_type']);
+    $staffType = mysqli_real_escape_string($conn, $_GET['staffType']);
     $sql = "SELECT s.id AS section_id, s.form_section, f.id AS field_id, f.form_field, f.field_type, f.is_required, f.source, f.items FROM staff_form_sections s LEFT JOIN staff_form_fields f ON s.id = f.section_id AND (f.inst_id = '$instituteId' OR f.inst_id IS NULL) WHERE (s.inst_id = '$instituteId' OR s.inst_id IS NULL) ORDER BY s.id ASC, f.sort_order ASC";
     $result = mysqli_query($conn, $sql);
 
