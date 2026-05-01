@@ -19,6 +19,17 @@ if ($requestMethod === 'GET') {
     global $conn;
     $instituteId = $authResult['inst_id'];
 
+    if (!isset($_GET['staff_type'])) {
+        $data = [
+            'status' => 400,
+            'message' => 'Staff type is required.',
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+
+    $staffType = mysqli_real_escape_string($conn, $_GET['staff_type']);
     $sql = "SELECT s.id AS section_id, s.form_section, f.id AS field_id, f.form_field, f.field_type, f.is_required, f.source, f.items FROM staff_form_sections s LEFT JOIN staff_form_fields f ON s.id = f.section_id AND (f.inst_id = '$instituteId' OR f.inst_id IS NULL) WHERE (s.inst_id = '$instituteId' OR s.inst_id IS NULL) ORDER BY s.id ASC, f.sort_order ASC";
     $result = mysqli_query($conn, $sql);
 
@@ -35,6 +46,9 @@ if ($requestMethod === 'GET') {
         }
 
         if ($row['field_id'] !== null) {
+            if (($staffType === 'teaching' && strtolower($row['form_field']) === 'role') || ($staffType === 'non-teaching' && strtolower($row['form_field']) === 'subject')) {
+                continue;
+            }
             $decodedItems = null;
             if (!empty($row['items'])) {
                 if ($row['source'] === 'server') {
