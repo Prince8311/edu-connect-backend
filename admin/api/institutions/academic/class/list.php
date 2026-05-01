@@ -39,16 +39,21 @@ if ($requestMethod === 'GET') {
         $classes = [];
 
         while ($row = mysqli_fetch_assoc($result)) {
-            $sectionsArray = [];
-            if (!empty($row['sections'])) {
-                $sectionsArray = explode(',', $row['sections']);
+            if ($isForm) {
+                preg_match('/\d+/', $row['class'], $matches);
+                $classes[] = $matches[0] ?? null;
+            } else {
+                $sectionsArray = [];
+                if (!empty($row['sections'])) {
+                    $sectionsArray = explode(',', $row['sections']);
+                }
+                $classes[] = [
+                    "id" => $row['id'],
+                    "level_id" => $row['level_id'],
+                    "class" => $row['class'],
+                    "sections" => $sectionsArray
+                ];
             }
-            $classes[] = [
-                "id" => $row['id'],
-                "level_id" => $row['level_id'],
-                "class" => $row['class'],
-                "sections" => $sectionsArray
-            ];
         }
         if ($isForm) {
             $data = [
