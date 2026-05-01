@@ -19,18 +19,7 @@ if ($requestMethod === 'GET') {
     $userType = $authResult['user_type'];
     $instituteId = $authResult['inst_id'];
 
-    if ($userType === 'super_admin') {
-        $sql = "SELECT rp.*, COUNT(au.id) AS user_count FROM roles_permissions rp LEFT JOIN admin_users au ON au.user_type = rp.created_by AND au.user_role = rp.role_name WHERE rp.created_by = '$userType' GROUP BY rp.id";
-    } else if ($userType === 'inst_admin') {
-        $sql = "SELECT rp.*, COUNT(au.id) AS user_count FROM roles_permissions rp LEFT JOIN admin_users au ON au.user_type = rp.created_by AND au.user_role = rp.role_name WHERE rp.created_by = '$userType' AND rp.inst_id = '$instituteId' GROUP BY rp.id";
-    } else {
-        header("HTTP/1.0 403 Forbidden");
-        echo json_encode([
-            'status' => 403,
-            'message' => 'Unauthorized access'
-        ]);
-        exit;
-    }
+    $sql = "SELECT rp.*, COUNT(au.id) AS user_count FROM roles_permissions rp LEFT JOIN admin_users au ON au.user_type = rp.created_by AND au.user_role = rp.role_name WHERE rp.created_by = '$userType' AND rp.inst_id = '$instituteId' GROUP BY rp.id";
 
     $result = mysqli_query($conn, $sql);
     if (!$result) {
