@@ -20,9 +20,28 @@ if ($requestMethod === 'GET') {
     $instituteId = $authResult['inst_id'];
 
     if ($userType === 'super_admin') {
-        $sql = "SELECT rp.*, COUNT(au.id) AS user_count FROM roles_permissions rp LEFT JOIN admin_users au ON au.user_type = rp.created_by AND au.user_role = rp.role_name WHERE rp.created_by = '$userType' GROUP BY rp.id";
+        $sql = "SELECT rp.id,
+    rp.role_name,
+    rp.created_by,
+    rp.inst_id,
+    COUNT(au.id) AS user_count
+FROM roles_permissions rp
+LEFT JOIN admin_users au 
+    ON au.user_type = rp.created_by 
+    AND au.user_role = rp.role_name
+WHERE rp.created_by = '$userType' GROUP BY rp.id, rp.role_name, rp.created_by, rp.inst_id";
     } else if ($userType === 'inst_admin') {
-        $sql = "SELECT rp.*, COUNT(au.id) AS user_count FROM roles_permissions rp LEFT JOIN admin_users au ON au.user_type = rp.created_by AND au.user_role = rp.role_name WHERE rp.created_by = '$userType' AND rp.inst_id = '$instituteId' GROUP BY rp.id";
+        $sql = "SELECT 
+    rp.id,
+    rp.role_name,
+    rp.created_by,
+    rp.inst_id,
+    COUNT(au.id) AS user_count
+FROM roles_permissions rp
+LEFT JOIN admin_users au 
+    ON au.user_type = rp.created_by 
+    AND au.user_role = rp.role_name
+WHERE rp.created_by = '$userType' AND rp.inst_id = '$instituteId' GROUP BY rp.id, rp.role_name, rp.created_by, rp.inst_id";
     } else {
         header("HTTP/1.0 403 Forbidden");
         echo json_encode([
