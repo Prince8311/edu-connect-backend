@@ -35,6 +35,7 @@ if ($requestMethod === 'GET') {
         }
 
         if ($row['field_id'] !== null) {
+            $decodedItems = null;
             if (!empty($row['items'])) {
                 if ($row['source'] === 'server') {
                     $decodedItems = $row['items'];
