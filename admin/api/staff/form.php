@@ -19,7 +19,7 @@ if ($requestMethod === 'GET') {
     global $conn;
     $instituteId = $authResult['inst_id'];
 
-    if (!isset($_GET['staff_type'])) {
+    if (!isset($_GET['staffType'])) {
         $data = [
             'status' => 400,
             'message' => 'Staff type is required.',
