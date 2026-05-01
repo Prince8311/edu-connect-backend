@@ -19,7 +19,7 @@ if ($requestMethod === 'GET') {
     $userType = $authResult['user_type'];
     $instituteId = $authResult['inst_id'];
 
-    $sql = "SELECT * FROM `roles_permissions` WHERE `inst_id` = '$instituteId'";
+    $sql = "SELECT rp.*, COUNT(au.id) AS user_count FROM roles_permissions rp LEFT JOIN admin_users au ON au.user_type = rp.created_by AND au.user_role = rp.role_name WHERE rp.created_by = '$userType' AND rp.inst_id = '$instituteId' GROUP BY rp.id";
 
     $result = mysqli_query($conn, $sql);
     if (!$result) {
