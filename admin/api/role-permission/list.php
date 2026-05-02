@@ -69,12 +69,6 @@ if ($requestMethod === 'GET') {
             'roles' => $rolesPermissions
         ];
     }
-
-    $data = [
-        'status' => 200,
-        'message' => 'Roles and permissions retrieved successfully',
-        'roles' => $rolesPermissions
-    ];
     header("HTTP/1.0 200 OK");
     echo json_encode($data);
 } else {
