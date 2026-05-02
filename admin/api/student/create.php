@@ -57,7 +57,7 @@ if ($requestMethod === 'POST') {
         return $password;
     }
 
-    function sendStudentEnrollmentEmail($email, $studentName, $enrollmentId, $session, $password)
+    function sendStudentEnrollmentEmail(string $email, string $studentName, string $enrollmentId, string $session, string $password): void
     {
         if (empty($email)) {
             return;
@@ -139,7 +139,7 @@ if ($requestMethod === 'POST') {
 
     mysqli_begin_transaction($conn);
 
-    function generateEnrollmentId($instId, $session)
+    function generateEnrollmentId(string $instId, string $session): string
     {
         // get 2 letters from institute id
         $instLetters = strtoupper(substr(preg_replace("/[^A-Za-z]/", "", $instId), 0, 2));

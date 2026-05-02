@@ -58,8 +58,12 @@ if ($requestMethod === 'POST') {
         return $password;
     }
 
-    function sendStaffEnrollmentEmail($email, $staffName, $staffId, $password)
-    {
+    function sendStaffEnrollmentEmail(
+        string $email,
+        string $staffName,
+        string $staffId,
+        string $password
+    ): void {
         if (empty($email)) {
             return;
         }
@@ -139,7 +143,7 @@ if ($requestMethod === 'POST') {
 
     mysqli_begin_transaction($conn);
 
-    function generateStaffId($instId)
+    function generateStaffId(string $instId): string
     {
         $letters = strtoupper(preg_replace("/[^A-Za-z]/", "", $instId));
 
