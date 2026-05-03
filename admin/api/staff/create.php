@@ -143,7 +143,7 @@ if ($requestMethod === 'POST') {
 
     mysqli_begin_transaction($conn);
 
-    function generateStaffId(string $instId): string
+    function generateStaffId(string $instId)
     {
         $letters = strtoupper(preg_replace("/[^A-Za-z]/", "", $instId));
 
