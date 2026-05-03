@@ -62,7 +62,7 @@ if ($requestMethod === 'POST') {
                 echo json_encode($data);
                 exit;
             }
-            if ($userType === "inst_admin" && $loginCount >= 4) {
+            if ($userType === "inst_admin" && $loginCount >= 100) {
                 $data = [
                     'status' => 403,
                     'message' => 'Maximum device limit reached. You are already logged in on 4 devices. Please log out from another device to continue.'
