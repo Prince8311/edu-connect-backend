@@ -218,7 +218,7 @@ if ($requestMethod === 'POST') {
                 }
                 $newUserId = mysqli_insert_id($conn);
 
-                $staffSql = "INSERT INTO teachers (inst_id, user_id, staff_id, status, created_at) VALUES ('$instituteId', '$newUserId', '$staffId', 1, NOW())";
+                $staffSql = "INSERT INTO teachers (inst_id, user_id, staff_id, created_at) VALUES ('$instituteId', '$newUserId', '$staffId', NOW())";
                 if (!mysqli_query($conn, $staffSql)) {
                     header("HTTP/1.0 500 Internal Server Error");
                     echo json_encode([
@@ -240,7 +240,7 @@ if ($requestMethod === 'POST') {
                 }
                 $newAdminId = mysqli_insert_id($conn);
 
-                $staffSql = "INSERT INTO staffs (inst_id, admin_id, staff_id, status, created_at) VALUES ('$instituteId', '$newAdminId', '$staffId', 1, NOW())";
+                $staffSql = "INSERT INTO staffs (inst_id, admin_id, staff_id, created_at) VALUES ('$instituteId', '$newAdminId', '$staffId', NOW())";
                 if (!mysqli_query($conn, $staffSql)) {
                     header("HTTP/1.0 500 Internal Server Error");
                     echo json_encode([
