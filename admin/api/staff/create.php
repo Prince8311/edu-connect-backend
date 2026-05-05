@@ -173,12 +173,12 @@ if ($requestMethod === 'POST') {
             $plainPassword = generateRandomPassword(10);
             $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
 
-            $nameEsc  = mysqli_real_escape_string($conn, $staffName);
-            $emailEsc = mysqli_real_escape_string($conn, $staffEmail);
-            $phoneEsc = mysqli_real_escape_string($conn, $staffPhone);
-            $passEsc  = mysqli_real_escape_string($conn, $hashedPassword);
-            $roleEsc  = mysqli_real_escape_string($conn, $staffRole);
-            $staffTypeEsc = mysqli_real_escape_string($conn, $staffType);
+            $nameEsc  = mysqli_real_escape_string($conn, $staffName ?? '');
+            $emailEsc = mysqli_real_escape_string($conn, $staffEmail ?? '');
+            $phoneEsc = mysqli_real_escape_string($conn, $staffPhone ?? '');
+            $passEsc  = mysqli_real_escape_string($conn, $hashedPassword ?? '');
+            $roleEsc  = mysqli_real_escape_string($conn, $staffRole ?? '');
+            $staffTypeEsc = mysqli_real_escape_string($conn, $staffType ?? '');
 
             if (!in_array($staffTypeEsc, ['teaching', 'non-teaching'], true)) {
                 header("HTTP/1.0 400 Bad Request");
