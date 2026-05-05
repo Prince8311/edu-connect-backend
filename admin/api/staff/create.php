@@ -163,9 +163,10 @@ if ($requestMethod === 'POST') {
         foreach ($staffs as $staff) {
             $staffFields = $staff['staff_fields'] ?? [];
 
-            $staffName  = getStudentFullName($staffFields);
+            $staffName  = getStaffFullName($staffFields);
             $staffEmail = findFieldValue($staffFields, ['email']);
             $staffPhone = findFieldValue($staffFields, ['contact no.', 'phone', 'mobile']);
+            $staffRole  = findFieldValue($staffFields, ['role', 'user role', 'Role']);
 
             $staffId = generateStaffId($instituteId);
 
@@ -176,9 +177,25 @@ if ($requestMethod === 'POST') {
             $emailEsc = mysqli_real_escape_string($conn, $staffEmail);
             $phoneEsc = mysqli_real_escape_string($conn, $staffPhone);
             $passEsc  = mysqli_real_escape_string($conn, $hashedPassword);
+            $roleEsc  = mysqli_real_escape_string($conn, $staffRole);
+            $staffTypeEsc = mysqli_real_escape_string($conn, $staffType);
+
+            if (!in_array($staffTypeEsc, ['teaching', 'non-teaching'], true)) {
+                header("HTTP/1.0 400 Bad Request");
+                echo json_encode([
+                    "status" => 400,
+                    "message" => "Invalid staffType: $staffType"
+                ]);
+                exit;
+            }
 
             if (!empty($emailEsc)) {
-                $check = mysqli_query($conn, "SELECT id FROM users WHERE email = '$emailEsc' LIMIT 1");
+                if ($staffTypeEsc === 'teaching') {
+                    $check = mysqli_query($conn, "SELECT id FROM users WHERE email = '$emailEsc' LIMIT 1");
+                } else {
+                    $check = mysqli_query($conn, "SELECT id FROM admin_users WHERE email = '$emailEsc' LIMIT 1");
+                }
+
                 if (mysqli_num_rows($check) > 0) {
                     header("HTTP/1.0 400 Bad Request");
                     echo json_encode([
@@ -189,35 +206,58 @@ if ($requestMethod === 'POST') {
                 }
             }
 
-            $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'staff', '$passEsc')";
-            if (!mysqli_query($conn, $userSql)) {
-                header("HTTP/1.0 500 Internal Server Error");
-                echo json_encode([
-                    "status" => 500,
-                    "message" => "Failed to insert user"
-                ]);
-                exit;
-            }
-            $newUserId = mysqli_insert_id($conn);
+            if ($staffTypeEsc === 'teaching') {
+                $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
+                if (!mysqli_query($conn, $userSql)) {
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode([
+                        "status" => 500,
+                        "message" => "Failed to insert user"
+                    ]);
+                    exit;
+                }
+                $newUserId = mysqli_insert_id($conn);
 
-            $staffSql = "INSERT INTO staffs (inst_id, user_id, staff_id, staff_type, created_at) VALUES ('$instituteId', '$newUserId', '$staffId','$staffType', NOW())";
-            if (!mysqli_query($conn, $staffSql)) {
-                header("HTTP/1.0 500 Internal Server Error");
-                echo json_encode([
-                    "status" => 500,
-                    "message" => "Failed to insert staff"
-                ]);
-                exit;
-            }
+                $staffSql = "INSERT INTO teachers (inst_id, user_id, staff_id, status, created_at) VALUES ('$instituteId', '$newUserId', '$staffId', 1, NOW())";
+                if (!mysqli_query($conn, $staffSql)) {
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode([
+                        "status" => 500,
+                        "message" => "Failed to insert teacher"
+                    ]);
+                    exit;
+                }
+                $staffDataId = mysqli_insert_id($conn);
+            } else {
+                $userSql = "INSERT INTO admin_users (name, inst_id, email, phone, password, user_type, user_role) VALUES ('$nameEsc', '$instituteId', '$emailEsc', '$phoneEsc', '$passEsc', 'inst_admin', '$roleEsc')";
+                if (!mysqli_query($conn, $userSql)) {
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode([
+                        "status" => 500,
+                        "message" => "Failed to insert admin user"
+                    ]);
+                    exit;
+                }
+                $newAdminId = mysqli_insert_id($conn);
 
-            $staffDataId = mysqli_insert_id($conn);
+                $staffSql = "INSERT INTO staffs (inst_id, admin_id, staff_id, status, created_at) VALUES ('$instituteId', '$newAdminId', '$staffId', 1, NOW())";
+                if (!mysqli_query($conn, $staffSql)) {
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode([
+                        "status" => 500,
+                        "message" => "Failed to insert staff"
+                    ]);
+                    exit;
+                }
+                $staffDataId = mysqli_insert_id($conn);
+            }
 
             foreach ($staffFields as $field) {
                 $sectionId = mysqli_real_escape_string($conn, $field['section_id']);
                 $fieldName = mysqli_real_escape_string($conn, $field['field_name']);
                 $value     = mysqli_real_escape_string($conn, $field['value']);
 
-                $sql = "INSERT INTO staff_field_values (inst_id, staff_id, section_id, field_name, value) VALUES ('$instituteId', '$staffDataId', '$sectionId', '$fieldName', '$value')";
+                $sql = "INSERT INTO staff_field_values (inst_id, staff_id, staff_type, section_id, field_name, value) VALUES ('$instituteId', '$staffDataId', '$staffTypeEsc', '$sectionId', '$fieldName', '$value')";
                 if (!mysqli_query($conn, $sql)) {
                     header("HTTP/1.0 500 Internal Server Error");
                     echo json_encode([
