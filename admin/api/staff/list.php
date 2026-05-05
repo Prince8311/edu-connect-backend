@@ -48,56 +48,11 @@ if ($requestMethod === 'GET') {
     $staffs = [];
 
     if ($staffType === 'teaching') {
-        $countQuery = "
-            SELECT COUNT(*) as total 
-            FROM users u
-            JOIN teachers t ON t.user_id = u.id AND t.inst_id = '$instituteId'
-            WHERE u.user_type = 'teacher'
-        ";
-        $query = "
-            SELECT 
-                u.id, 
-                u.name, 
-                u.profile_image, 
-                u.email, 
-                u.phone, 
-                u.user_type, 
-                u.status, 
-                t.staff_id, 
-                t.created_at,
-                sfv.value AS subject
-            FROM users u
-            JOIN teachers t ON t.user_id = u.id AND t.inst_id = '$instituteId'
-            LEFT JOIN staff_field_values sfv ON sfv.staff_id = t.id AND sfv.field_name = 'Subject' AND sfv.staff_type = 'teaching' AND sfv.inst_id = '$instituteId'
-            WHERE u.user_type = 'teacher'
-            ORDER BY u.id DESC
-            LIMIT $limit OFFSET $offset
-        ";
+        $countQuery = "SELECT COUNT(*) as total FROM users u JOIN teachers t ON t.user_id = u.id AND t.inst_id = '$instituteId' WHERE u.user_type = 'teacher'";
+        $query = "SELECT u.id, u.name, u.profile_image, u.email, u.phone, u.user_type, u.status, t.staff_id, t.created_at, sfv.value AS subject FROM users u JOIN teachers t ON t.user_id = u.id AND t.inst_id = '$instituteId' LEFT JOIN staff_field_values sfv ON sfv.staff_id = t.id AND sfv.field_name = 'Subject' AND sfv.staff_type = 'teaching' AND sfv.inst_id = '$instituteId' WHERE u.user_type = 'teacher' ORDER BY u.id DESC LIMIT $limit OFFSET $offset";
     } else {
-        $countQuery = "
-            SELECT COUNT(*) as total 
-            FROM admin_users au
-            JOIN staffs s ON s.admin_id = au.id AND s.inst_id = '$instituteId'
-            WHERE au.user_type = 'inst_admin'
-        ";
-        $query = "
-            SELECT 
-                au.id, 
-                au.name, 
-                au.image, 
-                au.email, 
-                au.phone, 
-                au.status, 
-                au.user_type, 
-                au.user_role, 
-                s.staff_id, 
-                s.created_at
-            FROM admin_users au
-            JOIN staffs s ON s.admin_id = au.id AND s.inst_id = '$instituteId'
-            WHERE au.user_type = 'inst_admin'
-            ORDER BY au.id DESC
-            LIMIT $limit OFFSET $offset
-        ";
+        $countQuery = "SELECT COUNT(*) as total FROM admin_users au JOIN staffs s ON s.admin_id = au.id AND s.inst_id = '$instituteId' WHERE au.user_type = 'inst_admin'";
+        $query = "SELECT au.id, au.name, au.image, au.email, au.phone, au.status, au.user_type, au.user_role, s.staff_id, s.created_at FROM admin_users au JOIN staffs s ON s.admin_id = au.id AND s.inst_id = '$instituteId' WHERE au.user_type = 'inst_admin' ORDER BY au.id DESC LIMIT $limit OFFSET $offset";
     }
 
     $countResult = mysqli_query($conn, $countQuery);
