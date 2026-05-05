@@ -124,6 +124,7 @@ if ($requestMethod === 'GET') {
     }
 
     while ($row = mysqli_fetch_assoc($result)) {
+        $row['status'] = isset($row['status']) ? (bool)$row['status'] : false;
         $staffs[] = $row;
     }
 
