@@ -229,7 +229,7 @@ if ($requestMethod === 'POST') {
                 }
                 $staffDataId = mysqli_insert_id($conn);
             } else {
-                $userSql = "INSERT INTO admin_users (name, inst_id, email, phone, password, user_type, user_role) VALUES ('$nameEsc', '$instituteId', '$emailEsc', '$phoneEsc', '$passEsc', 'inst_admin', '$roleEsc')";
+                $userSql = "INSERT INTO admin_users (name, inst_id, email, phone, password, status, user_type, user_role) VALUES ('$nameEsc', '$instituteId', '$emailEsc', '$phoneEsc', '$passEsc', 1, 'inst_admin', '$roleEsc')";
                 if (!mysqli_query($conn, $userSql)) {
                     header("HTTP/1.0 500 Internal Server Error");
                     echo json_encode([
