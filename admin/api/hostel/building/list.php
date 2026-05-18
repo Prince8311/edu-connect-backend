@@ -92,7 +92,7 @@ if ($requestMethod === 'GET') {
             $data = [
                 'status' => 200,
                 'message' => 'All active buildings fetched.',
-                'data' => $buildings
+                'buildingss' => $buildings
             ];
         } else {
             $data = [
