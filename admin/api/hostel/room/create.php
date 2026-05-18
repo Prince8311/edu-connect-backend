@@ -35,9 +35,20 @@ if ($requestMethod === 'POST') {
     $floorNo = mysqli_real_escape_string($conn, $inputData['floorNo']);
     $roomNo = mysqli_real_escape_string($conn, $inputData['roomNo']);
     $bedCount = mysqli_real_escape_string($conn, $inputData['bedCount']);
-    $occupied = mysqli_real_escape_string($conn, $inputData['occupied']);
+    $category = mysqli_real_escape_string($conn, $inputData['category']);
     $type = mysqli_real_escape_string($conn, $inputData['type']);
     $status = (isset($inputData['status']) && $inputData['status'] === true) ? 1 : 0;
+
+    $allowedCategories = ['Living Room', 'Sick Room'];
+    if (!in_array($category, $allowedCategories)) {
+        $data = [
+            'status' => 400,
+            'message' => "Invalid room category."
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
 
     $allowedTypes = ['Ac', 'Non-Ac'];
     if (!in_array($type, $allowedTypes)) {
@@ -63,7 +74,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $insertSql = "INSERT INTO `hostel_rooms`(`inst_id`, `building_id`, `floor_no`, `room_no`, `bed_count`, `occupied`, `type`, `status`) VALUES ('$instituteId','$buildingId','$floorNo','$roomNo','$bedCount','$occupied','$type','$status')";
+    $insertSql = "INSERT INTO `hostel_rooms`(`inst_id`, `building_id`, `floor_no`, `room_no`, `bed_count`, `category`, `type`, `status`) VALUES ('$instituteId','$buildingId','$floorNo','$roomNo','$bedCount','$category','$type','$status')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {
