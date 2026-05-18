@@ -48,6 +48,36 @@ if ($requestMethod === 'GET') {
     }
 
     // -----------------------
+    // CATEGORY FILTER
+    // Required by frontend and must be an enum
+    // -----------------------
+    $category = isset($_GET['category']) ? mysqli_real_escape_string($conn, $_GET['category']) : '';
+    $allowedCategories = ['Living Room', 'Sick Room'];
+    $categoryCondition = "";
+
+    if (empty($category)) {
+        $data = [
+            'status' => 400,
+            'message' => 'Category is required.'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+
+    if (!in_array($category, $allowedCategories)) {
+        $data = [
+            'status' => 400,
+            'message' => 'Invalid room category.'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+
+    $categoryCondition = " AND hr.category = '$category'";
+
+    // -----------------------
     // ACTIVE STATUS FILTER
     // ONLY FOR showAll
     // -----------------------
@@ -60,7 +90,7 @@ if ($requestMethod === 'GET') {
     // -----------------------
     // COUNT QUERY
     // -----------------------
-    $countSql = "SELECT COUNT(*) AS total FROM hostel_rooms hr LEFT JOIN hostel_buildings hb ON hr.building_id = hb.id WHERE hr.inst_id = '$instituteId' $searchCondition $buildingCondition";
+    $countSql = "SELECT COUNT(*) AS total FROM hostel_rooms hr LEFT JOIN hostel_buildings hb ON hr.building_id = hb.id WHERE hr.inst_id = '$instituteId' $searchCondition $buildingCondition $categoryCondition $statusCondition";
     $countResult = mysqli_query($conn, $countSql);
     $countRow = mysqli_fetch_assoc($countResult);
     $totalRooms = (int) $countRow['total'];
@@ -68,7 +98,7 @@ if ($requestMethod === 'GET') {
     // -----------------------
     // DATA QUERY
     // -----------------------
-    $baseQuery = "SELECT hr.*, hb.name AS building_name FROM hostel_rooms hr LEFT JOIN hostel_buildings hb ON hr.building_id = hb.id WHERE hr.inst_id = '$instituteId' $searchCondition $buildingCondition $statusCondition ORDER BY hr.id ASC";
+    $baseQuery = "SELECT hr.*, hb.name AS building_name FROM hostel_rooms hr LEFT JOIN hostel_buildings hb ON hr.building_id = hb.id WHERE hr.inst_id = '$instituteId' $searchCondition $buildingCondition $categoryCondition $statusCondition ORDER BY hr.id ASC";
 
     if ($showAll) {
         $sql = $baseQuery;
