@@ -85,7 +85,8 @@ if ($requestMethod === 'GET') {
             $buildings = array_map(function ($item) {
                 return [
                     'id' => $item['id'],
-                    'building_name' => $item['name']
+                    'building_name' => $item['name'],
+                    'total_floors' => $item['total_floors']
                 ];
             }, $buildings);
 
