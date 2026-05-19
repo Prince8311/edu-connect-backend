@@ -16,7 +16,7 @@ if (!$authResult['authenticated']) {
 }
 
 if ($requestMethod === 'GET') {
-    require __DIR__ . "/../../../_db-connect.php";
+    require __DIR__ . "/../../../../_db-connect.php";
     global $conn;
     $instituteId = $authResult['inst_id'];
 
