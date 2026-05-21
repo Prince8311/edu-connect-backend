@@ -32,7 +32,7 @@ if ($requestMethod === 'GET') {
 
     $userType = mysqli_real_escape_string($conn, trim($_GET['userType']));
 
-    if (!in_array($userType, ['student', 'staff'], true)) {
+    if (!in_array($userType, ['Student', 'Staff'], true)) {
         $data = [
             'status' => 400,
             'message' => "Invalid userType: $userType."
@@ -42,7 +42,7 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
-    if ($userType === 'student') {
+    if ($userType === 'Student') {
         $query = "SELECT s.enrollment_id AS user_id, u.profile_image, MAX(CASE WHEN sfv.field_name = 'First Name' THEN sfv.value END) AS first_name, MAX(CASE WHEN sfv.field_name = 'Middle Name' THEN sfv.value END) AS middle_name, MAX(CASE WHEN sfv.field_name = 'Last Name' THEN sfv.value END) AS last_name, MAX(CASE WHEN sfv.field_name = 'Class / Standard' THEN sfv.value END) AS class, MAX(CASE WHEN sfv.field_name = 'Section' THEN sfv.value END) AS section FROM students s JOIN users u ON u.id = s.user_id LEFT JOIN student_field_values sfv ON sfv.student_id = s.id WHERE s.inst_id = '$instituteId' GROUP BY s.id, s.enrollment_id, u.profile_image ORDER BY s.id DESC";
         $result = mysqli_query($conn, $query);
 
@@ -83,7 +83,7 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
-    if ($userType === 'staff') {
+    if ($userType === 'Staff') {
         $teacherQuery = "SELECT t.staff_id AS user_id, u.profile_image, u.name, 'Teacher' AS role, 'Staff' AS user_type FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.inst_id = '$instituteId' AND u.user_type = 'teacher'";
         $adminQuery = "SELECT s.staff_id AS user_id, au.image AS profile_image, au.name, au.user_role AS role, 'Staff' AS user_type FROM staffs s JOIN admin_users au ON au.id = s.admin_id WHERE s.inst_id = '$instituteId' AND au.user_type = 'inst_admin'";
         $query = "($teacherQuery) UNION ALL ($adminQuery) ORDER BY user_id DESC";
