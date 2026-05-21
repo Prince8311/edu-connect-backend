@@ -49,33 +49,58 @@ if ($requestMethod === 'GET') {
 
     // -----------------------
     // CATEGORY FILTER
-    // Required by frontend and must be an enum
+    // Optional by frontend, only filter when value provided
     // -----------------------
     $category = isset($_GET['category']) ? mysqli_real_escape_string($conn, $_GET['category']) : '';
     $allowedCategories = ['Living Room', 'Sick Room'];
     $categoryCondition = "";
 
-    if (empty($category)) {
-        $data = [
-            'status' => 400,
-            'message' => 'Category is required.'
-        ];
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode($data);
-        exit;
+    if (!empty($category)) {
+        if (!in_array($category, $allowedCategories)) {
+            $data = [
+                'status' => 400,
+                'message' => 'Invalid room category.'
+            ];
+            header("HTTP/1.0 400 Bad Request");
+            echo json_encode($data);
+            exit;
+        }
+
+        $categoryCondition = " AND hr.category = '$category'";
     }
 
-    if (!in_array($category, $allowedCategories)) {
-        $data = [
-            'status' => 400,
-            'message' => 'Invalid room category.'
-        ];
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode($data);
-        exit;
+    // -----------------------
+    // TYPE FILTER
+    // Optional by frontend, only filter when value provided
+    // -----------------------
+    $type = isset($_GET['type']) ? mysqli_real_escape_string($conn, $_GET['type']) : '';
+    $allowedTypes = ['Ac', 'Non-Ac'];
+    $typeCondition = "";
+
+    if (!empty($type)) {
+        if (!in_array($type, $allowedTypes)) {
+            $data = [
+                'status' => 400,
+                'message' => 'Invalid room type.'
+            ];
+            header("HTTP/1.0 400 Bad Request");
+            echo json_encode($data);
+            exit;
+        }
+
+        $typeCondition = " AND hr.type = '$type'";
     }
 
-    $categoryCondition = " AND hr.category = '$category'";
+    // -----------------------
+    // FLOOR FILTER
+    // Optional by frontend, only filter when value provided
+    // -----------------------
+    $floorNo = isset($_GET['floor_no']) && is_numeric($_GET['floor_no']) ? (int) $_GET['floor_no'] : null;
+    $floorCondition = "";
+
+    if ($floorNo !== null) {
+        $floorCondition = " AND hr.floor_no = '$floorNo'";
+    }
 
     // -----------------------
     // ACTIVE STATUS FILTER
@@ -90,7 +115,7 @@ if ($requestMethod === 'GET') {
     // -----------------------
     // COUNT QUERY
     // -----------------------
-    $countSql = "SELECT COUNT(*) AS total FROM hostel_rooms hr LEFT JOIN hostel_buildings hb ON hr.building_id = hb.id WHERE hr.inst_id = '$instituteId' $searchCondition $buildingCondition $categoryCondition $statusCondition";
+    $countSql = "SELECT COUNT(*) AS total FROM hostel_rooms hr LEFT JOIN hostel_buildings hb ON hr.building_id = hb.id WHERE hr.inst_id = '$instituteId' $searchCondition $buildingCondition $categoryCondition $typeCondition $floorCondition $statusCondition";
     $countResult = mysqli_query($conn, $countSql);
     $countRow = mysqli_fetch_assoc($countResult);
     $totalRooms = (int) $countRow['total'];
@@ -98,7 +123,7 @@ if ($requestMethod === 'GET') {
     // -----------------------
     // DATA QUERY
     // -----------------------
-    $baseQuery = "SELECT hr.*, hb.name AS building_name FROM hostel_rooms hr LEFT JOIN hostel_buildings hb ON hr.building_id = hb.id WHERE hr.inst_id = '$instituteId' $searchCondition $buildingCondition $categoryCondition $statusCondition ORDER BY hr.id ASC";
+    $baseQuery = "SELECT hr.*, hb.name AS building_name FROM hostel_rooms hr LEFT JOIN hostel_buildings hb ON hr.building_id = hb.id WHERE hr.inst_id = '$instituteId' $searchCondition $buildingCondition $categoryCondition $typeCondition $floorCondition $statusCondition ORDER BY hr.id ASC";
 
     if ($showAll) {
         $sql = $baseQuery;
