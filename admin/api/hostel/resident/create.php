@@ -35,10 +35,20 @@ if ($requestMethod === 'POST') {
     $userId = mysqli_real_escape_string($conn, $inputData['userId']);
     $userType = mysqli_real_escape_string($conn, $inputData['userType']);
     $roomId = mysqli_real_escape_string($conn, $inputData['roomId']);
-    $classSection = mysqli_real_escape_string($conn, $inputData['classSection']);
-    $role = mysqli_real_escape_string($conn, $inputData['role']);
+    $classSection = isset($inputData['classSection']) ? mysqli_real_escape_string($conn, $inputData['classSection']) : null;
+    $role = isset($inputData['role']) ? mysqli_real_escape_string($conn, $inputData['role']) : null;
     $foodPreference = mysqli_real_escape_string($conn, $inputData['foodPreference']);
-    $status = 'On Campus';
+    $status = mysqli_real_escape_string($conn, $inputData['status']);
+
+    if (empty($classSection) && empty($role)) {
+        $data = [
+            'status' => 400,
+            'message' => 'Either classSection or role must be provided.'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
 
     $allowedUserTypes = ['Student', 'Staff'];
     if (!in_array($userType, $allowedUserTypes)) {
@@ -75,7 +85,9 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $insertSql = "INSERT INTO `hostel_residents`(`inst_id`, `name`, `user_id`, `user_type`, `room_id`, `class_section`, `role`, `food_preference`, `status`) VALUES ('$instituteId','$name','$userId','$userType','$roomId','$classSection','$role','$foodPreference','$status')";
+    $classSectionValue = $classSection !== null ? "'$classSection'" : "NULL";
+    $roleValue = $role !== null ? "'$role'" : "NULL";
+    $insertSql = "INSERT INTO `hostel_residents`(`inst_id`, `name`, `user_id`, `user_type`, `room_id`, `class_section`, `role`, `food_preference`, `status`) VALUES ('$instituteId','$name','$userId','$userType','$roomId',$classSectionValue,$roleValue,'$foodPreference','$status')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {

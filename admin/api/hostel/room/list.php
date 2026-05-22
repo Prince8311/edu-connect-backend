@@ -56,17 +56,40 @@ if ($requestMethod === 'GET') {
     $categoryCondition = "";
 
     if (!empty($category)) {
-        if (!in_array($category, $allowedCategories)) {
-            $data = [
-                'status' => 400,
-                'message' => 'Invalid room category.'
-            ];
-            header("HTTP/1.0 400 Bad Request");
-            echo json_encode($data);
-            exit;
+        // If both allowed categories are provided, ignore the filter
+        if (is_array($category)) {
+            $categoryValues = array_map('trim', $category);
+            $allCategoriesPresent = count(array_intersect($allowedCategories, $categoryValues)) === count($allowedCategories);
+            if ($allCategoriesPresent) {
+                $categoryCondition = "";
+            } else {
+                // Validate all provided values
+                foreach ($categoryValues as $cat) {
+                    if (!in_array($cat, $allowedCategories)) {
+                        $data = [
+                            'status' => 400,
+                            'message' => 'Invalid room category.'
+                        ];
+                        header("HTTP/1.0 400 Bad Request");
+                        echo json_encode($data);
+                        exit;
+                    }
+                }
+                $categoryList = "'" . implode("','", $categoryValues) . "'";
+                $categoryCondition = " AND hr.category IN ($categoryList)";
+            }
+        } else {
+            if (!in_array($category, $allowedCategories)) {
+                $data = [
+                    'status' => 400,
+                    'message' => 'Invalid room category.'
+                ];
+                header("HTTP/1.0 400 Bad Request");
+                echo json_encode($data);
+                exit;
+            }
+            $categoryCondition = " AND hr.category = '$category'";
         }
-
-        $categoryCondition = " AND hr.category = '$category'";
     }
 
     // -----------------------
@@ -78,17 +101,40 @@ if ($requestMethod === 'GET') {
     $typeCondition = "";
 
     if (!empty($type)) {
-        if (!in_array($type, $allowedTypes)) {
-            $data = [
-                'status' => 400,
-                'message' => 'Invalid room type.'
-            ];
-            header("HTTP/1.0 400 Bad Request");
-            echo json_encode($data);
-            exit;
+        // If both allowed types are provided, ignore the filter
+        if (is_array($type)) {
+            $typeValues = array_map('trim', $type);
+            $allTypesPresent = count(array_intersect($allowedTypes, $typeValues)) === count($allowedTypes);
+            if ($allTypesPresent) {
+                $typeCondition = "";
+            } else {
+                // Validate all provided values
+                foreach ($typeValues as $t) {
+                    if (!in_array($t, $allowedTypes)) {
+                        $data = [
+                            'status' => 400,
+                            'message' => 'Invalid room type.'
+                        ];
+                        header("HTTP/1.0 400 Bad Request");
+                        echo json_encode($data);
+                        exit;
+                    }
+                }
+                $typeList = "'" . implode("','", $typeValues) . "'";
+                $typeCondition = " AND hr.type IN ($typeList)";
+            }
+        } else {
+            if (!in_array($type, $allowedTypes)) {
+                $data = [
+                    'status' => 400,
+                    'message' => 'Invalid room type.'
+                ];
+                header("HTTP/1.0 400 Bad Request");
+                echo json_encode($data);
+                exit;
+            }
+            $typeCondition = " AND hr.type = '$type'";
         }
-
-        $typeCondition = " AND hr.type = '$type'";
     }
 
     // -----------------------
