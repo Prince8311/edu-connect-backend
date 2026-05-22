@@ -51,7 +51,17 @@ if ($requestMethod === 'GET') {
     // CATEGORY FILTER
     // Optional by frontend, only filter when value provided
     // -----------------------
-    $category = isset($_GET['category']) ? mysqli_real_escape_string($conn, $_GET['category']) : '';
+    if (isset($_GET['category'])) {
+        if (is_array($_GET['category'])) {
+            $category = array_map(function($cat) use ($conn) {
+                return mysqli_real_escape_string($conn, $cat);
+            }, $_GET['category']);
+        } else {
+            $category = mysqli_real_escape_string($conn, $_GET['category']);
+        }
+    } else {
+        $category = '';
+    }
     $allowedCategories = ['Living Room', 'Sick Room'];
     $categoryCondition = "";
 
@@ -96,7 +106,17 @@ if ($requestMethod === 'GET') {
     // TYPE FILTER
     // Optional by frontend, only filter when value provided
     // -----------------------
-    $type = isset($_GET['type']) ? mysqli_real_escape_string($conn, $_GET['type']) : '';
+    if (isset($_GET['type'])) {
+        if (is_array($_GET['type'])) {
+            $type = array_map(function($t) use ($conn) {
+                return mysqli_real_escape_string($conn, $t);
+            }, $_GET['type']);
+        } else {
+            $type = mysqli_real_escape_string($conn, $_GET['type']);
+        }
+    } else {
+        $type = '';
+    }
     $allowedTypes = ['Ac', 'Non-Ac'];
     $typeCondition = "";
 
