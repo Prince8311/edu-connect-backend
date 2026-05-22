@@ -42,8 +42,32 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
+    // Search filter
+    $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, trim($_GET['search'])) : '';
+
     if ($userType === 'Student') {
-        $query = "SELECT s.enrollment_id AS user_id, u.profile_image, MAX(CASE WHEN sfv.field_name = 'First Name' THEN sfv.value END) AS first_name, MAX(CASE WHEN sfv.field_name = 'Middle Name' THEN sfv.value END) AS middle_name, MAX(CASE WHEN sfv.field_name = 'Last Name' THEN sfv.value END) AS last_name, MAX(CASE WHEN sfv.field_name = 'Class / Standard' THEN sfv.value END) AS class, MAX(CASE WHEN sfv.field_name = 'Section' THEN sfv.value END) AS section FROM students s JOIN users u ON u.id = s.user_id LEFT JOIN student_field_values sfv ON sfv.student_id = s.id WHERE s.inst_id = '$instituteId' GROUP BY s.id, s.enrollment_id, u.profile_image ORDER BY s.id DESC";
+        $searchCondition = '';
+        if (!empty($search)) {
+            // Search by first, middle, last name (student_field_values)
+            $searchCondition = " AND ("
+                . "MAX(CASE WHEN sfv.field_name = 'First Name' THEN sfv.value END) LIKE '%$search%'"
+                . " OR MAX(CASE WHEN sfv.field_name = 'Middle Name' THEN sfv.value END) LIKE '%$search%'"
+                . " OR MAX(CASE WHEN sfv.field_name = 'Last Name' THEN sfv.value END) LIKE '%$search%')";
+        }
+        $query = "SELECT s.enrollment_id AS user_id, u.profile_image, "
+            . "MAX(CASE WHEN sfv.field_name = 'First Name' THEN sfv.value END) AS first_name, "
+            . "MAX(CASE WHEN sfv.field_name = 'Middle Name' THEN sfv.value END) AS middle_name, "
+            . "MAX(CASE WHEN sfv.field_name = 'Last Name' THEN sfv.value END) AS last_name, "
+            . "MAX(CASE WHEN sfv.field_name = 'Class / Standard' THEN sfv.value END) AS class, "
+            . "MAX(CASE WHEN sfv.field_name = 'Section' THEN sfv.value END) AS section "
+            . "FROM students s "
+            . "JOIN users u ON u.id = s.user_id "
+            . "LEFT JOIN student_field_values sfv ON sfv.student_id = s.id "
+            . "WHERE s.inst_id = '$instituteId' "
+            . "GROUP BY s.id, s.enrollment_id, u.profile_image "
+            . "HAVING 1=1 $searchCondition "
+            . "ORDER BY s.id DESC";
+
         $result = mysqli_query($conn, $query);
 
         if (!$result) {
@@ -84,8 +108,12 @@ if ($requestMethod === 'GET') {
     }
 
     if ($userType === 'Staff') {
-        $teacherQuery = "SELECT t.staff_id AS user_id, u.profile_image, u.name, 'Teacher' AS role, 'Staff' AS user_type FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.inst_id = '$instituteId' AND u.user_type = 'teacher'";
-        $adminQuery = "SELECT s.staff_id AS user_id, au.image AS profile_image, au.name, au.user_role AS role, 'Staff' AS user_type FROM staffs s JOIN admin_users au ON au.id = s.admin_id WHERE s.inst_id = '$instituteId' AND au.user_type = 'inst_admin'";
+        $searchCondition = '';
+        if (!empty($search)) {
+            $searchCondition = " AND name LIKE '%$search%'";
+        }
+        $teacherQuery = "SELECT t.staff_id AS user_id, u.profile_image, u.name, 'Teacher' AS role, 'Staff' AS user_type FROM teachers t JOIN users u ON u.id = t.user_id WHERE t.inst_id = '$instituteId' AND u.user_type = 'teacher' $searchCondition";
+        $adminQuery = "SELECT s.staff_id AS user_id, au.image AS profile_image, au.name, au.user_role AS role, 'Staff' AS user_type FROM staffs s JOIN admin_users au ON au.id = s.admin_id WHERE s.inst_id = '$instituteId' AND au.user_type = 'inst_admin' $searchCondition";
         $query = "($teacherQuery) UNION ALL ($adminQuery) ORDER BY user_id DESC";
 
         $result = mysqli_query($conn, $query);
