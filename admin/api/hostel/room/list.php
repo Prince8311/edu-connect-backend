@@ -189,7 +189,7 @@ if ($requestMethod === 'GET') {
     // -----------------------
     // DATA QUERY
     // -----------------------
-    $baseQuery = "SELECT hr.*, hb.name AS building_name FROM hostel_rooms hr LEFT JOIN hostel_buildings hb ON hr.building_id = hb.id WHERE hr.inst_id = '$instituteId' $searchCondition $buildingCondition $categoryCondition $typeCondition $floorCondition $statusCondition ORDER BY hr.id ASC";
+    $baseQuery = "SELECT hr.*, hb.name AS building_name, (SELECT COUNT(*) FROM hostel_residents res WHERE res.room_id = hr.id) AS occupied FROM hostel_rooms hr LEFT JOIN hostel_buildings hb ON hr.building_id = hb.id WHERE hr.inst_id = '$instituteId' $searchCondition $buildingCondition $categoryCondition $typeCondition $floorCondition $statusCondition ORDER BY hr.id ASC";
 
     if ($showAll) {
         $sql = $baseQuery;
@@ -202,17 +202,14 @@ if ($requestMethod === 'GET') {
     if ($result) {
         $rooms = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
-        // -----------------------
         // STATUS => BOOLEAN
-        // -----------------------
         $rooms = array_map(function ($item) {
             $item['status'] = $item['status'] == 1;
+            // 'occupied' is now dynamically calculated
             return $item;
         }, $rooms);
 
-        // -----------------------
         // RESPONSE
-        // -----------------------
         if ($showAll) {
             $data = [
                 'status' => 200,

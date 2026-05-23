@@ -205,7 +205,7 @@ if ($requestMethod === 'GET') {
                 'user_type' => $row['user_type'],
                 'room_id' => $row['room_id'],
                 'food_preference' => $row['food_preference'],
-                'status' => $row['status'] == 1,
+                'status' => $row['status'],
             ];
 
             // -----------------------
