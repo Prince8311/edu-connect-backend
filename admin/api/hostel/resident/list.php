@@ -87,7 +87,6 @@ if ($requestMethod === 'GET') {
             hro.floor_no,
             hro.room_no,
             hro.bed_count,
-            hro.occupied,
             hro.type AS room_type,
 
             -- BUILDING DETAILS
