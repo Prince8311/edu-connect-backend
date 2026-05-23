@@ -281,7 +281,6 @@ if ($requestMethod === 'GET') {
                 'floor_no' => $row['floor_no'],
                 'room_no' => $row['room_no'],
                 'bed_count' => $row['bed_count'],
-                'occupied' => $row['occupied'],
                 'room_type' => $row['room_type'],
             ];
 
