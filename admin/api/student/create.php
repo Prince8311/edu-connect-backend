@@ -43,7 +43,13 @@ if ($requestMethod === 'POST') {
         $firstName = findFieldValue($studentFields, ['first name', 'first_name', 'firstname']) ?: '';
         $middleName = findFieldValue($studentFields, ['middle name', 'middle_name', 'middlename']) ?: '';
         $lastName = findFieldValue($studentFields, ['last name', 'last_name', 'lastname']) ?: '';
-        $fullName = trim($firstName . ' ' . $middleName . ' ' . $lastName);
+
+        $fullName = implode(' ', array_filter([
+            $firstName,
+            $middleName,
+            $lastName
+        ]));
+
         return $fullName ?: 'Student';
     }
 
