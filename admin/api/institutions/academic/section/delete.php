@@ -54,7 +54,7 @@ if ($requestMethod === 'POST') {
         }
     }
 
-    $subjectSql = "SELECT id, sections FROM class_wise_subjects WHERE inst_id='$instituteId' AND level_id='$academicLevelId' AND class='$class'";
+    $subjectSql = "SELECT id, section FROM class_wise_subjects WHERE inst_id='$instituteId' AND level_id='$academicLevelId' AND class='$class'";
     $subjectResult = mysqli_query($conn, $subjectSql);
 
     if ($subjectResult && mysqli_num_rows($subjectResult) > 0) {
