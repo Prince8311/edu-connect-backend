@@ -35,6 +35,7 @@ if ($requestMethod === 'POST') {
     $userId = mysqli_real_escape_string($conn, $inputData['userId']);
     $userType = mysqli_real_escape_string($conn, $inputData['userType']);
     $roomId = mysqli_real_escape_string($conn, $inputData['roomId']);
+    $bedNo = mysqli_real_escape_string($conn, $inputData['bedNo']);
     $classSection = isset($inputData['classSection']) ? mysqli_real_escape_string($conn, $inputData['classSection']) : null;
     $role = isset($inputData['role']) ? mysqli_real_escape_string($conn, $inputData['role']) : null;
     $foodPreference = mysqli_real_escape_string($conn, $inputData['foodPreference']);
@@ -85,9 +86,22 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
+    $bedCheckSql = "SELECT * FROM `hostel_residents` WHERE `inst_id`='$instituteId' AND `room_id`='$roomId' AND `bed_no`='$bedNo'";
+    $bedCheckResult = mysqli_query($conn, $bedCheckSql);
+
+    if ($bedCheckResult && mysqli_num_rows($bedCheckResult) === 1) {
+        $data = [
+            'status' => 400,
+            'message' => 'This bed is already occupied.'
+        ];
+        header("HTTP/1.0 400 Already exists");
+        echo json_encode($data);
+        exit;
+    }
+
     $classSectionValue = $classSection !== null ? "'$classSection'" : "NULL";
     $roleValue = $role !== null ? "'$role'" : "NULL";
-    $insertSql = "INSERT INTO `hostel_residents`(`inst_id`, `name`, `user_id`, `user_type`, `room_id`, `class_section`, `role`, `food_preference`, `status`) VALUES ('$instituteId','$name','$userId','$userType','$roomId',$classSectionValue,$roleValue,'$foodPreference','$status')";
+    $insertSql = "INSERT INTO `hostel_residents`(`inst_id`, `name`, `user_id`, `user_type`, `room_id`, `bed_no`, `class_section`, `role`, `food_preference`, `status`) VALUES ('$instituteId','$name','$userId','$userType','$roomId','$bedNo',$classSectionValue,$roleValue,'$foodPreference','$status')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {
