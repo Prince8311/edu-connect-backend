@@ -34,9 +34,146 @@ if ($requestMethod === 'GET') {
 
     $classTeacher = $class . "-" . $section;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Class Teacher
+    |--------------------------------------------------------------------------
+    */
     $classTeacherSql = "SELECT users.id, users.name, users.profile_image, users.email, users.phone FROM teachers INNER JOIN users ON teachers.user_id = users.id WHERE teachers.inst_id = '$instituteId' AND teachers.class_teacher = '$classTeacher' LIMIT 1";
     $classTeacherResult = mysqli_query($conn, $classTeacherSql);
 
+    $classTeacherData = null;
+
+    if ($classTeacherResult && mysqli_num_rows($classTeacherResult) > 0) {
+        $classTeacherData = mysqli_fetch_assoc($classTeacherResult);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Students
+    |--------------------------------------------------------------------------
+    */
+    $studentQuery = "SELECT users.id, users.name, users.profile_image, users.email, users.phone, students.enrollment_id FROM student_field_values INNER JOIN students ON student_field_values.student_id = students.id INNER JOIN users ON students.user_id = users.id WHERE student_field_values.inst_id = '$instituteId' AND ((student_field_values.field_name = 'Class / Standard' AND student_field_values.value = '$class') OR (student_field_values.field_name = 'Section' AND student_field_values.value = '$section')) GROUP BY students.id";
+    $studentResult = mysqli_query($conn, $studentQuery);
+
+    $students = [];
+
+    if ($studentResult && mysqli_num_rows($studentResult) > 0) {
+        while ($row = mysqli_fetch_assoc($studentResult)) {
+            $students[] = $row;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Subjects
+    |--------------------------------------------------------------------------
+    */
+    $subjectsQuery = "SELECT * FROM class_wise_subjects WHERE inst_id = '$instituteId' AND class = '$class' AND section = '$section'";
+    $subjectsResult = mysqli_query($conn, $subjectsQuery);
+
+    $subjects = [];
+    $totalClassStudents = count($students);
+
+    if ($subjectsResult && mysqli_num_rows($subjectsResult) > 0) {
+        while ($subjectRow = mysqli_fetch_assoc($subjectsResult)) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Mandatory Status
+            |--------------------------------------------------------------------------
+            */
+            $isMandatory = $subjectRow['is_mandatory'] == 1;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Student Count
+            |--------------------------------------------------------------------------
+            */
+            if ($isMandatory) {
+                $studentCount = $totalClassStudents;
+            } else {
+                $studentIds = array_filter(
+                    array_map('trim', explode(',', $subjectRow['students']))
+                );
+                $studentCount = count($studentIds);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Subject Teacher
+            |--------------------------------------------------------------------------
+            */
+            $subjectTeacher = null;
+
+            if (!empty($subjectRow['subject_teacher'])) {
+                $teacherId = mysqli_real_escape_string(
+                    $conn,
+                    $subjectRow['subject_teacher']
+                );
+
+                $teacherQuery = "SELECT users.id, users.name, users.profile_image, users.email, users.phone, teachers.staff_id FROM teachers INNER JOIN users ON teachers.user_id = users.id WHERE teachers.id = '$teacherId' LIMIT 1";
+                $teacherResult = mysqli_query($conn, $teacherQuery);
+
+                if ($teacherResult && mysqli_num_rows($teacherResult) > 0) {
+                    $subjectTeacher = mysqli_fetch_assoc($teacherResult);
+                }
+            }
+
+            /*
+        |--------------------------------------------------------------------------
+        | Co Teachers
+        |--------------------------------------------------------------------------
+        */
+            $coTeachers = [];
+
+            if (!empty($subjectRow['co_teachers'])) {
+                $coTeacherIds = array_filter(
+                    array_map('trim', explode(',', $subjectRow['co_teachers']))
+                );
+
+                if (!empty($coTeacherIds)) {
+                    $coTeacherIdsString = implode(',', $coTeacherIds);
+
+                    $coTeacherQuery = "SELECT users.id, users.name, users.profile_image, users.email, users.phone, teachers.staff_id FROM teachers INNER JOIN users ON teachers.user_id = users.id WHERE teachers.id IN ($coTeacherIdsString)";
+                    $coTeacherResult = mysqli_query($conn, $coTeacherQuery);
+
+                    if ($coTeacherResult && mysqli_num_rows($coTeacherResult) > 0) {
+                        while ($coTeacherRow = mysqli_fetch_assoc($coTeacherResult)) {
+                            $coTeachers[] = $coTeacherRow;
+                        }
+                    }
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Final Subject Object
+            |--------------------------------------------------------------------------
+            */
+            $subjects[] = [
+                'id' => $subjectRow['id'],
+                'subject' => $subjectRow['subject'],
+                'is_mandatory' => $isMandatory,
+                'students_count' => $studentCount,
+                'subject_teacher' => $subjectTeacher,
+                'co_teachers' => $coTeachers
+            ];
+        }
+    }
+
+    $data = [
+        'status' => 200,
+        'message' => 'Class details fetched successfully.',
+        'data' => [
+            'class_teacher' => $classTeacherData,
+            'students' => $students,
+            'subjects' => $subjects
+        ]
+    ];
+
+    header("HTTP/1.0 200 OK");
+    echo json_encode($data);
 } else {
     $data = [
         'status' => 405,
