@@ -53,7 +53,7 @@ if ($requestMethod === 'GET') {
     | Fetch Students
     |--------------------------------------------------------------------------
     */
-    $studentQuery = "SELECT users.id, users.name, users.profile_image, users.email, users.phone, students.enrollment_id FROM student_field_values INNER JOIN students ON student_field_values.student_id = students.id INNER JOIN users ON students.user_id = users.id WHERE student_field_values.inst_id = '$instituteId' AND ((student_field_values.field_name = 'Class / Standard' AND student_field_values.value = '$class') OR (student_field_values.field_name = 'Section' AND student_field_values.value = '$section')) GROUP BY students.id";
+    $studentQuery = "SELECT users.id, users.name, users.profile_image, users.email, users.phone, students.enrollment_id FROM students INNER JOIN users ON students.user_id = users.id INNER JOIN student_field_values class_field ON students.id = class_field.student_id INNER JOIN student_field_values section_field ON students.id = section_field.student_id WHERE students.inst_id = '$instituteId' AND class_field.field_name = 'Class / Standard' AND class_field.value = '$class' AND section_field.field_name = 'Section' AND section_field.value = '$section' GROUP BY students.id";
     $studentResult = mysqli_query($conn, $studentQuery);
 
     $students = [];
