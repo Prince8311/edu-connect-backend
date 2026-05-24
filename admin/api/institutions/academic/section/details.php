@@ -32,6 +32,11 @@ if ($requestMethod === 'GET') {
     $class = mysqli_real_escape_string($conn, $_GET['class']);
     $section = mysqli_real_escape_string($conn, $_GET['section']);
 
+    $classTeacher = $class . "-" . $section;
+
+    $classTeacherSql = "SELECT users.id, users.name, users.profile_image, users.email, users.phone FROM teachers INNER JOIN users ON teachers.user_id = users.id WHERE teachers.inst_id = '$instituteId' AND teachers.class_teacher = '$classTeacher' LIMIT 1";
+    $classTeacherResult = mysqli_query($conn, $classTeacherSql);
+
 } else {
     $data = [
         'status' => 405,

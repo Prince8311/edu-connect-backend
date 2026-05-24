@@ -54,29 +54,9 @@ if ($requestMethod === 'POST') {
         }
     }
 
-    $subjectSql = "SELECT id, section FROM class_wise_subjects WHERE inst_id='$instituteId' AND level_id='$academicLevelId' AND class='$class'";
-    $subjectResult = mysqli_query($conn, $subjectSql);
-
-    if ($subjectResult && mysqli_num_rows($subjectResult) > 0) {
-        while ($subjectRow = mysqli_fetch_assoc($subjectResult)) {
-            $subjectSections = $subjectRow['section'];
-            if (!empty($subjectSections)) {
-                $sectionsArray = explode(",", $subjectSections);
-                $updatedArray = [];
-                foreach ($sectionsArray as $sec) {
-                    $secParts = explode("-", $sec);
-                    $secLetter = trim($secParts[0]);
-                    if ($secLetter !== $section) {
-                        $updatedArray[] = trim($sec);
-                    }
-                }
-
-                $updatedSections = empty($updatedArray) ? NULL : implode(",", $updatedArray);
-                $updateSubjectSql = "UPDATE class_wise_subjects SET section=" . ($updatedSections ? "'$updatedSections'" : "NULL") . " WHERE id='{$subjectRow['id']}'";
-                mysqli_query($conn, $updateSubjectSql);
-            }
-        }
-    }
+    // Delete all rows in class_wise_subjects where section matches the section being deleted
+    $deleteSubjectSql = "DELETE FROM class_wise_subjects WHERE inst_id='$instituteId' AND level_id='$academicLevelId' AND class='$class' AND section='$section'";
+    mysqli_query($conn, $deleteSubjectSql);
 
     $data = [
         'status' => 200,
