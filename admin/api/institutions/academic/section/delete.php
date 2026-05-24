@@ -59,7 +59,7 @@ if ($requestMethod === 'POST') {
 
     if ($subjectResult && mysqli_num_rows($subjectResult) > 0) {
         while ($subjectRow = mysqli_fetch_assoc($subjectResult)) {
-            $subjectSections = $subjectRow['sections'];
+            $subjectSections = $subjectRow['section'];
             if (!empty($subjectSections)) {
                 $sectionsArray = explode(",", $subjectSections);
                 $updatedArray = [];
@@ -72,7 +72,7 @@ if ($requestMethod === 'POST') {
                 }
 
                 $updatedSections = empty($updatedArray) ? NULL : implode(",", $updatedArray);
-                $updateSubjectSql = "UPDATE class_wise_subjects SET sections=" . ($updatedSections ? "'$updatedSections'" : "NULL") . " WHERE id='{$subjectRow['id']}'";
+                $updateSubjectSql = "UPDATE class_wise_subjects SET section=" . ($updatedSections ? "'$updatedSections'" : "NULL") . " WHERE id='{$subjectRow['id']}'";
                 mysqli_query($conn, $updateSubjectSql);
             }
         }
