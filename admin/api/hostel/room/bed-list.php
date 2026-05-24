@@ -74,7 +74,7 @@ if ($requestMethod === 'GET') {
     }
 
     $occupiedBeds = [];
-    $bedSql = "SELECT bed_no FROM hostel_residents WHERE room_id = '$roomId' AND inst_id = '$instituteId' AND status = 1";
+    $bedSql = "SELECT bed_no FROM hostel_residents WHERE room_id = '$roomId' AND inst_id = '$instituteId'";
     $bedResult = mysqli_query($conn, $bedSql);
     if ($bedResult) {
         while ($row = mysqli_fetch_assoc($bedResult)) {
