@@ -128,28 +128,21 @@ if ($requestMethod === 'POST') {
         $subject = mysqli_real_escape_string($conn, $inputData['subject']);
         $checkSql = "SELECT * FROM `class_wise_subjects` WHERE `inst_id`='$instituteId' AND `subject`='$subject' AND `class`='$class' AND `section`='$section'";
         $checkResult = mysqli_query($conn, $checkSql);
+
         if ($checkResult) {
             if (mysqli_num_rows($checkResult) === 0) {
                 $data = [
                     'status' => 409,
                     'message' => "This class subject doesn't exist."
                 ];
+
                 header("HTTP/1.0 409 Not exists");
                 echo json_encode($data);
                 exit;
-            } else {
-                $classSubjectData = mysqli_fetch_assoc($checkResult);
-                $subjectTeacher = $classSubjectData['subject_teacher'];
-                if (!empty($subjectTeacher)) {
-                    $data = [
-                        'status' => 409,
-                        'message' => "The subject teacher for this subject has already been assigned."
-                    ];
-                    header("HTTP/1.0 409 Conflict");
-                    echo json_encode($data);
-                    exit;
-                }
             }
+
+            $classSubjectData = mysqli_fetch_assoc($checkResult);
+            $existingTeacher = $classSubjectData['subject_teacher'];
         } else {
             $data = [
                 'status' => 500,
@@ -163,10 +156,15 @@ if ($requestMethod === 'POST') {
         if ($intent === 'add') {
             $updateSql = "UPDATE `class_wise_subjects` SET `subject_teacher`='$teacherId' WHERE `inst_id`='$instituteId' AND `subject`='$subject' AND `class`='$class' AND `section`='$section'";
             $updateResult = mysqli_query($conn, $updateSql);
+
             if ($updateResult) {
+                $message = !empty($existingTeacher)
+                    ? 'Subject teacher updated successfully.'
+                    : 'Subject teacher added successfully.';
+
                 $data = [
                     'status' => 200,
-                    'message' => 'Subject teacher added successfully.'
+                    'message' => $message
                 ];
                 header("HTTP/1.0 200 OK");
                 echo json_encode($data);
@@ -181,10 +179,11 @@ if ($requestMethod === 'POST') {
         } else if ($intent === 'delete') {
             $updateSql = "UPDATE `class_wise_subjects` SET `subject_teacher`=NULL WHERE `inst_id`='$instituteId' AND `subject`='$subject' AND `class`='$class' AND `section`='$section'";
             $updateResult = mysqli_query($conn, $updateSql);
+
             if ($updateResult) {
                 $data = [
                     'status' => 200,
-                    'message' => 'Class teacher removed successfully.'
+                    'message' => 'Subject teacher removed successfully.'
                 ];
                 header("HTTP/1.0 200 OK");
                 echo json_encode($data);
