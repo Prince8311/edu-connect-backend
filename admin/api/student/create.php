@@ -244,15 +244,15 @@ if ($requestMethod === 'POST') {
                 }
             }
 
-            if (!empty($studentEmail) && filter_var($studentEmail, FILTER_VALIDATE_EMAIL) && !preg_match('/dummy|test|example|invalid|@yourdomain|@domain|@mailinator|@tempmail|@fake|@sample/i', $studentEmail)) {
-                sendStudentEnrollmentEmail(
-                    $studentEmail,
-                    $studentName,
-                    $enrollmentId,
-                    $studentSession,
-                    $plainPassword
-                );
-            }
+            // if (!empty($studentEmail) && filter_var($studentEmail, FILTER_VALIDATE_EMAIL) && !preg_match('/dummy|test|example|invalid|@yourdomain|@domain|@mailinator|@tempmail|@fake|@sample/i', $studentEmail)) {
+            //     sendStudentEnrollmentEmail(
+            //         $studentEmail,
+            //         $studentName,
+            //         $enrollmentId,
+            //         $studentSession,
+            //         $plainPassword
+            //     );
+            // }
         }
 
         mysqli_commit($conn);
