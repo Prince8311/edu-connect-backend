@@ -131,7 +131,6 @@ if ($requestMethod === 'POST') {
     }
 
     $students = $inputData['students'] ?? [];
-    $session = mysqli_real_escape_string($conn, $inputData['session']);
     $isBulkUpload = $inputData['isBulkUpload'] ?? false;
 
     if (empty($students)) {
@@ -172,7 +171,19 @@ if ($requestMethod === 'POST') {
             $studentEmail = findFieldValue($studentFields, ['email']);
             $studentPhone = findFieldValue($studentFields, ['contact no.', 'phone', 'mobile']);
 
-            $enrollmentId = generateEnrollmentId($instituteId, $session);
+            // Get session value from student_fields
+            $studentSession = findFieldValue($studentFields, ['session', 'academic session', 'academic_session']);
+            if (empty($studentSession)) {
+                header("HTTP/1.0 400 Bad Request");
+                echo json_encode([
+                    "status" => 400,
+                    "message" => "Session field is missing for student: $studentName"
+                ]);
+                exit;
+            }
+            $sessionEsc = mysqli_real_escape_string($conn, $studentSession);
+
+            $enrollmentId = generateEnrollmentId($instituteId, $studentSession);
 
             $plainPassword = generateRandomPassword(10);
             $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
@@ -238,7 +249,7 @@ if ($requestMethod === 'POST') {
                     $studentEmail,
                     $studentName,
                     $enrollmentId,
-                    $session,
+                    $studentSession,
                     $plainPassword
                 );
             }
