@@ -33,7 +33,7 @@ if ($requestMethod === 'GET') {
         $subjectCondition = " AND sfv.value = '$subject' ";
     }
 
-    $countQuery = "SELECT COUNT(DISTINCT t.id) AS total FROM teachers t LEFT JOIN staff_field_values sfv ON sfv.staff_id = t.id AND sfv.staff_type = 'teacher' AND sfv.field_name = 'Subject' AND sfv.inst_id = '$instituteId' WHERE t.inst_id = '$instituteId' $subjectCondition";
+    $countQuery = "SELECT COUNT(DISTINCT t.id) AS total FROM teachers t LEFT JOIN staff_field_values sfv ON sfv.staff_id = t.id AND sfv.staff_type = 'teaching' AND sfv.field_name = 'Subject' AND sfv.inst_id = '$instituteId' WHERE t.inst_id = '$instituteId' $subjectCondition";
     $countResult = mysqli_query($conn, $countQuery);
 
     if (!$countResult) {
