@@ -48,7 +48,7 @@ if ($requestMethod === 'GET') {
     $countRow = mysqli_fetch_assoc($countResult);
     $totalTeachers = (int)$countRow['total'];
 
-    $query = "SELECT t.id, t.user_id, t.staff_id, t.class_teacher, t.created_at, u.name, u.profile_image, u.email, u.phone, u.status, sfv.value AS subject FROM teachers t LEFT JOIN users u ON u.id = t.user_id LEFT JOIN staff_field_values sfv ON sfv.staff_id = t.id AND sfv.staff_type = 'teacher' AND sfv.field_name = 'Subject' AND sfv.inst_id = '$instituteId' WHERE t.inst_id = '$instituteId' $subjectCondition ORDER BY t.id DESC LIMIT $limit OFFSET $offset";
+    $query = "SELECT t.id, t.user_id, t.staff_id, t.class_teacher, t.created_at, u.name, u.profile_image, u.email, u.phone, u.status, sfv.value AS subject FROM teachers t LEFT JOIN users u ON u.id = t.user_id LEFT JOIN staff_field_values sfv ON sfv.staff_id = t.id AND sfv.staff_type = 'teaching' AND sfv.field_name = 'Subject' AND sfv.inst_id = '$instituteId' WHERE t.inst_id = '$instituteId' $subjectCondition ORDER BY t.id DESC LIMIT $limit OFFSET $offset";
     $result = mysqli_query($conn, $query);
 
     if (!$result) {
