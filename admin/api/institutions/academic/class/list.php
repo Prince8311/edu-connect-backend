@@ -116,8 +116,15 @@ if ($requestMethod === 'GET') {
             }
         }
 
+        $allSections = [];
+
+        if (!empty($row['sections'])) {
+            $allSections = array_map('trim', explode(',', $row['sections']));
+        }
+
         $classes[] = [
             "class" => $className,
+            "all_sections" => $allSections,
             "sections" => $classSections
         ];
     }
