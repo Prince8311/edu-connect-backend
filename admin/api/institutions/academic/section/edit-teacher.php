@@ -198,19 +198,21 @@ if ($requestMethod === 'POST') {
         }
     } else if ($type === 'co_teacher') {
         $subject = mysqli_real_escape_string($conn, $inputData['subject']);
-        $teacherIds = json_decode($teacherId, true);
-
-        if (!is_array($teacherIds)) {
-            $data = [
-                'status' => 400,
-                'message' => 'Invalid co-teacher data.'
-            ];
-            header("HTTP/1.0 400 Bad Request");
-            echo json_encode($data);
-            exit;
+        if (is_array($teacherId)) {
+            $teacherIds = array_map('intval', $teacherId);
+        } else {
+            $teacherIds = json_decode($teacherId, true);
+            if (!is_array($teacherIds)) {
+                $data = [
+                    'status' => 400,
+                    'message' => 'Invalid co-teacher data.'
+                ];
+                header("HTTP/1.0 400 Bad Request");
+                echo json_encode($data);
+                exit;
+            }
+            $teacherIds = array_map('intval', $teacherIds);
         }
-
-        $teacherIds = array_map('intval', $teacherIds);
         $checkSql = "SELECT * FROM `class_wise_subjects` WHERE `inst_id`='$instituteId' AND `subject`='$subject' AND `class`='$class' AND `section`='$section'";
         $checkResult = mysqli_query($conn, $checkSql);
 
