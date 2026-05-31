@@ -21,7 +21,7 @@ if ($requestMethod === 'POST') {
     $intent = $_GET['intent'] ?? '';
     $type = $_GET['type'] ?? '';
 
-    $allowedIntents = ['add', 'update', 'delete'];
+    $allowedIntents = ['add', 'delete'];
     $allowedTypes = ['class_teacher', 'subject_teacher', 'co_teacher'];
 
     if (!in_array($intent, $allowedIntents)) {

@@ -112,7 +112,7 @@ if ($requestMethod === 'GET') {
                     $subjectRow['subject_teacher']
                 );
 
-                $teacherQuery = "SELECT users.id, users.name, users.profile_image, users.email, users.phone, teachers.staff_id FROM teachers INNER JOIN users ON teachers.user_id = users.id WHERE teachers.id = '$teacherId' LIMIT 1";
+                $teacherQuery = "SELECT teachers.id AS id, users.name, users.profile_image, users.email, users.phone, teachers.staff_id FROM teachers INNER JOIN users ON teachers.user_id = users.id WHERE teachers.id = '$teacherId' LIMIT 1";
                 $teacherResult = mysqli_query($conn, $teacherQuery);
 
                 if ($teacherResult && mysqli_num_rows($teacherResult) > 0) {
@@ -135,7 +135,7 @@ if ($requestMethod === 'GET') {
                 if (!empty($coTeacherIds)) {
                     $coTeacherIdsString = implode(',', $coTeacherIds);
 
-                    $coTeacherQuery = "SELECT users.id, users.name, users.profile_image, users.email, users.phone, teachers.staff_id FROM teachers INNER JOIN users ON teachers.user_id = users.id WHERE teachers.id IN ($coTeacherIdsString)";
+                    $coTeacherQuery = "SELECT teachers.id AS id, users.name, users.profile_image, users.email, users.phone, teachers.staff_id FROM teachers INNER JOIN users ON teachers.user_id = users.id WHERE teachers.id IN ($coTeacherIdsString)";
                     $coTeacherResult = mysqli_query($conn, $coTeacherQuery);
 
                     if ($coTeacherResult && mysqli_num_rows($coTeacherResult) > 0) {
