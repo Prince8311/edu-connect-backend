@@ -18,8 +18,8 @@ session_set_cookie_params([
 session_start();
 $allowedOrigins = [
     'http://localhost:3000',
-    'http://educonnekt.in/',
-    'https://educonnekt.in/',
+    'http://educonnekt.in',
+    'https://educonnekt.in',
 ];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, $allowedOrigins, true)) {
