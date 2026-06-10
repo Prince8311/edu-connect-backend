@@ -162,13 +162,31 @@ if ($requestMethod === 'GET') {
         }
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Attendance Type for this Class
+    |--------------------------------------------------------------------------
+    | Check institution_attendance_settings table for a row matching the
+    | current institute and where the classes column contains this class
+    | (comma-separated). Use FIND_IN_SET to match the value.
+    */
+    $attendanceType = null;
+    $classEscaped = mysqli_real_escape_string($conn, $class);
+    $attendanceSql = "SELECT attendance_type FROM institution_attendance_settings WHERE inst_id = '$instituteId' AND FIND_IN_SET('$classEscaped', classes) LIMIT 1";
+    $attendanceResult = mysqli_query($conn, $attendanceSql);
+    if ($attendanceResult && mysqli_num_rows($attendanceResult) > 0) {
+        $attendanceRow = mysqli_fetch_assoc($attendanceResult);
+        $attendanceType = $attendanceRow['attendance_type'];
+    }
+
     $data = [
         'status' => 200,
         'message' => 'Class details fetched successfully.',
         'data' => [
             'class_teacher' => $classTeacherData,
             'students' => $students,
-            'subjects' => $subjects
+            'subjects' => $subjects,
+            'attendance_type' => $attendanceType
         ]
     ];
 
