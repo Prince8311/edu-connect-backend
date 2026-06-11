@@ -122,9 +122,18 @@ if ($requestMethod === 'GET') {
             $allSections = array_map('trim', explode(',', $row['sections']));
         }
 
+        // Compute total students for the whole class by summing section counts
+        $classTotal = 0;
+        if (!empty($classSections)) {
+            foreach ($classSections as $cs) {
+                $classTotal += isset($cs['student_count']) ? (int)$cs['student_count'] : 0;
+            }
+        }
+
         $classes[] = [
             "class" => $className,
             "all_sections" => $allSections,
+            "total_students" => $classTotal,
             "sections" => $classSections
         ];
     }
