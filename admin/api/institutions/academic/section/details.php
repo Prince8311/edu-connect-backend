@@ -179,6 +179,17 @@ if ($requestMethod === 'GET') {
         $attendanceType = $attendanceRow['attendance_type'];
     }
 
+    // Convert attendance type to human-readable form
+    if ($attendanceType !== null) {
+        if ($attendanceType === 'date_wise') {
+            $attendanceType = 'Date Wise';
+        } elseif ($attendanceType === 'period_wise') {
+            $attendanceType = 'Period Wise';
+        } else {
+            $attendanceType = ucwords(str_replace('_', ' ', $attendanceType));
+        }
+    }
+
     $data = [
         'status' => 200,
         'message' => 'Class details fetched successfully.',
