@@ -32,17 +32,20 @@ if ($requestMethod === 'POST') {
     $name = mysqli_real_escape_string($conn, $inputData['name']);
     $start = mysqli_real_escape_string($conn, $inputData['start']);
     $end = mysqli_real_escape_string($conn, $inputData['end']);
+    $intend = isset($inputData['intend']) ? mysqli_real_escape_string($conn, $inputData['intend']) : 'add';
 
-    $checkSql = "SELECT * FROM `time_slots` WHERE `inst_id`='$instituteId' AND `name`='$name' AND `start`='$start' AND `end`='$end'";
-    $checkResult = mysqli_query($conn, $checkSql);
-    if (mysqli_num_rows($checkResult) > 0) {
-        $data = [
-            'status' => 409,
-            'message' => 'Time slot already exists.'
-        ];
-        header("HTTP/1.0 409 Conflict");
-        echo json_encode($data);
-        exit;
+    $slotId = null;
+    if ($intend === 'update') {
+        if (empty($inputData['slotId'])) {
+            $data = [
+                'status' => 400,
+                'message' => 'slotId is required for update.'
+            ];
+            header("HTTP/1.0 400 Bad Request");
+            echo json_encode($data);
+            exit;
+        }
+        $slotId = intval($inputData['slotId']);
     }
 
     // Validate start and end formats and ordering
@@ -67,8 +70,28 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    // Check for overlapping slots for this institute
+    // Check if identical slot already exists (for add, or update excluding the same id)
+    if ($intend === 'add') {
+        $checkSql = "SELECT * FROM `time_slots` WHERE `inst_id`='$instituteId' AND `name`='$name' AND `start`='$start' AND `end`='$end'";
+    } else {
+        $checkSql = "SELECT * FROM `time_slots` WHERE `inst_id`='$instituteId' AND `name`='$name' AND `start`='$start' AND `end`='$end' AND `id`!='$slotId'";
+    }
+    $checkResult = mysqli_query($conn, $checkSql);
+    if (mysqli_num_rows($checkResult) > 0) {
+        $data = [
+            'status' => 409,
+            'message' => 'Time slot already exists.'
+        ];
+        header("HTTP/1.0 409 Conflict");
+        echo json_encode($data);
+        exit;
+    }
+
+    // Check for overlapping slots for this institute (exclude current slot on update)
     $overlapSql = "SELECT * FROM `time_slots` WHERE `inst_id`='$instituteId'";
+    if ($intend === 'update') {
+        $overlapSql .= " AND `id`!='$slotId'";
+    }
     $overlapResult = mysqli_query($conn, $overlapSql);
     while ($row = mysqli_fetch_assoc($overlapResult)) {
         $existStart = $row['start'];
@@ -90,22 +113,42 @@ if ($requestMethod === 'POST') {
         }
     }
 
-    $insertSql = "INSERT INTO `time_slots` (`inst_id`, `name`, `start`, `end`) VALUES ('$instituteId', '$name', '$start', '$end')";
-    $insertResult = mysqli_query($conn, $insertSql);
-    if ($insertResult) {
-        $data = [
-            'status' => 200,
-            'message' => 'Time slot created successfully.'
-        ];
-        header("HTTP/1.0 200 OK");
-        echo json_encode($data);
+    if ($intend === 'update') {
+        $updateSql = "UPDATE `time_slots` SET `name`='$name', `start`='$start', `end`='$end' WHERE `id`='$slotId' AND `inst_id`='$instituteId'";
+        $updateResult = mysqli_query($conn, $updateSql);
+        if ($updateResult && mysqli_affected_rows($conn) > 0) {
+            $data = [
+                'status' => 200,
+                'message' => 'Time slot updated successfully.'
+            ];
+            header("HTTP/1.0 200 OK");
+            echo json_encode($data);
+        } else {
+            $data = [
+                'status' => 500,
+                'message' => 'Failed to update time slot or no changes made.'
+            ];
+            header("HTTP/1.0 500 Internal Server Error");
+            echo json_encode($data);
+        }
     } else {
-        $data = [
-            'status' => 500,
-            'message' => 'Failed to create time slot'
-        ];
-        header("HTTP/1.0 500 Internal Server Error");
-        echo json_encode($data);
+        $insertSql = "INSERT INTO `time_slots` (`inst_id`, `name`, `start`, `end`) VALUES ('$instituteId', '$name', '$start', '$end')";
+        $insertResult = mysqli_query($conn, $insertSql);
+        if ($insertResult) {
+            $data = [
+                'status' => 200,
+                'message' => 'Time slot created successfully.'
+            ];
+            header("HTTP/1.0 200 OK");
+            echo json_encode($data);
+        } else {
+            $data = [
+                'status' => 500,
+                'message' => 'Failed to create time slot'
+            ];
+            header("HTTP/1.0 500 Internal Server Error");
+            echo json_encode($data);
+        }
     }
 } else {
     $data = [
