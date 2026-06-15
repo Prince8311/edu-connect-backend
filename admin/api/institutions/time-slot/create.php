@@ -45,6 +45,51 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
+    // Validate start and end formats and ordering
+    $newStartTs = strtotime($start);
+    $newEndTs = strtotime($end);
+    if ($newStartTs === false || $newEndTs === false) {
+        $data = [
+            'status' => 400,
+            'message' => 'Invalid start or end time format.'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+    if ($newStartTs >= $newEndTs) {
+        $data = [
+            'status' => 400,
+            'message' => 'Start time must be before end time.'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+
+    // Check for overlapping slots for this institute
+    $overlapSql = "SELECT * FROM `time_slots` WHERE `inst_id`='$instituteId'";
+    $overlapResult = mysqli_query($conn, $overlapSql);
+    while ($row = mysqli_fetch_assoc($overlapResult)) {
+        $existStart = $row['start'];
+        $existEnd = $row['end'];
+        $existStartTs = strtotime($existStart);
+        $existEndTs = strtotime($existEnd);
+        // If parsing fails for existing DB value, skip that row
+        if ($existStartTs === false || $existEndTs === false) continue;
+
+        // Overlap occurs when newStart < existEnd AND newEnd > existStart
+        if ($newStartTs < $existEndTs && $newEndTs > $existStartTs) {
+            $data = [
+                'status' => 409,
+                'message' => 'Time slot overlaps with an existing slot: ' . $existStart . ' - ' . $existEnd
+            ];
+            header("HTTP/1.0 409 Conflict");
+            echo json_encode($data);
+            exit;
+        }
+    }
+
     $insertSql = "INSERT INTO `time_slots` (`inst_id`, `name`, `start`, `end`) VALUES ('$instituteId', '$name', '$start', '$end')";
     $insertResult = mysqli_query($conn, $insertSql);
     if ($insertResult) {
