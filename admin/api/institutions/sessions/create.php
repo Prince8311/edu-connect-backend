@@ -34,7 +34,7 @@ if ($requestMethod === 'POST') {
     $endDate = mysqli_real_escape_string($conn, $inputData['endDate']);
     $status = mysqli_real_escape_string($conn, $inputData['status']);
 
-    $checkSql = "SELECT * FROM `academic_sessions` WHERE `inst_id`='$instituteId' AND `sesssion_name`='$sessionName'";
+    $checkSql = "SELECT * FROM `academic_sessions` WHERE `inst_id`='$instituteId' AND `session_name`='$sessionName'";
     $checkResult = mysqli_query($conn, $checkSql);
 
     if (mysqli_num_rows($checkResult) === 1) {
@@ -45,7 +45,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $insertSql = "INSERT INTO `academic_sessions`(`inst_id`, `sesssion_name`, `start_date`, `end_date`, `status`) VALUES ('$instituteId','$sessionName','$startDate','$endDate','$status')";
+    $insertSql = "INSERT INTO `academic_sessions`(`inst_id`, `session_name`, `start_date`, `end_date`, `status`) VALUES ('$instituteId','$sessionName','$startDate','$endDate','$status')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {

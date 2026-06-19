@@ -67,14 +67,14 @@ if ($requestMethod === 'GET') {
                     "ongoingSession" => null
                 ];
 
-                $sessionSql = "SELECT `sesssion_name`, `start_date`, `end_date` FROM `academic_sessions` WHERE `inst_id` = '$instId' AND `status` = 'Ongoing' LIMIT 1";
+                $sessionSql = "SELECT `session_name`, `start_date`, `end_date` FROM `academic_sessions` WHERE `inst_id` = '$instId' AND `status` = 'Ongoing' LIMIT 1";
                 $sessionResult = mysqli_query($conn, $sessionSql);
 
                 if ($sessionResult && mysqli_num_rows($sessionResult) > 0) {
                     $sessionRow = mysqli_fetch_assoc($sessionResult);
 
                     $institution['ongoingSession'] = [
-                        "name" => $sessionRow['sesssion_name'],
+                        "name" => $sessionRow['session_name'],
                         "start" => $sessionRow['start_date'],
                         "end" => $sessionRow['end_date']
                     ];
