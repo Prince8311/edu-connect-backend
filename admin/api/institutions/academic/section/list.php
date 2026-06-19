@@ -19,7 +19,7 @@ if ($requestMethod === 'GET') {
     $instituteId = $authResult['inst_id'];
     $isForm = isset($_GET['isForm']) && $_GET['isForm'] === 'true';
 
-    if (!$isForm && !isset($_GET['levelId'])) {
+    if (!$isForm && !isset($_GET['class'])) {
         echo json_encode([
             'status' => 400,
             'message' => 'Class is required.'

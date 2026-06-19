@@ -30,7 +30,7 @@ if ($requestMethod === 'GET') {
         $sessions = mysqli_fetch_all($result, MYSQLI_ASSOC);
         if ($isForm) {
             $sessions = array_map(function ($item) {
-                return $item['sesssion_name'];
+                return $item['session_name'];
             }, $sessions);
             $data = [
                 'status' => 200,
