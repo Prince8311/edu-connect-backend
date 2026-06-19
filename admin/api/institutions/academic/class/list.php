@@ -131,6 +131,7 @@ if ($requestMethod === 'GET') {
         }
 
         $classes[] = [
+            "level_id" => $levelId,
             "class" => $className,
             "all_sections" => $allSections,
             "total_students" => $classTotal,
