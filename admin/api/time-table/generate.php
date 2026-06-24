@@ -136,27 +136,30 @@ if ($requestMethod === 'POST') {
 
         if ($slotCount > 4) {
             if ($dtype === 'full') {
+                // Full day: all non-break slots
                 foreach ($activeSlots as $slot) {
                     $periods[] = ['day' => $day, 'slot' => $slot];
                 }
             } else {
-                // half day: use slots from morning until Break (or first half if no Break)
+                // Half day: slots in time order up to Break (or first half if no Break)
                 if (!is_null($breakIndex) && $breakIndex > 0) {
-                    // take all non-break slots before the Break slot
+                    // Take all slots before the Break slot in original order (already sorted by time)
                     for ($i = 0; $i < $breakIndex; $i++) {
-                        if (strtolower(trim($slots[$i]['name'])) !== 'break') {
-                            $periods[] = ['day' => $day, 'slot' => $slots[$i]];
+                        $slot = $slots[$i];
+                        if (strtolower(trim($slot['name'])) !== 'break') {
+                            $periods[] = ['day' => $day, 'slot' => $slot];
                         }
                     }
                 } else {
-                    // no Break found: use first half of all non-break slots from morning
-                    $halfCount = (int) ceil($activeCount / 2);
-                    for ($i = 0; $i < $halfCount && $i < $activeCount; $i++) {
+                    // No Break found: take first half of activeSlots in time order
+                    $halfCount = (int) ceil(count($activeSlots) / 2);
+                    for ($i = 0; $i < $halfCount; $i++) {
                         $periods[] = ['day' => $day, 'slot' => $activeSlots[$i]];
                     }
                 }
             }
         } else {
+            // 4 or less slots: all periods for both full and half
             foreach ($activeSlots as $slot) {
                 $periods[] = ['day' => $day, 'slot' => $slot];
             }
