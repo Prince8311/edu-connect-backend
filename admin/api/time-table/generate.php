@@ -360,7 +360,7 @@ if ($requestMethod === 'POST') {
         }
 
         $conn->commit();
-        $data = ['status' => 200, 'message' => 'Time table generated'];
+        $data = ['status' => 200, 'message' => 'Time table generated', 'data' => $generated];
         echo json_encode($data);
         exit;
     } catch (Exception $e) {
