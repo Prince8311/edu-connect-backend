@@ -265,6 +265,7 @@ if ($requestMethod === 'POST') {
         $checkStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM time_table WHERE inst_id = ? AND time = ? AND teacher = ?");
 
         $generated = [];
+        $teacherRotation = [];
         for ($i = 0; $i < $totalPeriods; $i++) {
             $p = $periods[$i];
             $slot = $p['slot'];
@@ -273,18 +274,26 @@ if ($requestMethod === 'POST') {
             $timeRange = $slot['start'] . ' - ' . $slot['end'];
             $subjectName = $pool[$i];
 
-            // try primary then co-teachers
+            // try primary then co-teachers, rotating teachers for repeated subjects
             $teacherAssigned = null;
             $candidates = [];
             $primary = $subjectMap[$subjectName]['primary'];
             if ($primary !== null && trim($primary) !== '') $candidates[] = $primary;
             foreach ($subjectMap[$subjectName]['co'] as $ct) if ($ct !== '') $candidates[] = $ct;
 
-            foreach ($candidates as $cand) {
+            $candidateCount = count($candidates);
+            $startIndex = $teacherRotation[$subjectName] ?? 0;
+            for ($offset = 0; $offset < $candidateCount; $offset++) {
+                $index = ($startIndex + $offset) % $candidateCount;
+                $cand = $candidates[$index];
                 $checkStmt->bind_param('iss', $instituteId, $timeRange, $cand);
                 $checkStmt->execute();
                 $r = $checkStmt->get_result()->fetch_assoc();
-                if ($r['cnt'] == 0) { $teacherAssigned = $cand; break; }
+                if ($r['cnt'] == 0) {
+                    $teacherAssigned = $cand;
+                    $teacherRotation[$subjectName] = ($index + 1) % $candidateCount;
+                    break;
+                }
             }
             if (is_null($teacherAssigned)) {
                 $conn->rollback();
