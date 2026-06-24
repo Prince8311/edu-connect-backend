@@ -64,7 +64,7 @@ if ($requestMethod === 'POST') {
 
     // 2) Check that subject_teacher and co_teachers are assigned (not null/empty)
     foreach ($subjects as $s) {
-        if (is_null($s['subject_teacher']) || trim($s['subject_teacher']) === '' ) {
+        if (is_null($s['subject_teacher']) || trim($s['subject_teacher']) === '') {
             $data = ['status' => 422, 'message' => 'Some subjects do not have a primary teacher assigned'];
             header("HTTP/1.0 422 Unprocessable Entity");
             echo json_encode($data);
@@ -104,7 +104,10 @@ if ($requestMethod === 'POST') {
     }
     $breakIndex = null;
     for ($i = 0; $i < $slotCount; $i++) {
-        if (strtolower(trim($slots[$i]['name'])) === 'break') { $breakIndex = $i; break; }
+        if (strtolower(trim($slots[$i]['name'])) === 'break') {
+            $breakIndex = $i;
+            break;
+        }
     }
 
     // Build list of (day, slot) to generate based on fullDays & halfDays
@@ -153,9 +156,18 @@ if ($requestMethod === 'POST') {
                     }
                 } else {
                     // No Break found: take first half of activeSlots chronologically
-                    $halfCount = (int) ceil(count($activeSlots) / 2);
+                    $halfCount = (int) floor(count($activeSlots) / 2);
+
+                    // Safety: ensure at least 1 slot
+                    if ($halfCount < 1) {
+                        $halfCount = 1;
+                    }
+
                     for ($i = 0; $i < $halfCount; $i++) {
-                        $periods[] = ['day' => $day, 'slot' => $activeSlots[$i]];
+                        $periods[] = [
+                            'day'  => $day,
+                            'slot' => $activeSlots[$i]
+                        ];
                     }
                 }
             }
@@ -245,18 +257,23 @@ if ($requestMethod === 'POST') {
 
     $totalPeriods = count($periods);
     // Validate sums
-    $sumExact = 0; $sumMin = 0;
+    $sumExact = 0;
+    $sumMin = 0;
     foreach ($subjectMap as $m) {
         if (!is_null($m['exact'])) $sumExact += $m['exact'];
         $sumMin += $m['min'];
     }
     if ($sumExact > $totalPeriods) {
         $data = ['status' => 422, 'message' => 'Sum of Exactly constraints exceeds available periods'];
-        header("HTTP/1.0 422 Unprocessable Entity"); echo json_encode($data); exit;
+        header("HTTP/1.0 422 Unprocessable Entity");
+        echo json_encode($data);
+        exit;
     }
     if ($sumMin > $totalPeriods) {
         $data = ['status' => 422, 'message' => 'Sum of Minimum constraints exceeds available periods'];
-        header("HTTP/1.0 422 Unprocessable Entity"); echo json_encode($data); exit;
+        header("HTTP/1.0 422 Unprocessable Entity");
+        echo json_encode($data);
+        exit;
     }
 
     // Build assignment counts per subject
@@ -286,7 +303,10 @@ if ($requestMethod === 'POST') {
         $k = $keys[$ki % count($keys)];
         $cur = $assignCounts[$k];
         $max = $subjectMap[$k]['max'];
-        if ($cur < $max) { $assignCounts[$k]++; $remaining--; }
+        if ($cur < $max) {
+            $assignCounts[$k]++;
+            $remaining--;
+        }
         $ki++;
         if ($ki > 1000000) break;
     }
@@ -365,7 +385,7 @@ if ($requestMethod === 'POST') {
         exit;
     } catch (Exception $e) {
         $conn->rollback();
-        $data = ['status' => 500, 'message' => 'Error generating timetable: '.$e->getMessage()];
+        $data = ['status' => 500, 'message' => 'Error generating timetable: ' . $e->getMessage()];
         header("HTTP/1.0 500 Internal Server Error");
         echo json_encode($data);
         exit;
