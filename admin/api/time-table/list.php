@@ -74,6 +74,7 @@ if ($requestMethod === 'GET') {
         $schedule = [
             'id' => $row['id'],
             'time' => $row['time'],
+            'period' => $row['period'],
             'subject' => $row['subject'],
             'teacher' => $row['teacher'] === 'N/A' ? 'N/A' : ($row['teacher_name'] ?? 'N/A')
         ];
