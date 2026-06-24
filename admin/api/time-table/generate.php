@@ -141,17 +141,18 @@ if ($requestMethod === 'POST') {
                     $periods[] = ['day' => $day, 'slot' => $slot];
                 }
             } else {
-                // Half day: slots in time order up to Break (or first half if no Break)
-                if (!is_null($breakIndex) && $breakIndex > 0) {
-                    // Take all slots before the Break slot in original order (already sorted by time)
+                // Half day: take slots chronologically before Break
+                if (!is_null($breakIndex)) {
+                    // Add only non-Break slots that come before the Break slot
                     for ($i = 0; $i < $breakIndex; $i++) {
                         $slot = $slots[$i];
-                        if (strtolower(trim($slot['name'])) !== 'break') {
+                        $slotNameLower = strtolower(trim($slot['name']));
+                        if ($slotNameLower !== 'break') {
                             $periods[] = ['day' => $day, 'slot' => $slot];
                         }
                     }
                 } else {
-                    // No Break found: take first half of activeSlots in time order
+                    // No Break found: take first half of activeSlots chronologically
                     $halfCount = (int) ceil(count($activeSlots) / 2);
                     for ($i = 0; $i < $halfCount; $i++) {
                         $periods[] = ['day' => $day, 'slot' => $activeSlots[$i]];
@@ -159,7 +160,7 @@ if ($requestMethod === 'POST') {
                 }
             }
         } else {
-            // 4 or less slots: all periods for both full and half
+            // 4 or fewer slots: use all for both full and half
             foreach ($activeSlots as $slot) {
                 $periods[] = ['day' => $day, 'slot' => $slot];
             }
