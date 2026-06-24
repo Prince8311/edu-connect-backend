@@ -99,8 +99,8 @@ if ($requestMethod === 'GET') {
     }
 
     if (count($result) === 0) {
-        $data = ['status' => 404, 'message' => 'No timetable data found for this class/section'];
-        header("HTTP/1.0 404 Not Found");
+        // return empty array (200) and do not include all_saved
+        $data = ['status' => 200, 'message' => 'Timetable retrieved successfully', 'data' => []];
         echo json_encode($data);
         exit;
     }
