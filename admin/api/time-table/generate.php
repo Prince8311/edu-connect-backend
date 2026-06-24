@@ -18,6 +18,12 @@ if ($requestMethod === 'POST') {
     require __DIR__ . "/../../../_db-connect.php";
     global $conn;
     $instituteId = $authResult['inst_id'];
+    if (empty($instituteId)) {
+        $data = ['status' => 422, 'message' => 'Institute ID is missing from authentication'];
+        header("HTTP/1.0 422 Unprocessable Entity");
+        echo json_encode($data);
+        exit;
+    }
     // Read payload
     $payload = json_decode(file_get_contents('php://input'), true);
     if (!$payload) {
@@ -103,36 +109,56 @@ if ($requestMethod === 'POST') {
 
     // Build list of (day, slot) to generate based on fullDays & halfDays
     $periods = [];
-    $uniqueDays = [];
-    foreach ($fullDays as $d) { $uniqueDays[$d] = 'full'; }
+    $selectedDays = [];
+    foreach ($fullDays as $d) {
+        $selectedDays[$d] = 'full';
+    }
     foreach ($halfDays as $d) {
-        if (isset($uniqueDays[$d]) && $uniqueDays[$d] === 'full') continue;
-        $uniqueDays[$d] = 'half';
+        if (isset($selectedDays[$d]) && $selectedDays[$d] === 'full') {
+            continue;
+        }
+        $selectedDays[$d] = 'half';
     }
 
-    foreach ($uniqueDays as $day => $dtype) {
+    $activeSlots = [];
+    foreach ($slots as $slot) {
+        if (strtolower(trim($slot['name'])) === 'break') {
+            continue;
+        }
+        $activeSlots[] = $slot;
+    }
+    $activeCount = count($activeSlots);
+
+    foreach ($selectedDays as $day => $dtype) {
+        if ($activeCount === 0) {
+            continue;
+        }
+
         if ($slotCount > 4) {
             if ($dtype === 'full') {
-                // all slots except Break
-                foreach ($slots as $slot) {
-                    if (strtolower(trim($slot['name'])) === 'break') continue;
+                foreach ($activeSlots as $slot) {
                     $periods[] = ['day' => $day, 'slot' => $slot];
                 }
-            } else { // half
-                if (!is_null($breakIndex)) {
+            } else {
+                if (!is_null($breakIndex) && $breakIndex > 0) {
                     for ($i = 0; $i < $breakIndex; $i++) {
+                        if (strtolower(trim($slots[$i]['name'])) === 'break') {
+                            continue;
+                        }
                         $periods[] = ['day' => $day, 'slot' => $slots[$i]];
                     }
                 } else {
-                    // use first half of slots (rounded down)
-                    $half = (int) floor($slotCount / 2);
-                    for ($i = 0; $i < $half; $i++) { $periods[] = ['day' => $day, 'slot' => $slots[$i]]; }
+                    $halfCount = (int) floor($activeCount / 2);
+                    if ($halfCount < 1) {
+                        $halfCount = 1;
+                    }
+                    for ($i = 0; $i < $halfCount; $i++) {
+                        $periods[] = ['day' => $day, 'slot' => $activeSlots[$i]];
+                    }
                 }
             }
         } else {
-            // 4 or less -> use all slots (except break) for both full and half
-            foreach ($slots as $slot) {
-                if (strtolower(trim($slot['name'])) === 'break') continue;
+            foreach ($activeSlots as $slot) {
                 $periods[] = ['day' => $day, 'slot' => $slot];
             }
         }
@@ -244,10 +270,17 @@ if ($requestMethod === 'POST') {
         if ($ki > 1000000) break;
     }
 
-    // Build pool
+    // Build pool using round-robin subject distribution to avoid same-subject blocks
     $pool = [];
-    foreach ($assignCounts as $sub => $count) {
-        for ($i = 0; $i < $count; $i++) $pool[] = $sub;
+    $remainingCounts = $assignCounts;
+    while (array_sum($remainingCounts) > 0) {
+        foreach ($remainingCounts as $sub => &$count) {
+            if ($count > 0) {
+                $pool[] = $sub;
+                $count--;
+            }
+        }
+        unset($count);
     }
     if (count($pool) !== $totalPeriods) {
         // fallback: fill with primary subject names in round-robin
@@ -286,7 +319,7 @@ if ($requestMethod === 'POST') {
             for ($offset = 0; $offset < $candidateCount; $offset++) {
                 $index = ($startIndex + $offset) % $candidateCount;
                 $cand = $candidates[$index];
-                $checkStmt->bind_param('iss', $instituteId, $timeRange, $cand);
+                $checkStmt->bind_param('sss', $instituteId, $timeRange, $cand);
                 $checkStmt->execute();
                 $r = $checkStmt->get_result()->fetch_assoc();
                 if ($r['cnt'] == 0) {
@@ -303,7 +336,7 @@ if ($requestMethod === 'POST') {
                 exit;
             }
 
-            $insertStmt->bind_param('issssi', $instituteId, $day, $periodName, $timeRange, $subjectName, $teacherAssigned);
+            $insertStmt->bind_param('ssssss', $instituteId, $day, $periodName, $timeRange, $subjectName, $teacherAssigned);
             $insertStmt->execute();
 
             $generated[] = ['day' => $day, 'period' => $periodName, 'time' => $timeRange, 'subject' => $subjectName, 'teacher' => $teacherAssigned];
