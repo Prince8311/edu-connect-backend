@@ -164,6 +164,24 @@ if ($requestMethod === 'POST') {
         }
     }
 
+    // Ensure periods are saved in chronological order within each day
+    if (count($periods) > 1) {
+        $dayOrder = array_keys($selectedDays);
+        $dayIndex = array_flip($dayOrder);
+        usort($periods, function ($a, $b) use ($dayIndex) {
+            $dayA = $a['day'];
+            $dayB = $b['day'];
+            $dayPosA = $dayIndex[$dayA] ?? 0;
+            $dayPosB = $dayIndex[$dayB] ?? 0;
+            if ($dayPosA !== $dayPosB) {
+                return $dayPosA <=> $dayPosB;
+            }
+            $timeA = strtotime($a['slot']['start']);
+            $timeB = strtotime($b['slot']['start']);
+            return $timeA <=> $timeB;
+        });
+    }
+
     if (count($periods) === 0) {
         $data = ['status' => 400, 'message' => 'No periods to generate based on provided days/slots'];
         header("HTTP/1.0 400 Bad Request");
