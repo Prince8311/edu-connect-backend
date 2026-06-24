@@ -329,11 +329,7 @@ if ($requestMethod === 'POST') {
                 }
             }
             if (is_null($teacherAssigned)) {
-                $conn->rollback();
-                $data = ['status' => 422, 'message' => 'No available teacher for subject '.$subjectName.' at '.$day.' '.$timeRange];
-                header("HTTP/1.0 422 Unprocessable Entity");
-                echo json_encode($data);
-                exit;
+                $teacherAssigned = 'N/A';
             }
 
             $insertStmt->bind_param('ssssss', $instituteId, $day, $periodName, $timeRange, $subjectName, $teacherAssigned);
