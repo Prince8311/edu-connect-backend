@@ -140,19 +140,18 @@ if ($requestMethod === 'POST') {
                     $periods[] = ['day' => $day, 'slot' => $slot];
                 }
             } else {
+                // half day: use slots from morning until Break (or first half if no Break)
                 if (!is_null($breakIndex) && $breakIndex > 0) {
+                    // take all non-break slots before the Break slot
                     for ($i = 0; $i < $breakIndex; $i++) {
-                        if (strtolower(trim($slots[$i]['name'])) === 'break') {
-                            continue;
+                        if (strtolower(trim($slots[$i]['name'])) !== 'break') {
+                            $periods[] = ['day' => $day, 'slot' => $slots[$i]];
                         }
-                        $periods[] = ['day' => $day, 'slot' => $slots[$i]];
                     }
                 } else {
-                    $halfCount = (int) floor($activeCount / 2);
-                    if ($halfCount < 1) {
-                        $halfCount = 1;
-                    }
-                    for ($i = 0; $i < $halfCount; $i++) {
+                    // no Break found: use first half of all non-break slots from morning
+                    $halfCount = (int) ceil($activeCount / 2);
+                    for ($i = 0; $i < $halfCount && $i < $activeCount; $i++) {
                         $periods[] = ['day' => $day, 'slot' => $activeSlots[$i]];
                     }
                 }
