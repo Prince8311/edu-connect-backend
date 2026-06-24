@@ -29,7 +29,7 @@ if ($requestMethod === 'POST') {
 
     $class = isset($payload['class']) ? $payload['class'] : null;
     $section = isset($payload['section']) ? $payload['section'] : null;
-    $subjectRepeatData = isset($payload['subjectRepeatData']) ? $payload['subjectRepeatData'] : [];
+    $subjectRepeatData = (isset($payload['subjectRepeatData']) && is_array($payload['subjectRepeatData'])) ? $payload['subjectRepeatData'] : [];
     $fullDays = isset($payload['fullDays']) ? $payload['fullDays'] : [];
     $halfDays = isset($payload['halfDays']) ? $payload['halfDays'] : [];
 
