@@ -312,7 +312,7 @@ if ($requestMethod === 'POST') {
     // 5) Assign pool to periods and check teacher availability, then insert into time_table
     $conn->begin_transaction();
     try {
-        $insertStmt = $conn->prepare("INSERT INTO time_table (inst_id, day, period, time, subject, teacher) VALUES (?, ?, ?, ?, ?, ?)");
+        $insertStmt = $conn->prepare("INSERT INTO time_table (inst_id, `class`, `section`, day, period, time, subject, teacher) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $checkStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM time_table WHERE inst_id = ? AND time = ? AND teacher = ?");
 
         $generated = [];
@@ -350,7 +350,7 @@ if ($requestMethod === 'POST') {
                 $teacherAssigned = 'N/A';
             }
 
-            $insertStmt->bind_param('ssssss', $instituteId, $day, $periodName, $timeRange, $subjectName, $teacherAssigned);
+            $insertStmt->bind_param('ssssssss', $instituteId, $class, $section, $day, $periodName, $timeRange, $subjectName, $teacherAssigned);
             $insertStmt->execute();
 
             $generated[] = ['day' => $day, 'period' => $periodName, 'time' => $timeRange, 'subject' => $subjectName, 'teacher' => $teacherAssigned];

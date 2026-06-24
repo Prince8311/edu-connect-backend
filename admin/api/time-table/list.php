@@ -47,20 +47,28 @@ if ($requestMethod === 'GET') {
     ];
 
     // Fetch timetable with teacher names, joined from teachers and users
-    $query = "SELECT tt.id, tt.day, tt.period, tt.time, tt.subject, tt.teacher, u.name as teacher_name FROM time_table tt LEFT JOIN teachers t ON tt.teacher = t.id AND tt.inst_id = t.inst_id LEFT JOIN users u ON t.user_id = u.id WHERE tt.inst_id = ? AND tt.day IN (SELECT DISTINCT day FROM time_table WHERE inst_id = ?) ORDER BY FIELD(tt.day, 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'), STR_TO_DATE(CONCAT('2000-01-01 ', SUBSTRING_INDEX(tt.time, ' - ', 1)), '%Y-%m-%d %h:%i %p')";
+    $query = "SELECT tt.id, tt.day, tt.period, tt.time, tt.subject, tt.teacher, tt.status, u.name as teacher_name
+        FROM time_table tt
+        LEFT JOIN teachers t ON tt.teacher = t.id AND tt.inst_id = t.inst_id
+        LEFT JOIN users u ON t.user_id = u.id
+        WHERE tt.inst_id = ? AND tt.`class` = ? AND tt.`section` = ?
+        ORDER BY FIELD(tt.day, 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'),
+                 STR_TO_DATE(CONCAT('2000-01-01 ', SUBSTRING_INDEX(tt.time, ' - ', 1)), '%Y-%m-%d %h:%i %p')";
 
     $stmt = $conn->prepare($query);
-    $stmt->bind_param('ss', $instituteId, $instituteId);
+    $stmt->bind_param('sss', $instituteId, $class, $section);
     $stmt->execute();
     $res = $stmt->get_result();
 
     $timetableData = [];
+    $dayAllSaved = []; // track if all rows for a day are saved (status==1)
     while ($row = $res->fetch_assoc()) {
         $shortDay = $row['day'];
         $fullDay = isset($dayMap[$shortDay]) ? $dayMap[$shortDay] : $shortDay;
 
         if (!isset($timetableData[$fullDay])) {
             $timetableData[$fullDay] = [];
+            $dayAllSaved[$fullDay] = true;
         }
 
         $schedule = [
@@ -71,6 +79,10 @@ if ($requestMethod === 'GET') {
         ];
 
         $timetableData[$fullDay][] = $schedule;
+        // status may be '0' or '1' or int
+        if (!isset($row['status']) || (string)$row['status'] === '0' || (int)$row['status'] === 0) {
+            $dayAllSaved[$fullDay] = false;
+        }
     }
 
     // Format response: array of objects with day and schedule
@@ -80,7 +92,8 @@ if ($requestMethod === 'GET') {
         if (isset($timetableData[$day])) {
             $result[] = [
                 'day' => $day,
-                'schedule' => $timetableData[$day]
+                'schedule' => $timetableData[$day],
+                'saved' => isset($dayAllSaved[$day]) ? (bool)$dayAllSaved[$day] : false
             ];
         }
     }
@@ -92,7 +105,10 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
-    $data = ['status' => 200, 'message' => 'Timetable retrieved successfully', 'data' => $result];
+    // overall saved: true only if every day's saved is true
+    $allSaved = true;
+    foreach ($result as $d) { if (empty($d['saved'])) { $allSaved = false; break; } }
+    $data = ['status' => 200, 'message' => 'Timetable retrieved successfully', 'data' => $result, 'all_saved' => $allSaved];
     echo json_encode($data);
     exit;
 } else {
