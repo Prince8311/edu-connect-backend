@@ -79,7 +79,7 @@ if ($requestMethod === 'POST') {
     }
 
     // 3) Fetch time_slots for this inst
-    $stmt = $conn->prepare("SELECT * FROM time_slots WHERE inst_id = ? ORDER BY start ASC");
+    $stmt = $conn->prepare("SELECT * FROM time_slots WHERE inst_id = ? ORDER BY STR_TO_DATE(start, '%h:%i %p') ASC");
     $stmt->bind_param('i', $instituteId);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -102,88 +102,99 @@ if ($requestMethod === 'POST') {
         echo json_encode($data);
         exit;
     }
+    // Find break position
     $breakIndex = null;
-    for ($i = 0; $i < $slotCount; $i++) {
+    for ($i = 0; $i < count($slots); $i++) {
         if (strtolower(trim($slots[$i]['name'])) === 'break') {
             $breakIndex = $i;
             break;
         }
     }
 
-    // Build list of (day, slot) to generate based on fullDays & halfDays
+    // Build selected days
     $periods = [];
     $selectedDays = [];
+
     foreach ($fullDays as $d) {
         $selectedDays[$d] = 'full';
     }
+
     foreach ($halfDays as $d) {
-        if (isset($selectedDays[$d]) && $selectedDays[$d] === 'full') {
-            continue;
-        }
         $selectedDays[$d] = 'half';
     }
 
+    // Active slots (excluding break)
     $activeSlots = [];
     foreach ($slots as $slot) {
-        if (strtolower(trim($slot['name'])) === 'break') {
-            continue;
+        if (strtolower(trim($slot['name'])) !== 'break') {
+            $activeSlots[] = $slot;
         }
-        $activeSlots[] = $slot;
     }
-    $activeCount = count($activeSlots);
 
-    echo "<pre>";
-    print_r($fullDays);
-    print_r($halfDays);
-    print_r($selectedDays);
-    echo "</pre>";
-    exit;
     foreach ($selectedDays as $day => $dtype) {
-        if ($activeCount === 0) {
-            continue;
-        }
 
-        if ($slotCount > 4) {
-            if ($dtype === 'full') {
-                // Full day: all non-break slots
-                foreach ($activeSlots as $slot) {
-                    $periods[] = ['day' => $day, 'slot' => $slot];
-                }
-            } else {
-                // Half day: take slots chronologically before Break
-                if (!is_null($breakIndex)) {
-                    // Add only non-Break slots that come before the Break slot
-                    for ($i = 0; $i < $breakIndex; $i++) {
-                        $slot = $slots[$i];
-                        $slotNameLower = strtolower(trim($slot['name']));
-                        if ($slotNameLower !== 'break') {
-                            $periods[] = ['day' => $day, 'slot' => $slot];
-                        }
-                    }
-                } else {
-                    // No Break found: take first half of activeSlots chronologically
-                    $halfCount = (int) floor(count($activeSlots) / 2);
+        if ($dtype === 'full') {
 
-                    // Safety: ensure at least 1 slot
-                    if ($halfCount < 1) {
-                        $halfCount = 1;
-                    }
-
-                    for ($i = 0; $i < $halfCount; $i++) {
-                        $periods[] = [
-                            'day'  => $day,
-                            'slot' => $activeSlots[$i]
-                        ];
-                    }
-                }
+            // Full day = all non-break periods
+            foreach ($activeSlots as $slot) {
+                $periods[] = [
+                    'day' => $day,
+                    'slot' => $slot
+                ];
             }
         } else {
-            // 4 or fewer slots: use all for both full and half
-            foreach ($activeSlots as $slot) {
-                $periods[] = ['day' => $day, 'slot' => $slot];
+
+            // Half day
+
+            if ($breakIndex !== null) {
+
+                // Take all periods before break
+                for ($i = 0; $i < $breakIndex; $i++) {
+
+                    if (strtolower(trim($slots[$i]['name'])) === 'break') {
+                        continue;
+                    }
+
+                    $periods[] = [
+                        'day' => $day,
+                        'slot' => $slots[$i]
+                    ];
+                }
+            } else {
+
+                // No break found
+                $halfCount = floor(count($activeSlots) / 2);
+
+                if ($halfCount < 1) {
+                    $halfCount = 1;
+                }
+
+                for ($i = 0; $i < $halfCount; $i++) {
+
+                    $periods[] = [
+                        'day' => $day,
+                        'slot' => $activeSlots[$i]
+                    ];
+                }
             }
         }
     }
+
+    echo "<pre>";
+
+    foreach ($periods as $p) {
+        echo $p['day']
+            . " | "
+            . $p['slot']['name']
+            . " | "
+            . $p['slot']['start']
+            . " - "
+            . $p['slot']['end']
+            . PHP_EOL;
+    }
+
+    echo "</pre>";
+    exit;
 
     // Ensure periods are saved in chronological order within each day
     if (count($periods) > 1) {
