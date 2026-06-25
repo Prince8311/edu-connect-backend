@@ -132,9 +132,7 @@ if ($requestMethod === 'POST') {
     }
 
     foreach ($selectedDays as $day => $dtype) {
-
         if ($dtype === 'full') {
-
             // Full day = all non-break periods
             foreach ($activeSlots as $slot) {
                 $periods[] = [
@@ -143,14 +141,9 @@ if ($requestMethod === 'POST') {
                 ];
             }
         } else {
-
-            // Half day
-
             if ($breakIndex !== null) {
-
                 // Take all periods before break
                 for ($i = 0; $i < $breakIndex; $i++) {
-
                     if (strtolower(trim($slots[$i]['name'])) === 'break') {
                         continue;
                     }
@@ -161,8 +154,6 @@ if ($requestMethod === 'POST') {
                     ];
                 }
             } else {
-
-                // No break found
                 $halfCount = floor(count($activeSlots) / 2);
 
                 if ($halfCount < 1) {
@@ -179,22 +170,6 @@ if ($requestMethod === 'POST') {
             }
         }
     }
-
-    echo "<pre>";
-
-    foreach ($periods as $p) {
-        echo $p['day']
-            . " | "
-            . $p['slot']['name']
-            . " | "
-            . $p['slot']['start']
-            . " - "
-            . $p['slot']['end']
-            . PHP_EOL;
-    }
-
-    echo "</pre>";
-    exit;
 
     // Ensure periods are saved in chronological order within each day
     if (count($periods) > 1) {
@@ -397,7 +372,7 @@ if ($requestMethod === 'POST') {
         }
 
         $conn->commit();
-        $data = ['status' => 200, 'message' => 'Time table generated', 'data' => $generated];
+        $data = ['status' => 200, 'message' => 'Time table generated'];
         echo json_encode($data);
         exit;
     } catch (Exception $e) {
