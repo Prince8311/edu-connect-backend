@@ -132,6 +132,12 @@ if ($requestMethod === 'POST') {
     }
     $activeCount = count($activeSlots);
 
+    echo "<pre>";
+    print_r($fullDays);
+    print_r($halfDays);
+    print_r($selectedDays);
+    echo "</pre>";
+    exit;
     foreach ($selectedDays as $day => $dtype) {
         if ($activeCount === 0) {
             continue;
