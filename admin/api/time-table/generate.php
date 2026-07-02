@@ -61,10 +61,10 @@ if ($requestMethod === 'POST') {
             exit;
         }
         if ($generateType === 'day') {
-            $regenDay = isset($payload['data']) ? trim($payload['data']) : '';
+            $regenDay = isset($payload['day']) ? trim($payload['day']) : (isset($payload['data']) ? trim($payload['data']) : '');
             $regenDayNormalized = strtolower($regenDay);
             if ($regenDay === '') {
-                $data = ['status' => 400, 'message' => 'Missing data parameter for day regeneration'];
+                $data = ['status' => 400, 'message' => 'Missing day parameter for day regeneration'];
                 header("HTTP/1.0 400 Bad Request");
                 echo json_encode($data);
                 exit;
