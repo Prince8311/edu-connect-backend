@@ -45,6 +45,7 @@ if ($requestMethod === 'POST') {
     }
     $generateType = 'week';
     $regenDay = null;
+    $regenDayNormalized = null;
     if ($intent === 're-generate') {
         if (!isset($_GET['generate-type'])) {
             $data = ['status' => 400, 'message' => 'Missing generate-type parameter'];
@@ -61,6 +62,7 @@ if ($requestMethod === 'POST') {
         }
         if ($generateType === 'day') {
             $regenDay = isset($payload['data']) ? trim($payload['data']) : '';
+            $regenDayNormalized = strtolower($regenDay);
             if ($regenDay === '') {
                 $data = ['status' => 400, 'message' => 'Missing data parameter for day regeneration'];
                 header("HTTP/1.0 400 Bad Request");
@@ -386,8 +388,8 @@ if ($requestMethod === 'POST') {
                 $prevMap[$key] = $r['subject'];
             }
         } else {
-            $prevStmt = $conn->prepare("SELECT day, time, subject FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ? AND day = ?");
-            $prevStmt->bind_param('isss', $instituteId, $class, $section, $regenDay);
+            $prevStmt = $conn->prepare("SELECT day, time, subject FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ? AND LOWER(day) = ?");
+            $prevStmt->bind_param('isss', $instituteId, $class, $section, $regenDayNormalized);
             $prevStmt->execute();
             $resPrev = $prevStmt->get_result();
             while ($r = $resPrev->fetch_assoc()) {
@@ -396,8 +398,8 @@ if ($requestMethod === 'POST') {
             }
 
             $dayPool = [];
-            $dayStmt = $conn->prepare("SELECT time, subject FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ? AND day = ? ORDER BY STR_TO_DATE(SUBSTRING_INDEX(time, ' - ', 1), '%h:%i %p') ASC");
-            $dayStmt->bind_param('isss', $instituteId, $class, $section, $regenDay);
+            $dayStmt = $conn->prepare("SELECT time, subject FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ? AND LOWER(day) = ? ORDER BY STR_TO_DATE(SUBSTRING_INDEX(time, ' - ', 1), '%h:%i %p') ASC");
+            $dayStmt->bind_param('isss', $instituteId, $class, $section, $regenDayNormalized);
             $dayStmt->execute();
             $resDay = $dayStmt->get_result();
             while ($r = $resDay->fetch_assoc()) {
@@ -491,8 +493,8 @@ if ($requestMethod === 'POST') {
                 $delStmt = $conn->prepare("DELETE FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ?");
                 $delStmt->bind_param('iss', $instituteId, $class, $section);
             } else {
-                $delStmt = $conn->prepare("DELETE FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ? AND day = ?");
-                $delStmt->bind_param('isss', $instituteId, $class, $section, $regenDay);
+                $delStmt = $conn->prepare("DELETE FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ? AND LOWER(day) = ?");
+                $delStmt->bind_param('isss', $instituteId, $class, $section, $regenDayNormalized);
             }
             $delStmt->execute();
         }
