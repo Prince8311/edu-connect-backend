@@ -158,6 +158,10 @@ if ($requestMethod === 'POST') {
         $selectedDays[$d] = 'half';
     }
 
+    if ($intent === 're-generate' && $generateType === 'day' && count($selectedDays) === 0 && $regenDay !== null) {
+        $selectedDays[$regenDay] = 'full';
+    }
+
     // Active slots (excluding break)
     $activeSlots = [];
     foreach ($slots as $slot) {
