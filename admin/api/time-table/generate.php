@@ -36,6 +36,39 @@ if ($requestMethod === 'POST') {
     $class = isset($payload['class']) ? $payload['class'] : null;
     $section = isset($payload['section']) ? $payload['section'] : null;
     $subjectRepeatData = (isset($payload['subjectRepeatData']) && is_array($payload['subjectRepeatData'])) ? $payload['subjectRepeatData'] : [];
+    $intent = isset($_GET['intent']) ? strtolower(trim($_GET['intent'])) : 'generate';
+    if ($intent !== 'generate' && $intent !== 're-generate') {
+        $data = ['status' => 400, 'message' => 'Invalid intent parameter'];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+    $generateType = 'week';
+    $regenDay = null;
+    if ($intent === 're-generate') {
+        if (!isset($_GET['generate-type'])) {
+            $data = ['status' => 400, 'message' => 'Missing generate-type parameter'];
+            header("HTTP/1.0 400 Bad Request");
+            echo json_encode($data);
+            exit;
+        }
+        $generateType = strtolower(trim($_GET['generate-type']));
+        if ($generateType !== 'week' && $generateType !== 'day') {
+            $data = ['status' => 400, 'message' => 'Invalid generate-type parameter'];
+            header("HTTP/1.0 400 Bad Request");
+            echo json_encode($data);
+            exit;
+        }
+        if ($generateType === 'day') {
+            $regenDay = isset($payload['data']) ? trim($payload['data']) : '';
+            if ($regenDay === '') {
+                $data = ['status' => 400, 'message' => 'Missing data parameter for day regeneration'];
+                header("HTTP/1.0 400 Bad Request");
+                echo json_encode($data);
+                exit;
+            }
+        }
+    }
     $fullDays = isset($payload['fullDays']) ? $payload['fullDays'] : [];
     $halfDays = isset($payload['halfDays']) ? $payload['halfDays'] : [];
 
@@ -196,6 +229,21 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
+    $dayPeriods = [];
+    if ($intent === 're-generate' && $generateType === 'day') {
+        foreach ($periods as $p) {
+            if (strcasecmp($p['day'], $regenDay) === 0) {
+                $dayPeriods[] = $p;
+            }
+        }
+        if (count($dayPeriods) === 0) {
+            $data = ['status' => 400, 'message' => 'Requested day is not included in selected days'];
+            header("HTTP/1.0 400 Bad Request");
+            echo json_encode($data);
+            exit;
+        }
+    }
+
     // 4) Prepare subjects with constraints
     $constraints = [];
     foreach ($subjectRepeatData as $c) {
@@ -324,23 +372,145 @@ if ($requestMethod === 'POST') {
         }
     }
 
+    $prevMap = [];
+    $workPeriods = $periods;
+    $workPool = $pool;
+    if ($intent === 're-generate') {
+        if ($generateType === 'week') {
+            $prevStmt = $conn->prepare("SELECT day, time, subject FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ?");
+            $prevStmt->bind_param('iss', $instituteId, $class, $section);
+            $prevStmt->execute();
+            $resPrev = $prevStmt->get_result();
+            while ($r = $resPrev->fetch_assoc()) {
+                $key = $r['day'] . '|' . $r['time'];
+                $prevMap[$key] = $r['subject'];
+            }
+        } else {
+            $prevStmt = $conn->prepare("SELECT day, time, subject FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ? AND day = ?");
+            $prevStmt->bind_param('isss', $instituteId, $class, $section, $regenDay);
+            $prevStmt->execute();
+            $resPrev = $prevStmt->get_result();
+            while ($r = $resPrev->fetch_assoc()) {
+                $key = $r['day'] . '|' . $r['time'];
+                $prevMap[$key] = $r['subject'];
+            }
+
+            $dayPool = [];
+            $dayStmt = $conn->prepare("SELECT time, subject FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ? AND day = ? ORDER BY STR_TO_DATE(SUBSTRING_INDEX(time, ' - ', 1), '%h:%i %p') ASC");
+            $dayStmt->bind_param('isss', $instituteId, $class, $section, $regenDay);
+            $dayStmt->execute();
+            $resDay = $dayStmt->get_result();
+            while ($r = $resDay->fetch_assoc()) {
+                $dayPool[] = $r['subject'];
+            }
+            if (count($dayPool) === 0) {
+                $data = ['status' => 404, 'message' => 'No existing timetable found for selected day'];
+                header("HTTP/1.0 404 Not Found");
+                echo json_encode($data);
+                exit;
+            }
+            if (count($dayPool) < count($dayPeriods)) {
+                $data = ['status' => 422, 'message' => 'Existing day timetable has fewer periods than expected'];
+                header("HTTP/1.0 422 Unprocessable Entity");
+                echo json_encode($data);
+                exit;
+            }
+            if (count($dayPool) > count($dayPeriods)) {
+                $dayPool = array_slice($dayPool, 0, count($dayPeriods));
+            }
+            $workPeriods = $dayPeriods;
+            $workPool = $dayPool;
+        }
+    }
+
     // 5) Assign pool to periods and check teacher availability, then insert into time_table
+    // If intent is re-generate, shuffle pool until different from previous sequence
+    if ($intent === 're-generate') {
+        if ($generateType === 'week') {
+            // build previous sequence in order of periods (may contain nulls)
+            $prevSequence = [];
+            foreach ($periods as $p) {
+                $k = $p['day'] . '|' . ($p['slot']['start'] . ' - ' . $p['slot']['end']);
+                $prevSequence[] = isset($prevMap[$k]) ? $prevMap[$k] : null;
+            }
+
+            // create pool as flat list according to assignCounts (already created above)
+            // try shuffling until different from previous sequence or until attempts exhausted
+            $attempts = 0;
+            $maxAttempts = 50;
+            // ensure pool length matches periods; if not, rebuild simple pool
+            if (count($pool) !== $totalPeriods) {
+                $pool = [];
+                foreach ($assignCounts as $sub => $cnt) {
+                    for ($x = 0; $x < $cnt; $x++) $pool[] = $sub;
+                }
+                while (count($pool) < $totalPeriods) {
+                    foreach ($subjectMap as $k => $v) {
+                        if (count($pool) < $totalPeriods) $pool[] = $k;
+                    }
+                }
+            }
+
+            do {
+                shuffle($pool);
+                $attempts++;
+                $different = false;
+                for ($i = 0; $i < $totalPeriods; $i++) {
+                    if ($prevSequence[$i] !== $pool[$i]) { $different = true; break; }
+                }
+            } while (!$different && $attempts < $maxAttempts);
+            $workPool = $pool;
+        } else {
+            $prevSequence = [];
+            foreach ($workPeriods as $p) {
+                $k = $p['day'] . '|' . ($p['slot']['start'] . ' - ' . $p['slot']['end']);
+                $prevSequence[] = isset($prevMap[$k]) ? $prevMap[$k] : null;
+            }
+
+            $attempts = 0;
+            $maxAttempts = 50;
+            do {
+                shuffle($workPool);
+                $attempts++;
+                $different = false;
+                for ($i = 0; $i < count($workPeriods); $i++) {
+                    if ($prevSequence[$i] !== $workPool[$i]) { $different = true; break; }
+                }
+            } while (!$different && $attempts < $maxAttempts);
+        }
+    }
+
     $conn->begin_transaction();
     try {
         $insertStmt = $conn->prepare("INSERT INTO time_table (inst_id, `class`, `section`, day, period, time, subject, teacher) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $checkStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM time_table WHERE inst_id = ? AND time = ? AND teacher = ?");
 
+        // If re-generating, delete previous timetable for this class/section
+        if ($intent === 're-generate') {
+            if ($generateType === 'week') {
+                $delStmt = $conn->prepare("DELETE FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ?");
+                $delStmt->bind_param('iss', $instituteId, $class, $section);
+            } else {
+                $delStmt = $conn->prepare("DELETE FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ? AND day = ?");
+                $delStmt->bind_param('isss', $instituteId, $class, $section, $regenDay);
+            }
+            $delStmt->execute();
+        }
+
         $generated = [];
         $teacherRotation = [];
-        for ($i = 0; $i < $totalPeriods; $i++) {
-            $p = $periods[$i];
+        // remember last teacher assigned per subject to prefer repetition when possible
+        $lastAssigned = [];
+        for ($i = 0; $i < count($workPeriods); $i++) {
+            $p = $workPeriods[$i];
             $slot = $p['slot'];
             $day = $p['day'];
             $periodName = $slot['name'];
             $timeRange = $slot['start'] . ' - ' . $slot['end'];
-            $subjectName = $pool[$i];
+            $subjectName = $workPool[$i];
 
-            // try primary then co-teachers, rotating teachers for repeated subjects
+            // try primary then co-teachers, preferring last assigned teacher when available,
+            // otherwise fallback to rotating teachers for repeated subjects
             $teacherAssigned = null;
             $candidates = [];
             $primary = $subjectMap[$subjectName]['primary'];
@@ -348,21 +518,40 @@ if ($requestMethod === 'POST') {
             foreach ($subjectMap[$subjectName]['co'] as $ct) if ($ct !== '') $candidates[] = $ct;
 
             $candidateCount = count($candidates);
-            $startIndex = $teacherRotation[$subjectName] ?? 0;
-            for ($offset = 0; $offset < $candidateCount; $offset++) {
-                $index = ($startIndex + $offset) % $candidateCount;
-                $cand = $candidates[$index];
-                $checkStmt->bind_param('sss', $instituteId, $timeRange, $cand);
+            // 1) try to reassign the last teacher for this subject (so teachers can repeat)
+            $last = $lastAssigned[$subjectName] ?? null;
+            if ($last !== null) {
+                $checkStmt->bind_param('sss', $instituteId, $timeRange, $last);
                 $checkStmt->execute();
                 $r = $checkStmt->get_result()->fetch_assoc();
                 if ($r['cnt'] == 0) {
-                    $teacherAssigned = $cand;
-                    $teacherRotation[$subjectName] = ($index + 1) % $candidateCount;
-                    break;
+                    $teacherAssigned = $last;
+                }
+            }
+
+            // 2) if last assigned not available, use rotation over candidates
+            if (is_null($teacherAssigned) && $candidateCount > 0) {
+                $startIndex = $teacherRotation[$subjectName] ?? 0;
+                for ($offset = 0; $offset < $candidateCount; $offset++) {
+                    $index = ($startIndex + $offset) % $candidateCount;
+                    $cand = $candidates[$index];
+                    $checkStmt->bind_param('sss', $instituteId, $timeRange, $cand);
+                    $checkStmt->execute();
+                    $r = $checkStmt->get_result()->fetch_assoc();
+                    if ($r['cnt'] == 0) {
+                        $teacherAssigned = $cand;
+                        $teacherRotation[$subjectName] = ($index + 1) % $candidateCount;
+                        break;
+                    }
                 }
             }
             if (is_null($teacherAssigned)) {
                 $teacherAssigned = 'N/A';
+            }
+
+            // record last assigned if a real teacher was assigned
+            if ($teacherAssigned !== 'N/A') {
+                $lastAssigned[$subjectName] = $teacherAssigned;
             }
 
             $insertStmt->bind_param('ssssssss', $instituteId, $class, $section, $day, $periodName, $timeRange, $subjectName, $teacherAssigned);
@@ -372,7 +561,15 @@ if ($requestMethod === 'POST') {
         }
 
         $conn->commit();
-        $data = ['status' => 200, 'message' => 'Time table generated'];
+        $responseMessage = 'Time table generated';
+        if ($intent === 're-generate') {
+            if ($generateType === 'week') {
+                $responseMessage = 'Time table re-generated for the week';
+            } else {
+                $responseMessage = 'Time table re-generated for ' . $regenDay;
+            }
+        }
+        $data = ['status' => 200, 'message' => $responseMessage];
         echo json_encode($data);
         exit;
     } catch (Exception $e) {
