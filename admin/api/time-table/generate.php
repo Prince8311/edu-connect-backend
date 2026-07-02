@@ -483,7 +483,7 @@ if ($requestMethod === 'POST') {
     $conn->begin_transaction();
     try {
         $insertStmt = $conn->prepare("INSERT INTO time_table (inst_id, `class`, `section`, day, period, time, subject, teacher) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $checkStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM time_table WHERE inst_id = ? AND time = ? AND teacher = ?");
+        $checkStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM time_table WHERE inst_id = ? AND day = ? AND time = ? AND teacher = ?");
 
         // If re-generating, delete previous timetable for this class/section
         if ($intent === 're-generate') {
@@ -521,7 +521,7 @@ if ($requestMethod === 'POST') {
             // 1) try to reassign the last teacher for this subject (so teachers can repeat)
             $last = $lastAssigned[$subjectName] ?? null;
             if ($last !== null) {
-                $checkStmt->bind_param('sss', $instituteId, $timeRange, $last);
+                $checkStmt->bind_param('ssss', $instituteId, $day, $timeRange, $last);
                 $checkStmt->execute();
                 $r = $checkStmt->get_result()->fetch_assoc();
                 if ($r['cnt'] == 0) {
@@ -535,7 +535,7 @@ if ($requestMethod === 'POST') {
                 for ($offset = 0; $offset < $candidateCount; $offset++) {
                     $index = ($startIndex + $offset) % $candidateCount;
                     $cand = $candidates[$index];
-                    $checkStmt->bind_param('sss', $instituteId, $timeRange, $cand);
+                    $checkStmt->bind_param('ssss', $instituteId, $day, $timeRange, $cand);
                     $checkStmt->execute();
                     $r = $checkStmt->get_result()->fetch_assoc();
                     if ($r['cnt'] == 0) {
