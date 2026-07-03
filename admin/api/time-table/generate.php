@@ -18,11 +18,15 @@ if ($requestMethod === 'POST') {
     require __DIR__ . "/../../../_db-connect.php";
     global $conn;
     $instituteId = $authResult['inst_id'];
+    $userId = $authResult['userId'];
+    $userType = $authResult['user_type'];
 
     $data = [
         'status' => 200,
         'message' => 'Time table generated successfully',
-        'id' => $instituteId
+        'id' => $instituteId,
+        'userId' => $userId,
+        'userType' => $userType
     ];
     header("HTTP/1.0 200 OK");
     echo json_encode($data);
