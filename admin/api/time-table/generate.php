@@ -43,15 +43,15 @@ if ($requestMethod === 'POST') {
     $regenDay = null;
     $regenDayNormalized = null;
     if ($intent === 're-generate') {
-        if (!isset($_GET['generate-type'])) {
-            $data = ['status' => 400, 'message' => 'Missing generate-type parameter'];
+        if (!isset($_GET['generateType'])) {
+            $data = ['status' => 400, 'message' => 'Missing generate type parameter'];
             header("HTTP/1.0 400 Bad Request");
             echo json_encode($data);
             exit;
         }
-        $generateType = strtolower(trim($_GET['generate-type']));
+        $generateType = strtolower(trim($_GET['generateType']));
         if ($generateType !== 'week' && $generateType !== 'day') {
-            $data = ['status' => 400, 'message' => 'Invalid generate-type parameter'];
+            $data = ['status' => 400, 'message' => 'Invalid generate type parameter'];
             header("HTTP/1.0 400 Bad Request");
             echo json_encode($data);
             exit;
