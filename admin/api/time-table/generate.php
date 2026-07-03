@@ -37,7 +37,7 @@ if ($requestMethod === 'POST') {
     $section = isset($payload['section']) ? $payload['section'] : null;
     $subjectRepeatData = (isset($payload['subjectRepeatData']) && is_array($payload['subjectRepeatData'])) ? $payload['subjectRepeatData'] : [];
     $intent = isset($_GET['intent']) ? strtolower(trim($_GET['intent'])) : 'generate';
-    if ($intent !== 'generate' && $intent !== 're-generate') {
+    if ($intent !== 'generate' && $intent !== 're-generate' && $intent !== 'new-regenerate') {
         $data = ['status' => 400, 'message' => 'Invalid intent parameter'];
         header("HTTP/1.0 400 Bad Request");
         echo json_encode($data);
@@ -79,6 +79,82 @@ if ($requestMethod === 'POST') {
         header("HTTP/1.0 400 Bad Request");
         echo json_encode($data);
         exit;
+    }
+
+    if ($intent === 'generate' || $intent === 'new-regenerate') {
+        $fullDaysJson = json_encode(array_values($fullDays));
+        $halfDaysJson = json_encode(array_values($halfDays));
+        $repeatsJson = json_encode(array_values($subjectRepeatData));
+
+        if ($intent === 'generate') {
+            $payloadStmt = $conn->prepare(
+                "INSERT INTO time_table_payload (inst_id, `class`, `section`, full_days, half_days, repeats) VALUES (?, ?, ?, ?, ?, ?)"
+            );
+            if (!$payloadStmt) {
+                $data = ['status' => 500, 'message' => 'Failed to prepare payload insert statement'];
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode($data);
+                exit;
+            }
+
+            $payloadStmt->bind_param('isssss', $instituteId, $class, $section, $fullDaysJson, $halfDaysJson, $repeatsJson);
+            if (!$payloadStmt->execute()) {
+                $data = ['status' => 500, 'message' => 'Failed to save timetable payload'];
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode($data);
+                exit;
+            }
+        } else {
+            $payloadExistsStmt = $conn->prepare(
+                "SELECT id FROM time_table_payload WHERE inst_id = ? AND `class` = ? AND `section` = ? LIMIT 1"
+            );
+            if (!$payloadExistsStmt) {
+                $data = ['status' => 500, 'message' => 'Failed to prepare payload existence check'];
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode($data);
+                exit;
+            }
+            $payloadExistsStmt->bind_param('iss', $instituteId, $class, $section);
+            $payloadExistsStmt->execute();
+            $resExists = $payloadExistsStmt->get_result();
+
+            if ($resExists && $resExists->num_rows > 0) {
+                $payloadUpdateStmt = $conn->prepare(
+                    "UPDATE time_table_payload SET full_days = ?, half_days = ?, repeats = ? WHERE inst_id = ? AND `class` = ? AND `section` = ?"
+                );
+                if (!$payloadUpdateStmt) {
+                    $data = ['status' => 500, 'message' => 'Failed to prepare payload update statement'];
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode($data);
+                    exit;
+                }
+
+                $payloadUpdateStmt->bind_param('sssiss', $fullDaysJson, $halfDaysJson, $repeatsJson, $instituteId, $class, $section);
+                if (!$payloadUpdateStmt->execute()) {
+                    $data = ['status' => 500, 'message' => 'Failed to update timetable payload'];
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode($data);
+                    exit;
+                }
+            } else {
+                $payloadInsertStmt = $conn->prepare(
+                    "INSERT INTO time_table_payload (inst_id, `class`, `section`, full_days, half_days, repeats) VALUES (?, ?, ?, ?, ?, ?)"
+                );
+                if (!$payloadInsertStmt) {
+                    $data = ['status' => 500, 'message' => 'Failed to prepare payload insert statement'];
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode($data);
+                    exit;
+                }
+                $payloadInsertStmt->bind_param('isssss', $instituteId, $class, $section, $fullDaysJson, $halfDaysJson, $repeatsJson);
+                if (!$payloadInsertStmt->execute()) {
+                    $data = ['status' => 500, 'message' => 'Failed to save timetable payload'];
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode($data);
+                    exit;
+                }
+            }
+        }
     }
 
     // 1) Fetch class_wise_subjects for this inst, class & section
@@ -431,7 +507,7 @@ if ($requestMethod === 'POST') {
 
     // 5) Assign pool to periods and check teacher availability, then insert into time_table
     // If intent is re-generate, shuffle pool until different from previous sequence
-    if ($intent === 're-generate') {
+if ($intent === 're-generate') {
         if ($generateType === 'week') {
             // build previous sequence in order of periods (may contain nulls)
             $prevSequence = [];
@@ -492,8 +568,11 @@ if ($requestMethod === 'POST') {
         $checkStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM time_table WHERE inst_id = ? AND day = ? AND time = ? AND teacher = ?");
 
         // If re-generating, delete previous timetable for this class/section
-        if ($intent === 're-generate') {
-            if ($generateType === 'week') {
+        if ($intent === 're-generate' || $intent === 'new-regenerate') {
+            if ($intent === 'new-regenerate') {
+                $delStmt = $conn->prepare("DELETE FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ?");
+                $delStmt->bind_param('iss', $instituteId, $class, $section);
+            } elseif ($generateType === 'week') {
                 $delStmt = $conn->prepare("DELETE FROM time_table WHERE inst_id = ? AND `class` = ? AND `section` = ?");
                 $delStmt->bind_param('iss', $instituteId, $class, $section);
             } else {
@@ -568,13 +647,14 @@ if ($requestMethod === 'POST') {
 
         $conn->commit();
         $responseMessage = 'Time table generated';
-        if ($intent === 're-generate') {
+        if ($intent === 're-generate' || $intent === 'new-regenerate') {
             if ($generateType === 'week') {
                 $responseMessage = 'Time table re-generated for the week';
             } else {
                 $responseMessage = 'Time table re-generated for ' . $regenDay;
             }
         }
+
         $data = ['status' => 200, 'message' => $responseMessage];
         echo json_encode($data);
         exit;

@@ -86,6 +86,19 @@ if ($requestMethod === 'GET') {
         }
     }
 
+    $payloadData = ['fullDays' => [], 'halfDays' => [], 'repeats' => []];
+    $payloadStmt = $conn->prepare("SELECT full_days, half_days, repeats FROM time_table_payload WHERE inst_id = ? AND `class` = ? AND `section` = ? LIMIT 1");
+    if ($payloadStmt) {
+        $payloadStmt->bind_param('iss', $instituteId, $class, $section);
+        $payloadStmt->execute();
+        $payloadRes = $payloadStmt->get_result();
+        if ($payloadRes && $payloadRow = $payloadRes->fetch_assoc()) {
+            $payloadData['fullDays'] = json_decode($payloadRow['full_days'], true) ?: [];
+            $payloadData['halfDays'] = json_decode($payloadRow['half_days'], true) ?: [];
+            $payloadData['repeats'] = json_decode($payloadRow['repeats'], true) ?: [];
+        }
+    }
+
     // Format response: array of objects with day and schedule
     $result = [];
     $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -100,8 +113,8 @@ if ($requestMethod === 'GET') {
     }
 
     if (count($result) === 0) {
-        // return empty array (200) and do not include all_saved
-        $data = ['status' => 200, 'message' => 'Timetable retrieved successfully', 'data' => []];
+        // return empty array (200)
+        $data = ['status' => 200, 'message' => 'Timetable retrieved successfully', 'data' => [], 'payload' => $payloadData];
         echo json_encode($data);
         exit;
     }
@@ -109,7 +122,7 @@ if ($requestMethod === 'GET') {
     // overall saved: true only if every day's saved is true
     $allSaved = true;
     foreach ($result as $d) { if (empty($d['saved'])) { $allSaved = false; break; } }
-    $data = ['status' => 200, 'message' => 'Timetable retrieved successfully', 'data' => $result, 'all_saved' => $allSaved];
+    $data = ['status' => 200, 'message' => 'Timetable retrieved successfully', 'data' => $result, 'all_saved' => $allSaved, 'payload' => $payloadData];
     echo json_encode($data);
     exit;
 } else {
