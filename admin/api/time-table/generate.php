@@ -17,9 +17,9 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require __DIR__ . "/../../../_db-connect.php";
     global $conn;
-    $instituteId = $authResult['inst_id'];
-    if (empty($instituteId)) {
-        $data = ['status' => 422, 'message' => 'Institute ID is missing from authentication'];
+    $instituteId = isset($authResult['inst_id']) ? (int)$authResult['inst_id'] : 0;
+    if ($instituteId <= 0) {
+        $data = ['status' => 422, 'message' => 'Institute ID is missing or invalid from authentication'];
         header("HTTP/1.0 422 Unprocessable Entity");
         echo json_encode($data);
         exit;
@@ -505,9 +505,7 @@ if ($requestMethod === 'POST') {
         }
     }
 
-    // 5) Assign pool to periods and check teacher availability, then insert into time_table
-    // If intent is re-generate, shuffle pool until different from previous sequence
-if ($intent === 're-generate') {
+    if ($intent === 're-generate') {
         if ($generateType === 'week') {
             // build previous sequence in order of periods (may contain nulls)
             $prevSequence = [];
@@ -538,7 +536,10 @@ if ($intent === 're-generate') {
                 $attempts++;
                 $different = false;
                 for ($i = 0; $i < $totalPeriods; $i++) {
-                    if ($prevSequence[$i] !== $pool[$i]) { $different = true; break; }
+                    if ($prevSequence[$i] !== $pool[$i]) {
+                        $different = true;
+                        break;
+                    }
                 }
             } while (!$different && $attempts < $maxAttempts);
             $workPool = $pool;
@@ -556,7 +557,10 @@ if ($intent === 're-generate') {
                 $attempts++;
                 $different = false;
                 for ($i = 0; $i < count($workPeriods); $i++) {
-                    if ($prevSequence[$i] !== $workPool[$i]) { $different = true; break; }
+                    if ($prevSequence[$i] !== $workPool[$i]) {
+                        $different = true;
+                        break;
+                    }
                 }
             } while (!$different && $attempts < $maxAttempts);
         }
