@@ -19,7 +19,7 @@ if ($requestMethod === 'POST') {
     global $conn;
     $instituteId = isset($authResult['inst_id']) ? (int) $authResult['inst_id'] : 0;
     if ($instituteId <= 0) {
-        $data = ['status' => 422, 'message' => 'Institute ID is missing or invalid from authentication'];
+        $data = ['status' => 422, 'message' => 'Institute ID is missing or invalid from authentication', 'id' => $instituteId];
         header("HTTP/1.0 422 Unprocessable Entity");
         echo json_encode($data);
         exit;
