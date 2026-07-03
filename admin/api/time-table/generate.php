@@ -17,7 +17,7 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require __DIR__ . "/../../../_db-connect.php";
     global $conn;
-    $instituteId = isset($authResult['inst_id']) ? (int) $authResult['inst_id'] : 0;
+    $instituteId = $authResult['inst_id'];
 
     $data = [
         'status' => 200,
