@@ -17,13 +17,8 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require __DIR__ . "/../../../_db-connect.php";
     global $conn;
-    $instituteId = isset($authResult['inst_id']) ? (int)$authResult['inst_id'] : 0;
-    if ($instituteId <= 0) {
-        $data = ['status' => 422, 'message' => 'Institute ID is missing or invalid from authentication'];
-        header("HTTP/1.0 422 Unprocessable Entity");
-        echo json_encode($data);
-        exit;
-    }
+    $instituteId = $authResult['inst_id'];
+    
     // Read payload
     $payload = json_decode(file_get_contents('php://input'), true);
     if (!$payload) {
