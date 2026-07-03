@@ -93,7 +93,7 @@ if ($requestMethod === 'POST') {
                 exit;
             }
 
-            $payloadStmt->bind_param('isssss', $instituteId, $class, $section, $fullDaysJson, $halfDaysJson, $repeatsJson);
+            $payloadStmt->bind_param('ssssss', $instituteId, $class, $section, $fullDaysJson, $halfDaysJson, $repeatsJson);
             if (!$payloadStmt->execute()) {
                 $data = ['status' => 500, 'message' => 'Failed to save timetable payload'];
                 header("HTTP/1.0 500 Internal Server Error");
@@ -110,7 +110,7 @@ if ($requestMethod === 'POST') {
                 echo json_encode($data);
                 exit;
             }
-            $payloadExistsStmt->bind_param('iss', $instituteId, $class, $section);
+            $payloadExistsStmt->bind_param('sss', $instituteId, $class, $section);
             $payloadExistsStmt->execute();
             $resExists = $payloadExistsStmt->get_result();
 
@@ -125,7 +125,7 @@ if ($requestMethod === 'POST') {
                     exit;
                 }
 
-                $payloadUpdateStmt->bind_param('sssiss', $fullDaysJson, $halfDaysJson, $repeatsJson, $instituteId, $class, $section);
+                $payloadUpdateStmt->bind_param('ssssss', $fullDaysJson, $halfDaysJson, $repeatsJson, $instituteId, $class, $section);
                 if (!$payloadUpdateStmt->execute()) {
                     $data = ['status' => 500, 'message' => 'Failed to update timetable payload'];
                     header("HTTP/1.0 500 Internal Server Error");
@@ -142,7 +142,7 @@ if ($requestMethod === 'POST') {
                     echo json_encode($data);
                     exit;
                 }
-                $payloadInsertStmt->bind_param('isssss', $instituteId, $class, $section, $fullDaysJson, $halfDaysJson, $repeatsJson);
+                $payloadInsertStmt->bind_param('ssssss', $instituteId, $class, $section, $fullDaysJson, $halfDaysJson, $repeatsJson);
                 if (!$payloadInsertStmt->execute()) {
                     $data = ['status' => 500, 'message' => 'Failed to save timetable payload'];
                     header("HTTP/1.0 500 Internal Server Error");
