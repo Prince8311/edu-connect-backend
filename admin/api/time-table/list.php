@@ -142,10 +142,6 @@ if ($requestMethod === 'GET') {
         }
     }
 
-    if ($intent === 'final') {
-        $weekDays = array_merge($payloadData['fullDays'], $payloadData['halfDays']);
-    }
-
     // Format response: array of objects with day and schedule
     $result = [];
     $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -162,6 +158,15 @@ if ($requestMethod === 'GET') {
 
             $result[] = $dayData;
         }
+    }
+
+    // For final intent, filter weekDays to only include days with schedule entries
+    if ($intent === 'final') {
+        $daysWithSchedule = array_column($result, 'day');
+        $weekDays = array_filter(array_merge($payloadData['fullDays'], $payloadData['halfDays']), function($day) use ($daysWithSchedule) {
+            return in_array($day, $daysWithSchedule);
+        });
+        $weekDays = array_values($weekDays); // re-index array
     }
 
     $data = [
