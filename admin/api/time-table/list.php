@@ -58,7 +58,7 @@ if ($requestMethod === 'GET') {
     $weekDays = [];
 
     if ($intent === 'final') {
-        $slotsQuery = "SELECT id, name, start, end FROM time_slots WHERE inst_id = ? ORDER BY start";
+        $slotsQuery = "SELECT id, name, start, end FROM time_slots WHERE inst_id = ? ORDER BY STR_TO_DATE(CONCAT('2000-01-01 ', start), '%Y-%m-%d %h:%i %p')";
         $slotsStmt = $conn->prepare($slotsQuery);
         if ($slotsStmt) {
             $slotsStmt->bind_param('s', $instituteId);
@@ -95,6 +95,7 @@ if ($requestMethod === 'GET') {
 
     $timetableData = [];
     $dayAllSaved = []; // track if all rows for a day are saved (status==1)
+    $colors = ['blue','green','orange','purple','grey'];
     while ($row = $res->fetch_assoc()) {
         $shortDay = $row['day'];
         $fullDay = isset($dayMap[$shortDay]) ? $dayMap[$shortDay] : $shortDay;
@@ -107,7 +108,8 @@ if ($requestMethod === 'GET') {
         if ($intent === 'final') {
             $schedule = [
                 'subject' => $row['subject'],
-                'teacher' => $row['teacher'] === 'N/A' ? 'N/A' : ($row['teacher_name'] ?? 'N/A')
+                'teacher' => $row['teacher'] === 'N/A' ? 'N/A' : ($row['teacher_name'] ?? 'N/A'),
+                'color' => $colors[array_rand($colors)]
             ];
         } else {
             $schedule = [
@@ -115,7 +117,8 @@ if ($requestMethod === 'GET') {
                 'time' => $row['time'],
                 'period' => $row['period'],
                 'subject' => $row['subject'],
-                'teacher' => $row['teacher'] === 'N/A' ? 'N/A' : ($row['teacher_name'] ?? 'N/A')
+                'teacher' => $row['teacher'] === 'N/A' ? 'N/A' : ($row['teacher_name'] ?? 'N/A'),
+                'color' => $colors[array_rand($colors)]
             ];
         }
 
