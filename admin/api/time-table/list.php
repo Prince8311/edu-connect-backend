@@ -94,6 +94,7 @@ if ($requestMethod === 'GET') {
     $res = $stmt->get_result();
 
     $timetableData = [];
+    $timetableMap = [];
     $dayAllSaved = []; // track if all rows for a day are saved (status==1)
     $colors = ['blue','green','orange','purple','grey'];
     while ($row = $res->fetch_assoc()) {
@@ -124,6 +125,9 @@ if ($requestMethod === 'GET') {
         }
 
         $timetableData[$fullDay][] = $schedule;
+        if ($intent === 'final') {
+            $timetableMap[$fullDay][$row['period']] = $schedule;
+        }
         // status may be '0' or '1' or int
         if (!isset($row['status']) || (string)$row['status'] === '0' || (int)$row['status'] === 0) {
             $dayAllSaved[$fullDay] = false;
@@ -148,10 +152,31 @@ if ($requestMethod === 'GET') {
     $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     foreach ($dayOrder as $day) {
         if (isset($timetableData[$day])) {
-            $dayData = [
-                'day' => $day,
-                'schedule' => $timetableData[$day]
-            ];
+            $dayData = ['day' => $day];
+
+            if ($intent === 'final') {
+                $orderedSchedule = [];
+                foreach ($periodTimings as $slot) {
+                    $slotName = trim($slot['name']);
+                    if (strtolower($slotName) === 'break') {
+                        $orderedSchedule[] = [
+                            'period' => 'Break',
+                            'subject' => null,
+                            'teacher' => null,
+                            'color' => null
+                        ];
+                        continue;
+                    }
+
+                    if (isset($timetableMap[$day][$slotName])) {
+                        $orderedSchedule[] = $timetableMap[$day][$slotName];
+                    }
+                }
+
+                $dayData['schedule'] = $orderedSchedule;
+            } else {
+                $dayData['schedule'] = $timetableData[$day];
+            }
 
             if ($intent !== 'final') {
                 $dayData['saved'] = isset($dayAllSaved[$day]) ? (bool)$dayAllSaved[$day] : false;
