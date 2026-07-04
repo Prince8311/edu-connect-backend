@@ -79,8 +79,13 @@ if ($requestMethod === 'GET') {
         FROM time_table tt
         LEFT JOIN teachers t ON tt.teacher = t.id AND tt.inst_id = t.inst_id
         LEFT JOIN users u ON t.user_id = u.id
-        WHERE tt.inst_id = ? AND tt.`class` = ? AND tt.`section` = ?
-        ORDER BY FIELD(tt.day, 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'),
+        WHERE tt.inst_id = ? AND tt.`class` = ? AND tt.`section` = ?";
+
+    if ($intent === 'final') {
+        $query .= " AND tt.status = 1";
+    }
+
+    $query .= "\n        ORDER BY FIELD(tt.day, 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'),
                  STR_TO_DATE(CONCAT('2000-01-01 ', SUBSTRING_INDEX(tt.time, ' - ', 1)), '%Y-%m-%d %h:%i %p')";
 
     $stmt = $conn->prepare($query);
@@ -143,25 +148,28 @@ if ($requestMethod === 'GET') {
     $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     foreach ($dayOrder as $day) {
         if (isset($timetableData[$day])) {
-            $result[] = [
+            $dayData = [
                 'day' => $day,
-                'schedule' => $timetableData[$day],
-                'saved' => isset($dayAllSaved[$day]) ? (bool)$dayAllSaved[$day] : false
+                'schedule' => $timetableData[$day]
             ];
+
+            if ($intent !== 'final') {
+                $dayData['saved'] = isset($dayAllSaved[$day]) ? (bool)$dayAllSaved[$day] : false;
+            }
+
+            $result[] = $dayData;
         }
     }
-
-    // overall saved: true only if every day's saved is true
-    $allSaved = true;
-    foreach ($result as $d) { if (empty($d['saved'])) { $allSaved = false; break; } }
 
     $data = [
         'status' => 200,
         'message' => 'Timetable retrieved successfully',
-        'data' => $result,
-        'all_saved' => $allSaved,
-        'payload' => $payloadData
+        'data' => $result
     ];
+
+    if ($intent !== 'final') {
+        $data['payload'] = $payloadData;
+    }
 
     if ($intent === 'final') {
         $data['periodTimings'] = $periodTimings;
