@@ -53,6 +53,8 @@ if ($requestMethod === 'GET') {
         'Fri' => 'Friday',
         'Sat' => 'Saturday'
     ];
+    // Reverse map: full names to short names
+    $dayMapReverse = array_flip($dayMap);
 
     $periodTimings = [];
     $weekDays = [];
@@ -152,7 +154,8 @@ if ($requestMethod === 'GET') {
     $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     foreach ($dayOrder as $day) {
         if (isset($timetableData[$day])) {
-            $dayData = ['day' => $day];
+            $dayKey = $intent === 'final' ? $dayMapReverse[$day] : $day;
+            $dayData = ['day' => $dayKey];
 
             if ($intent === 'final') {
                 $orderedSchedule = [];
