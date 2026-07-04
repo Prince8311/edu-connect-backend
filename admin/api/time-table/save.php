@@ -93,7 +93,7 @@ if ($requestMethod === 'POST') {
         $dayShort = $dayMap[$dayKey];
     }
 
-    $newStatus = 2; // set status 2 for day
+    $newStatus = 1; // set status 1 for day
     $dayLower = strtolower($dayShort);
 
     // determine full day name for response message
