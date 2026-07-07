@@ -45,7 +45,7 @@ if ($requestMethod === 'POST') {
     $validityDate       = $inputData['validity_date'] ?? null;
     $status             = $inputData['status'] ?? 0;
 
-    if (empty($code) || empty($type) || empty($offerType) || empty($offerUnit) || empty($validityType) || empty($countType)) {
+    if (empty($code) || empty($type) || empty($offerType) || empty($offerUnit) || empty($validityType)) {
         header("HTTP/1.0 400 Bad Request");
         echo json_encode([
             "status" => 400,
