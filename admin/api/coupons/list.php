@@ -117,7 +117,6 @@ if ($requestMethod === 'GET') {
                     c.count_value,
                     c.validity_date,
                     c.status,
-
                     i.inst_id,
                     i.inst_name,
                     i.phone,
