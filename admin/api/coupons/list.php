@@ -18,21 +18,10 @@ if ($requestMethod === 'GET') {
     require __DIR__ . "/../../../_db-connect.php";
     global $conn;
 
-    $inputData = json_decode(file_get_contents('php://input'), true);
-
-    if (empty($inputData)) {
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode([
-            "status" => 400,
-            "message" => "Empty request data."
-        ]);
-        exit;
-    }
-
     // -------------------------
     // Validate Type
     // -------------------------
-    $type = strtolower(trim($inputData['type'] ?? ''));
+    $type = isset($_GET['type']) ? strtolower(trim($_GET['type'])) : '';
 
     if (!in_array($type, ['general', 'private'])) {
         header("HTTP/1.0 400 Bad Request");
@@ -48,13 +37,18 @@ if ($requestMethod === 'GET') {
     // -------------------------
     $limit = 12;
 
-    $page = isset($inputData['page']) && is_numeric($inputData['page']) && $inputData['page'] > 0 ? (int)$inputData['page'] : 1;
+    $page = isset($_GET['page']) &&
+        is_numeric($_GET['page']) &&
+        $_GET['page'] > 0
+        ? (int)$_GET['page']
+        : 1;
+
     $offset = ($page - 1) * $limit;
 
     // -------------------------
     // Search
     // -------------------------
-    $search = isset($inputData['search']) ? trim($inputData['search']) : '';
+    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
     $searchCondition = "";
 
     if (!empty($search)) {
@@ -65,7 +59,11 @@ if ($requestMethod === 'GET') {
     // -------------------------
     // Total Count
     // -------------------------
-    $countSql = "SELECT COUNT(*) AS total FROM coupons WHERE type='$type' $searchCondition";
+    $countSql = "SELECT COUNT(*) AS total
+                 FROM coupons
+                 WHERE type='$type'
+                 $searchCondition";
+
     $countResult = mysqli_query($conn, $countSql);
 
     if (!$countResult) {
@@ -81,12 +79,61 @@ if ($requestMethod === 'GET') {
     $totalCoupons = (int)$countRow['total'];
 
     // -------------------------
-    // Fetch Data
+    // Fetch Coupons
     // -------------------------
     if ($type == "general") {
-        $sql = "SELECT code, type, bill_amount_range, target_bill_amount, offer_type, offer_value, offer_unit, offer_limit, validity_type, count_type, count_value, validity_date, status FROM coupons WHERE type='general' $searchCondition ORDER BY id DESC LIMIT $limit OFFSET $offset";
+
+        $sql = "SELECT
+                    code,
+                    type,
+                    bill_amount_range,
+                    target_bill_amount,
+                    offer_type,
+                    offer_value,
+                    offer_unit,
+                    offer_limit,
+                    validity_type,
+                    count_type,
+                    count_value,
+                    validity_date,
+                    status
+                FROM coupons
+                WHERE type='general'
+                $searchCondition
+                ORDER BY id DESC
+                LIMIT $limit OFFSET $offset";
     } else {
-        $sql = "SELECT c.code, c.type, c.inst_id, i.inst_name, i.phone, i.email, c.bill_amount_range, c.target_bill_amount, c.offer_type, c.offer_value, c.offer_unit, c.offer_limit, c.validity_type, c.count_type, c.count_value, c.validity_date, c.status FROM coupons c LEFT JOIN institutions i ON c.inst_id = i.inst_id WHERE c.type='private' $searchCondition ORDER BY c.id DESC LIMIT $limit OFFSET $offset";
+        $sql = "SELECT
+                    c.code,
+                    c.type,
+                    c.bill_amount_range,
+                    c.target_bill_amount,
+                    c.offer_type,
+                    c.offer_value,
+                    c.offer_unit,
+                    c.offer_limit,
+                    c.validity_type,
+                    c.count_type,
+                    c.count_value,
+                    c.validity_date,
+                    c.status,
+
+                    i.inst_id,
+                    i.inst_name,
+                    i.phone,
+                    i.email
+
+                FROM coupons c
+
+                LEFT JOIN institutions i
+                    ON c.inst_id = i.inst_id
+
+                WHERE c.type='private'
+                $searchCondition
+
+                ORDER BY c.id DESC
+
+                LIMIT $limit OFFSET $offset";
     }
 
     $result = mysqli_query($conn, $sql);
@@ -95,6 +142,9 @@ if ($requestMethod === 'GET') {
         $coupons = [];
 
         while ($row = mysqli_fetch_assoc($result)) {
+            // -------------------------
+            // Capitalize enum values
+            // -------------------------
             if (!empty($row['type'])) {
                 $row['type'] = ucfirst($row['type']);
             }
@@ -119,12 +169,14 @@ if ($requestMethod === 'GET') {
                 $row['count_type'] = ucwords(str_replace('_', ' ', $row['count_type']));
             }
 
-            // Boolean status
+            // Status as boolean
             $row['status'] = (bool)$row['status'];
 
-            // Nested institution object for private coupons
+            // -------------------------
+            // Private Coupon
+            // -------------------------
             if ($type == "private") {
-                $row['institution'] = [
+                $institution = [
                     "inst_id"   => $row['inst_id'],
                     "inst_name" => $row['inst_name'],
                     "phone"     => $row['phone'],
@@ -135,7 +187,10 @@ if ($requestMethod === 'GET') {
                 unset($row['inst_name']);
                 unset($row['phone']);
                 unset($row['email']);
+
+                $row['institution'] = $institution;
             }
+
             $coupons[] = $row;
         }
 
