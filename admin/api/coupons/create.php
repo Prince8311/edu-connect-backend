@@ -17,7 +17,6 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'POST') {
     require __DIR__ . "/../../../_db-connect.php";
     global $conn;
-    $instituteId = $authResult['inst_id'];
 
     $inputData = json_decode(file_get_contents('php://input'), true);
 
@@ -33,6 +32,7 @@ if ($requestMethod === 'POST') {
 
     $code               = trim($inputData['code'] ?? '');
     $type               = $inputData['type'] ?? '';
+    $instituteId        = $inputData['inst_id'] ?? '';
     $billAmountRange    = $inputData['bill_amount_range'] ?? '';
     $targetBillAmount   = $inputData['target_bill_amount'] ?? null;
     $offerType          = $inputData['offer_type'] ?? '';
