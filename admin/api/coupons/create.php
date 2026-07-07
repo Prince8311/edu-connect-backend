@@ -32,7 +32,7 @@ if ($requestMethod === 'POST') {
 
     $code               = trim($inputData['code'] ?? '');
     $type               = $inputData['type'] ?? '';
-    $instituteId        = $inputData['inst_id'] ?? '';
+    $instituteId        = $inputData['inst_id'] ?? null;
     $billAmountRange    = $inputData['bill_amount_range'] ?? '';
     $targetBillAmount   = $inputData['target_bill_amount'] ?? null;
     $offerType          = $inputData['offer_type'] ?? '';
