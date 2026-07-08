@@ -150,7 +150,7 @@ if ($requestMethod === 'GET') {
     echo json_encode([
         "status" => 200,
         "message" => "Coupon fetched successfully.",
-        "data" => [$row]
+        "coupon" => [$row]
     ]);
 } else {
     header("HTTP/1.0 405 Method Not Allowed");
