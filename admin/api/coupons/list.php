@@ -82,57 +82,9 @@ if ($requestMethod === 'GET') {
     // Fetch Coupons
     // -------------------------
     if ($type == "general") {
-
-        $sql = "SELECT
-                    code,
-                    type,
-                    bill_amount_range,
-                    target_bill_amount,
-                    offer_type,
-                    offer_value,
-                    offer_unit,
-                    offer_limit,
-                    validity_type,
-                    count_type,
-                    count_value,
-                    validity_date,
-                    status
-                FROM coupons
-                WHERE type='general'
-                $searchCondition
-                ORDER BY id DESC
-                LIMIT $limit OFFSET $offset";
+        $sql = "SELECT id, code, type, bill_amount_range, target_bill_amount, offer_type, offer_value, offer_unit, offer_limit, validity_type, count_type, count_value, validity_date, status FROM coupons WHERE type='general' $searchCondition ORDER BY id DESC LIMIT $limit OFFSET $offset";
     } else {
-        $sql = "SELECT
-                    c.code,
-                    c.type,
-                    c.bill_amount_range,
-                    c.target_bill_amount,
-                    c.offer_type,
-                    c.offer_value,
-                    c.offer_unit,
-                    c.offer_limit,
-                    c.validity_type,
-                    c.count_type,
-                    c.count_value,
-                    c.validity_date,
-                    c.status,
-                    i.inst_id,
-                    i.inst_name,
-                    i.phone,
-                    i.email
-
-                FROM coupons c
-
-                LEFT JOIN institutions i
-                    ON c.inst_id = i.inst_id
-
-                WHERE c.type='private'
-                $searchCondition
-
-                ORDER BY c.id DESC
-
-                LIMIT $limit OFFSET $offset";
+        $sql = "SELECT c.id, c.code, c.type, c.bill_amount_range, c.target_bill_amount, c.offer_type, c.offer_value, c.offer_unit, c.offer_limit, c.validity_type, c.count_type, c.count_value, c.validity_date, c.status, i.inst_id, i.inst_name, i.phone, i.email FROM coupons c LEFT JOIN institutions i ON c.inst_id = i.inst_id WHERE c.type='private' $searchCondition ORDER BY c.id DESC LIMIT $limit OFFSET $offset";
     }
 
     $result = mysqli_query($conn, $sql);
