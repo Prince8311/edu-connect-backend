@@ -252,76 +252,25 @@ if ($requestMethod === 'POST') {
                 }
             }
 
-            // Check if student email/phone matches guardian email/phone
-            $contactOverlap = (!empty($studentEmail) && !empty($guardianEmail) && strtolower(trim($studentEmail)) === strtolower(trim($guardianEmail)))
-                           || (!empty($studentPhone) && !empty($guardianPhone) && trim($studentPhone) === trim($guardianPhone));
-
-            // Helper: upsert guardian user, returns guardian user_id
-            $guardianNameEsc  = mysqli_real_escape_string($conn, $guardianName);
-            $guardianEmailEsc = mysqli_real_escape_string($conn, $guardianEmail);
-            $guardianPhoneEsc = mysqli_real_escape_string($conn, $guardianPhone);
-            $guardianPlainPassword = generateRandomPassword(10);
-            $guardianHashedPassword = password_hash($guardianPlainPassword, PASSWORD_DEFAULT);
-            $guardianPassEsc = mysqli_real_escape_string($conn, $guardianHashedPassword);
-
-            $guardianUserId = null;
-
-            if (!empty($guardianName) || !empty($guardianEmail) || !empty($guardianPhone)) {
-                $guardianCheckClauses = [];
-                if (!empty($guardianName)) {
-                    $guardianCheckClauses[] = "LOWER(TRIM(name)) = '" . mysqli_real_escape_string($conn, strtolower(trim($guardianName))) . "'";
-                }
-                if (!empty($guardianEmail)) {
-                    $guardianCheckClauses[] = "LOWER(TRIM(email)) = '" . mysqli_real_escape_string($conn, strtolower(trim($guardianEmail))) . "'";
-                }
-                if (!empty($guardianPhone)) {
-                    $guardianCheckClauses[] = "TRIM(phone) = '" . mysqli_real_escape_string($conn, trim($guardianPhone)) . "'";
-                }
-
-                $guardianCheckSql = "SELECT id, user_type FROM users WHERE " . implode(' AND ', $guardianCheckClauses) . " LIMIT 1";
-                $guardianCheckResult = mysqli_query($conn, $guardianCheckSql);
-
-                if ($guardianCheckResult && mysqli_num_rows($guardianCheckResult) > 0) {
-                    $guardianRow = mysqli_fetch_assoc($guardianCheckResult);
-                    $existingUserType = $guardianRow['user_type'];
-                    $guardianUserId = $guardianRow['id'];
-
-                    if ($existingUserType === 'teacher') {
-                        $newUserType = "'teacher', 'guardian'";
-                        $updateTypeSql = "UPDATE users SET user_type = '$newUserType' WHERE id = '$guardianUserId'";
-                        if (!mysqli_query($conn, $updateTypeSql)) {
-                            throw new \Exception("Failed to update guardian user_type");
-                        }
-                    }
-                    // if already 'guardian', do nothing
-                } else {
-                    // Insert new guardian user
-                    $insertGuardianSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$guardianNameEsc', '$guardianEmailEsc', '$guardianPhoneEsc', 'guardian', '$guardianPassEsc')";
-                    if (!mysqli_query($conn, $insertGuardianSql)) {
-                        throw new \Exception("Failed to insert guardian user");
-                    }
-                    $guardianUserId = mysqli_insert_id($conn);
-                }
+            $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'student', '$passEsc')";
+            if (!mysqli_query($conn, $userSql)) {
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode([
+                    "status" => 500,
+                    "message" => "Failed to insert user"
+                ]);
+                exit;
             }
+            $newUserId = mysqli_insert_id($conn);
 
-            if ($contactOverlap) {
-                // Only guardian user is created; student user_id will be NULL
-                $newUserId = null;
-            } else {
-                // Create student user as well
-                $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'student', '$passEsc')";
-                if (!mysqli_query($conn, $userSql)) {
-                    throw new \Exception("Failed to insert student user");
-                }
-                $newUserId = mysqli_insert_id($conn);
-            }
-
-            $userIdValue   = ($newUserId !== null) ? "'$newUserId'" : "NULL";
-            $guardianIdValue = ($guardianUserId !== null) ? "'$guardianUserId'" : "NULL";
-
-            $studentSql = "INSERT INTO students (inst_id, user_id, guardian_id, enrollment_id, created_at) VALUES ('$instituteId', $userIdValue, $guardianIdValue, '$enrollmentId', NOW())";
+            $studentSql = "INSERT INTO students (inst_id, user_id, enrollment_id, created_at) VALUES ('$instituteId', '$newUserId', '$enrollmentId', NOW())";
             if (!mysqli_query($conn, $studentSql)) {
-                throw new \Exception("Failed to insert student");
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode([
+                    "status" => 500,
+                    "message" => "Failed to insert student"
+                ]);
+                exit;
             }
 
             $studentId = mysqli_insert_id($conn);
@@ -333,7 +282,12 @@ if ($requestMethod === 'POST') {
 
                 $sql = "INSERT INTO student_field_values (inst_id, student_id, section_id, field_name, value) VALUES ('$instituteId', '$studentId', '$sectionId', '$fieldName', '$value')";
                 if (!mysqli_query($conn, $sql)) {
-                    throw new \Exception("Failed to insert field values");
+                    header("HTTP/1.0 500 Internal Server Error");
+                    echo json_encode([
+                        "status" => 500,
+                        "message" => "Failed to insert field values"
+                    ]);
+                    exit;
                 }
             }
 
