@@ -164,6 +164,8 @@ if ($requestMethod === 'POST') {
             $staffFields = $staff['staff_fields'] ?? [];
 
             $staffName  = getStaffFullName($staffFields);
+            $staffFirstName = findFieldValue($staffFields, ['first name', 'first_name', 'firstname']);
+            $staffLastName = findFieldValue($staffFields, ['last name', 'last_name', 'lastname']);
             $staffEmail = findFieldValue($staffFields, ['email']);
             $staffPhone = findFieldValue($staffFields, ['contact no.', 'phone', 'mobile']);
             $staffRole  = findFieldValue($staffFields, ['role', 'user role', 'Role']);
@@ -189,34 +191,133 @@ if ($requestMethod === 'POST') {
                 exit;
             }
 
-            if (!empty($emailEsc)) {
-                if ($staffTypeEsc === 'teaching') {
-                    $check = mysqli_query($conn, "SELECT id FROM users WHERE email = '$emailEsc' LIMIT 1");
-                } else {
-                    $check = mysqli_query($conn, "SELECT id FROM admin_users WHERE email = '$emailEsc' LIMIT 1");
-                }
+            if (!empty($staffFirstName) && !empty($staffLastName) && !empty($staffPhone) && !empty($staffEmail)) {
+                $instEsc = mysqli_real_escape_string($conn, $instituteId);
+                $firstNameEsc = mysqli_real_escape_string($conn, strtolower(trim($staffFirstName)));
+                $lastNameEsc = mysqli_real_escape_string($conn, strtolower(trim($staffLastName)));
+                $phoneCheckEsc = mysqli_real_escape_string($conn, strtolower(trim($staffPhone)));
+                $emailCheckEsc = mysqli_real_escape_string($conn, strtolower(trim($staffEmail)));
 
-                if (mysqli_num_rows($check) > 0) {
+                $staffExistsSql = "SELECT sfv_first.staff_id
+                    FROM staff_field_values sfv_first
+                    INNER JOIN staff_field_values sfv_last
+                        ON sfv_first.inst_id = sfv_last.inst_id
+                        AND sfv_first.staff_id = sfv_last.staff_id
+                        AND sfv_first.staff_type = sfv_last.staff_type
+                    INNER JOIN staff_field_values sfv_contact
+                        ON sfv_first.inst_id = sfv_contact.inst_id
+                        AND sfv_first.staff_id = sfv_contact.staff_id
+                        AND sfv_first.staff_type = sfv_contact.staff_type
+                    INNER JOIN staff_field_values sfv_email
+                        ON sfv_first.inst_id = sfv_email.inst_id
+                        AND sfv_first.staff_id = sfv_email.staff_id
+                        AND sfv_first.staff_type = sfv_email.staff_type
+                    WHERE sfv_first.inst_id = '$instEsc'
+                        AND sfv_first.staff_type = '$staffTypeEsc'
+                        AND LOWER(TRIM(sfv_first.field_name)) IN ('first name', 'first_name', 'firstname')
+                        AND LOWER(TRIM(sfv_last.field_name)) IN ('last name', 'last_name', 'lastname')
+                        AND LOWER(TRIM(sfv_contact.field_name)) IN ('contact no.', 'phone', 'mobile')
+                        AND LOWER(TRIM(sfv_email.field_name)) = 'email'
+                        AND LOWER(TRIM(sfv_first.value)) = '$firstNameEsc'
+                        AND LOWER(TRIM(sfv_last.value)) = '$lastNameEsc'
+                        AND LOWER(TRIM(sfv_contact.value)) = '$phoneCheckEsc'
+                        AND LOWER(TRIM(sfv_email.value)) = '$emailCheckEsc'
+                    LIMIT 1";
+
+                $staffExistsResult = mysqli_query($conn, $staffExistsSql);
+                if ($staffExistsResult && mysqli_num_rows($staffExistsResult) > 0) {
                     header("HTTP/1.0 400 Bad Request");
                     echo json_encode([
                         "status" => 400,
-                        "message" => "Email already exists: $staffEmail"
+                        "message" => "Staff already exists for this staff type. Please check the details and try again."
                     ]);
                     exit;
                 }
             }
 
             if ($staffTypeEsc === 'teaching') {
-                $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
-                if (!mysqli_query($conn, $userSql)) {
-                    header("HTTP/1.0 500 Internal Server Error");
-                    echo json_encode([
-                        "status" => 500,
-                        "message" => "Failed to insert user"
-                    ]);
-                    exit;
+                $teacherCheckClauses = [];
+                if (!empty($staffName)) {
+                    $teacherCheckClauses[] = "LOWER(TRIM(name)) = '" . mysqli_real_escape_string($conn, strtolower(trim($staffName))) . "'";
                 }
-                $newUserId = mysqli_insert_id($conn);
+                if (!empty($staffEmail)) {
+                    $teacherCheckClauses[] = "LOWER(TRIM(email)) = '" . mysqli_real_escape_string($conn, strtolower(trim($staffEmail))) . "'";
+                }
+                if (!empty($staffPhone)) {
+                    $teacherCheckClauses[] = "TRIM(phone) = '" . mysqli_real_escape_string($conn, trim($staffPhone)) . "'";
+                }
+
+                if (!empty($teacherCheckClauses)) {
+                    $teacherCheckSql = "SELECT id, user_type FROM users WHERE " . implode(' AND ', $teacherCheckClauses) . " LIMIT 1";
+                    $teacherCheckResult = mysqli_query($conn, $teacherCheckSql);
+
+                    if ($teacherCheckResult && mysqli_num_rows($teacherCheckResult) > 0) {
+                        $teacherRow = mysqli_fetch_assoc($teacherCheckResult);
+                        $existingUserType = strtolower(trim((string) ($teacherRow['user_type'] ?? '')));
+                        $newTeacherUserType = null;
+
+                        if ($existingUserType === 'teacher') {
+                            header("HTTP/1.0 400 Bad Request");
+                            echo json_encode([
+                                "status" => 400,
+                                "message" => "Teacher already exists with the same name, email and phone"
+                            ]);
+                            exit;
+                        }
+
+                        if ($existingUserType === 'guardian') {
+                            $newTeacherUserType = "'guardian','teacher'";
+                        }
+
+                        if ($newTeacherUserType !== null) {
+                            $teacherUserId = mysqli_real_escape_string($conn, $teacherRow['id']);
+                            $updateTypeSql = "UPDATE users SET user_type = '$newTeacherUserType' WHERE id = '$teacherUserId'";
+                            if (!mysqli_query($conn, $updateTypeSql)) {
+                                header("HTTP/1.0 500 Internal Server Error");
+                                echo json_encode([
+                                    "status" => 500,
+                                    "message" => "Failed to update teacher user_type"
+                                ]);
+                                exit;
+                            }
+
+                            $newUserId = $teacherRow['id'];
+                        } else {
+                            $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
+                            if (!mysqli_query($conn, $userSql)) {
+                                header("HTTP/1.0 500 Internal Server Error");
+                                echo json_encode([
+                                    "status" => 500,
+                                    "message" => "Failed to insert user"
+                                ]);
+                                exit;
+                            }
+                            $newUserId = mysqli_insert_id($conn);
+                        }
+                    } else {
+                        $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
+                        if (!mysqli_query($conn, $userSql)) {
+                            header("HTTP/1.0 500 Internal Server Error");
+                            echo json_encode([
+                                "status" => 500,
+                                "message" => "Failed to insert user"
+                            ]);
+                            exit;
+                        }
+                        $newUserId = mysqli_insert_id($conn);
+                    }
+                } else {
+                    $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
+                    if (!mysqli_query($conn, $userSql)) {
+                        header("HTTP/1.0 500 Internal Server Error");
+                        echo json_encode([
+                            "status" => 500,
+                            "message" => "Failed to insert user"
+                        ]);
+                        exit;
+                    }
+                    $newUserId = mysqli_insert_id($conn);
+                }
 
                 $staffSql = "INSERT INTO teachers (inst_id, user_id, staff_id, created_at) VALUES ('$instituteId', '$newUserId', '$staffId', NOW())";
                 if (!mysqli_query($conn, $staffSql)) {
@@ -229,6 +330,31 @@ if ($requestMethod === 'POST') {
                 }
                 $staffDataId = mysqli_insert_id($conn);
             } else {
+                $adminCheckClauses = [];
+                if (!empty($staffName)) {
+                    $adminCheckClauses[] = "LOWER(TRIM(name)) = '" . mysqli_real_escape_string($conn, strtolower(trim($staffName))) . "'";
+                }
+                if (!empty($staffEmail)) {
+                    $adminCheckClauses[] = "LOWER(TRIM(email)) = '" . mysqli_real_escape_string($conn, strtolower(trim($staffEmail))) . "'";
+                }
+                if (!empty($staffPhone)) {
+                    $adminCheckClauses[] = "TRIM(phone) = '" . mysqli_real_escape_string($conn, trim($staffPhone)) . "'";
+                }
+
+                if (!empty($adminCheckClauses)) {
+                    $adminCheckSql = "SELECT id FROM admin_users WHERE " . implode(' AND ', $adminCheckClauses) . " LIMIT 1";
+                    $adminCheckResult = mysqli_query($conn, $adminCheckSql);
+
+                    if ($adminCheckResult && mysqli_num_rows($adminCheckResult) > 0) {
+                        header("HTTP/1.0 400 Bad Request");
+                        echo json_encode([
+                            "status" => 400,
+                            "message" => "Staff already exists with the same name, email and phone"
+                        ]);
+                        exit;
+                    }
+                }
+
                 $userSql = "INSERT INTO admin_users (name, inst_id, email, phone, password, status, user_type, user_role) VALUES ('$nameEsc', '$instituteId', '$emailEsc', '$phoneEsc', '$passEsc', 1, 'inst_admin', '$roleEsc')";
                 if (!mysqli_query($conn, $userSql)) {
                     header("HTTP/1.0 500 Internal Server Error");

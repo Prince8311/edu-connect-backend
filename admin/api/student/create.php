@@ -287,7 +287,7 @@ if ($requestMethod === 'POST') {
                     $guardianUserId = $guardianRow['id'];
 
                     if ($existingUserType === 'teacher') {
-                        $newUserType = "'teacher', 'guardian'";
+                        $newUserType = "'teacher','guardian'";
                         $updateTypeSql = "UPDATE users SET user_type = '$newUserType' WHERE id = '$guardianUserId'";
                         if (!mysqli_query($conn, $updateTypeSql)) {
                             throw new \Exception("Failed to update guardian user_type");
