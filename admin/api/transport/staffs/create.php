@@ -94,12 +94,15 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $safeFileName = preg_replace('/[^a-zA-Z0-9_-]/', '', pathinfo($originalName, PATHINFO_FILENAME));
-    if ($safeFileName === '') {
-        $safeFileName = 'license';
+    $nameForFile = trim($inputData['name'] ?? '');
+    $safeNameForFile = strtolower($nameForFile);
+    $safeNameForFile = preg_replace('/[^a-z0-9]+/', '-', $safeNameForFile);
+    $safeNameForFile = trim($safeNameForFile, '-');
+    if ($safeNameForFile === '') {
+        $safeNameForFile = 'staff';
     }
 
-    $newFileName = $safeFileName . '_' . time() . '_' . mt_rand(1000, 9999) . '.' . $extension;
+    $newFileName = $safeNameForFile . '-license-' . time() . '.' . $extension;
     $uploadDir = __DIR__ . "/../../../../documents/driving-license/";
     if (!is_dir($uploadDir) && !mkdir($uploadDir, 0777, true)) {
         $data = [
