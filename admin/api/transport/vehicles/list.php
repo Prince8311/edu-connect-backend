@@ -30,12 +30,13 @@ if ($requestMethod === 'GET') {
     $totalRow = mysqli_fetch_assoc($countResult);
     $totalVehicles = (int)$totalRow['total'];
 
-    $sql = "SELECT `id`, `name`, `number`, `type`, `capacity` FROM `transport_vehicles` WHERE `inst_id`='$instituteId' ORDER BY `id` DESC LIMIT $limit OFFSET $offset";
+    $sql = "SELECT `id`, `name`, `number`, `type`, `capacity`, `status` FROM `transport_vehicles` WHERE `inst_id`='$instituteId' ORDER BY `id` DESC LIMIT $limit OFFSET $offset";
     $result = mysqli_query($conn, $sql);
 
     if ($result) {
         $vehicles = [];
         while ($row = mysqli_fetch_assoc($result)) {
+            $row['status'] = ((int)$row['status'] === 1);
             $vehicles[] = $row;
         }
 

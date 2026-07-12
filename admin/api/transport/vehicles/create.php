@@ -35,6 +35,7 @@ if ($requestMethod === 'POST') {
     $number = mysqli_real_escape_string($conn, $inputData['number']);
     $type = mysqli_real_escape_string($conn, $inputData['type']);
     $capacity = mysqli_real_escape_string($conn, $inputData['capacity']);
+    $status = filter_var($inputData['status'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
 
     $checkSql = "SELECT * FROM `transport_vehicles` WHERE `inst_id`='$instituteId' AND `number`='$number'";
     $checkResult = mysqli_query($conn, $checkSql);
@@ -59,7 +60,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $sql = "INSERT INTO `transport_vehicles`(`inst_id`, `name`, `number`, `type`, `capacity`) VALUES ('$instituteId','$name','$number','$type','$capacity')";
+    $sql = "INSERT INTO `transport_vehicles`(`inst_id`, `name`, `number`, `type`, `capacity`, `status`) VALUES ('$instituteId','$name','$number','$type','$capacity','$status')";
     $result = mysqli_query($conn, $sql);
 
     if ($result) {
