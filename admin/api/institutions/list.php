@@ -88,6 +88,13 @@ if ($requestMethod === 'GET') {
     if ($result) {
         $institutions = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
+        foreach ($institutions as &$institution) {
+            if (isset($institution['status'])) {
+                $institution['status'] = ((int)$institution['status'] === 1);
+            }
+        }
+        unset($institution);
+
         header("HTTP/1.0 200 OK");
         echo json_encode([
             "status" => 200,
