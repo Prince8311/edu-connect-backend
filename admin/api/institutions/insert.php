@@ -37,7 +37,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $intent = isset($inputData['intent']) ? strtolower(trim($inputData['intent'])) : 'add';
+    $intent = isset($_GET['intent']) ? strtolower(trim($_GET['intent'])) : 'add';
     if ($intent !== 'add' && $intent !== 'update') {
         $data = [
             'status' => 400,
