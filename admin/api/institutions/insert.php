@@ -85,7 +85,7 @@ if ($requestMethod === 'POST') {
         $institutionRow = mysqli_fetch_assoc($institutionCheckResult);
         $institutionName = $institutionRow['inst_name'];
 
-        $phoneCheckSql = "SELECT `id` FROM `institutions` WHERE `phone`='$phone' LIMIT 1";
+        $phoneCheckSql = "SELECT `id` FROM `institutions` WHERE `phone`='$phone' AND `id`!='$institutionRowIdRaw' LIMIT 1";
         $phoneCheckResult = mysqli_query($conn, $phoneCheckSql);
         if ($phoneCheckResult && mysqli_num_rows($phoneCheckResult) > 0) {
             $data = [
@@ -97,7 +97,7 @@ if ($requestMethod === 'POST') {
             exit;
         }
 
-        $emailCheckSql = "SELECT `id` FROM `institutions` WHERE `email`='$email' LIMIT 1";
+        $emailCheckSql = "SELECT `id` FROM `institutions` WHERE `email`='$email' AND `id`!='$institutionRowIdRaw' LIMIT 1";
         $emailCheckResult = mysqli_query($conn, $emailCheckSql);
         if ($emailCheckResult && mysqli_num_rows($emailCheckResult) > 0) {
             $data = [
