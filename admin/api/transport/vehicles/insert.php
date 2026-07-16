@@ -18,12 +18,24 @@ if ($requestMethod === 'POST') {
     require __DIR__ . "/../../../../_db-connect.php";
     global $conn;
     $instituteId = $authResult['inst_id'];
-    $intent = strtolower(trim($_GET['intent'] ?? 'add'));
+    $rawIntent = $_GET['intent'] ?? null;
 
-    if (!in_array($intent, ['add', 'update'])) {
+    if ($rawIntent === null || trim((string) $rawIntent) === '') {
         $data = [
             'status' => 400,
-            'message' => 'Invalid intent..'
+            'message' => "intent is required."
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+
+    $intent = strtolower(trim((string) $rawIntent));
+
+    if (!in_array($intent, ['add', 'update'], true)) {
+        $data = [
+            'status' => 400,
+            'message' => "Invalid 'intent'. Allowed values are add or update"
         ];
         header("HTTP/1.0 400 Bad Request");
         echo json_encode($data);

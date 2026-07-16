@@ -33,21 +33,32 @@ $page = isset($_GET['page']) && is_numeric($_GET['page']) && (int) $_GET['page']
 $offset = ($page - 1) * $limit;
 
 // -----------------------
-// STATUS FILTER (optional)
+// TYPE FILTER (required)
+// active -> active
+// requested -> pending
 // -----------------------
-$statusCondition = '';
-if (isset($_GET['status']) && $_GET['status'] !== '') {
-    $statusFilter = mysqli_real_escape_string($conn, strtolower(trim($_GET['status'])));
-    if (!in_array($statusFilter, ['pending', 'active'], true)) {
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode([
-            'status' => 400,
-            'message' => "Invalid status filter. Allowed values: pending, active"
-        ]);
-        exit;
-    }
-    $statusCondition = " AND cmt.status = '$statusFilter'";
+$rawType = $_GET['type'] ?? null;
+if ($rawType === null || trim((string) $rawType) === '') {
+    header("HTTP/1.0 400 Bad Request");
+    echo json_encode([
+        'status' => 400,
+        'message' => "Query param 'type' is required. Allowed values: active, requested"
+    ]);
+    exit;
 }
+
+$type = strtolower(trim((string) $rawType));
+if (!in_array($type, ['active', 'requested'], true)) {
+    header("HTTP/1.0 400 Bad Request");
+    echo json_encode([
+        'status' => 400,
+        'message' => "Invalid type. Allowed values: active, requested"
+    ]);
+    exit;
+}
+
+$statusFilter = $type === 'active' ? 'active' : 'pending';
+$statusCondition = " AND cmt.status = '$statusFilter'";
 
 // -----------------------
 // SEARCH (optional)

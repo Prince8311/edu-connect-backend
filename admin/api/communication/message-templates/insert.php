@@ -57,7 +57,12 @@ function hasNonEmptyValue($value)
 	return !($value === null || trim((string) $value) === '');
 }
 
-$intent = strtolower(trim($_GET['intent'] ?? ''));
+$rawIntent = $_GET['intent'] ?? null;
+if ($rawIntent === null || trim((string) $rawIntent) === '') {
+	sendErrorResponse(400, "intent is required.");
+}
+
+$intent = strtolower(trim((string) $rawIntent));
 if (!in_array($intent, ['add', 'update'], true)) {
 	sendErrorResponse(400, "Invalid 'intent'. Allowed values are add or update");
 }
