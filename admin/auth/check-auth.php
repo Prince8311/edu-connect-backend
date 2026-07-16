@@ -50,7 +50,7 @@ if ($requestMethod === 'GET') {
             $instId = $userRow['inst_id'];
             $user['institution'] = null;
 
-            $instSql = "SELECT `inst_id`, `inst_name`, `image`, `receipt_prefix`, `status`, `deactive_date`, `location` FROM `institutions` WHERE `inst_id` = '$instId' LIMIT 1";
+            $instSql = "SELECT `inst_id`, `inst_name`, `image`, `receipt_prefix`, `status`, `deactive_date`, `city`, `state`, `location`, `latitude`, `longitude` FROM `institutions` WHERE `inst_id` = '$instId' LIMIT 1";
             $instResult = mysqli_query($conn, $instSql);
 
             if ($instResult && mysqli_num_rows($instResult) > 0) {
@@ -63,7 +63,11 @@ if ($requestMethod === 'GET') {
                     "receipt_prefix" => $instRow['receipt_prefix'],
                     "is_active" => (bool)$instRow['status'],
                     "deactive_date" => $instRow['deactive_date'] ?? null,
+                    "city" => $instRow['city'],
+                    "state" => $instRow['state'],
                     "location" => $instRow['location'],
+                    "latitude" => $instRow['latitude'],
+                    "longitude" => $instRow['longitude'],
                     "ongoingSession" => null
                 ];
 
