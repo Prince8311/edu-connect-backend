@@ -1,0 +1,13 @@
+<IfModule mod_headers.c>
+    SetEnvIf Origin "^https?://(localhost:3000|educonnekt\.in)$" ACAO=$0
+    Header always set Access-Control-Allow-Origin "%{ACAO}e" env=ACAO
+    Header always set Access-Control-Allow-Credentials "true" env=ACAO
+    Header always set Access-Control-Allow-Methods "GET, OPTIONS" env=ACAO
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With" env=ACAO
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^.*$ - [R=200,L]
+</IfModule>
