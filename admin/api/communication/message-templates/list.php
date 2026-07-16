@@ -25,6 +25,20 @@ if ($requestMethod !== 'GET') {
 require __DIR__ . "/../../../../_db-connect.php";
 global $conn;
 
+function formatTemplateUpdatedAt($dateTime)
+{
+    if (empty($dateTime)) {
+        return null;
+    }
+
+    $timestamp = strtotime($dateTime);
+    if ($timestamp === false) {
+        return $dateTime;
+    }
+
+    return date('g:iA - j M, Y', $timestamp);
+}
+
 // -----------------------
 // PAGINATION
 // -----------------------
@@ -179,7 +193,7 @@ while ($row = mysqli_fetch_assoc($result)) {
         'template_body'  => $row['template_body'],
         'balance'        => $row['balance'],
         'status'         => ucfirst($row['status']),
-        'updated_at'     => $row['updated_at'],
+        'updated_at'     => formatTemplateUpdatedAt($row['updated_at']),
         'approved_by'    => $approvedBy,
         'created_by'     => $createdBy
     ];
