@@ -72,6 +72,14 @@ if (!is_array($inputData) || empty($inputData)) {
 	sendErrorResponse(400, 'Empty request data');
 }
 
+if (array_key_exists('status', $inputData)) {
+	if ($inputData['status'] === true) {
+		$inputData['status'] = 1;
+	} elseif ($inputData['status'] === false) {
+		$inputData['status'] = 0;
+	}
+}
+
 $userId = (string) ($authResult['userId'] ?? '');
 $userType = $authResult['user_type'] ?? '';
 
