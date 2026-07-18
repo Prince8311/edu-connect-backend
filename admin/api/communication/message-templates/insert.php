@@ -151,7 +151,8 @@ if ($userType === 'inst_admin') {
 
 	echo json_encode([
 		'status' => 200,
-		'message' => 'Template updated successfully'
+		'message' => 'Template updated successfully',
+		'user_type' => $userType
 	]);
 	exit;
 }
@@ -270,7 +271,8 @@ if ($userType === 'super_admin') {
 
 	echo json_encode([
 		'status' => 200,
-		'message' => 'Template updated successfully'
+		'message' => 'Template updated successfully',
+		'user_type' => $userType
 	]);
 	exit;
 }
