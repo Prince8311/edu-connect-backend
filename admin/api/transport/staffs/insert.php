@@ -94,53 +94,60 @@ if ($requestMethod === 'POST') {
             exit;
         }
 
-        $originalName = $licenseFile['name'] ?? '';
-        $tmpPath = $licenseFile['tmp_name'] ?? '';
-        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
-        if (!in_array($extension, $allowedExtensions, true)) {
-            $data = [
-                'status' => 400,
-                'message' => 'Invalid file type. Only jpg, jpeg, png, pdf are allowed'
-            ];
-            header("HTTP/1.0 400 Bad Request");
-            echo json_encode($data);
-            exit;
+        $hasFileToUpload = $licenseFile && isset($licenseFile['error']) && $licenseFile['error'] === UPLOAD_ERR_OK;
+        $licenseFileValue = 'NULL';
+        $destinationPath = null;
+
+        if ($hasFileToUpload) {
+            $originalName = $licenseFile['name'] ?? '';
+            $tmpPath = $licenseFile['tmp_name'] ?? '';
+            $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+            if (!in_array($extension, $allowedExtensions, true)) {
+                $data = [
+                    'status' => 400,
+                    'message' => 'Invalid file type. Only jpg, jpeg, png, pdf are allowed'
+                ];
+                header("HTTP/1.0 400 Bad Request");
+                echo json_encode($data);
+                exit;
+            }
+
+            $nameForFile = trim($inputData['name'] ?? '');
+            $safeNameForFile = strtolower($nameForFile);
+            $safeNameForFile = preg_replace('/[^a-z0-9]+/', '-', $safeNameForFile);
+            $safeNameForFile = trim($safeNameForFile, '-');
+            if ($safeNameForFile === '') {
+                $safeNameForFile = 'staff';
+            }
+
+            $newFileName = $safeNameForFile . '-license-' . time() . '.' . $extension;
+            if (!is_dir($uploadDir) && !mkdir($uploadDir, 0777, true)) {
+                $data = [
+                    'status' => 500,
+                    'message' => 'Could not create upload directory'
+                ];
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode($data);
+                exit;
+            }
+
+            $destinationPath = $uploadDir . $newFileName;
+            if (!move_uploaded_file($tmpPath, $destinationPath)) {
+                $data = [
+                    'status' => 500,
+                    'message' => 'Failed to upload driving license file'
+                ];
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode($data);
+                exit;
+            }
+
+            $licenseFileName = mysqli_real_escape_string($conn, $newFileName);
+            $licenseFileValue = "'" . $licenseFileName . "'";
         }
 
-        $nameForFile = trim($inputData['name'] ?? '');
-        $safeNameForFile = strtolower($nameForFile);
-        $safeNameForFile = preg_replace('/[^a-z0-9]+/', '-', $safeNameForFile);
-        $safeNameForFile = trim($safeNameForFile, '-');
-        if ($safeNameForFile === '') {
-            $safeNameForFile = 'staff';
-        }
-
-        $newFileName = $safeNameForFile . '-license-' . time() . '.' . $extension;
-        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0777, true)) {
-            $data = [
-                'status' => 500,
-                'message' => 'Could not create upload directory'
-            ];
-            header("HTTP/1.0 500 Internal Server Error");
-            echo json_encode($data);
-            exit;
-        }
-
-        $destinationPath = $uploadDir . $newFileName;
-        if (!move_uploaded_file($tmpPath, $destinationPath)) {
-            $data = [
-                'status' => 500,
-                'message' => 'Failed to upload driving license file'
-            ];
-            header("HTTP/1.0 500 Internal Server Error");
-            echo json_encode($data);
-            exit;
-        }
-
-        $licenseFileName = mysqli_real_escape_string($conn, $newFileName);
-
-        $sql = "INSERT INTO `transport_staffs`(`inst_id`, `name`, `role`, `contact_no`, `email`, `license_file`, `status`) VALUES ('$instituteId','$name','$role','$contactNo','$email','$licenseFileName','$status')";
+        $sql = "INSERT INTO `transport_staffs`(`inst_id`, `name`, `role`, `contact_no`, `email`, `license_file`, `status`) VALUES ('$instituteId','$name','$role','$contactNo','$email',$licenseFileValue,'$status')";
         $result = mysqli_query($conn, $sql);
 
         if ($result) {
@@ -151,7 +158,7 @@ if ($requestMethod === 'POST') {
             header("HTTP/1.0 200 OK");
             echo json_encode($data);
         } else {
-            if (file_exists($destinationPath)) {
+            if ($destinationPath && file_exists($destinationPath)) {
                 unlink($destinationPath);
             }
 
