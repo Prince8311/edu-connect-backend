@@ -125,7 +125,7 @@ if ($intent === 'add') {
 	header("HTTP/1.0 200 OK");
 	echo json_encode([
 		'status' => 200,
-		'message' => 'Stopage created successfully.'
+		'message' => 'Stopage added successfully.'
 	]);
 	exit;
 }

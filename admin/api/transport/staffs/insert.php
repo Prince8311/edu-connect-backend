@@ -145,7 +145,7 @@ if ($requestMethod === 'POST') {
         if ($result) {
             $data = [
                 'status' => 200,
-                'message' => 'Transport staff created successfully.'
+                'message' => 'Transport staff added successfully.'
             ];
             header("HTTP/1.0 200 OK");
             echo json_encode($data);
