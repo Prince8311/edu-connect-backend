@@ -19,6 +19,44 @@ if ($requestMethod === 'GET') {
 	global $conn;
 	$instituteId = $authResult['inst_id'];
 
+	$isForm = isset($_GET['isForm']) && strtolower(trim($_GET['isForm'])) === 'true';
+
+	if ($isForm) {
+		$instIdEsc = mysqli_real_escape_string($conn, $instituteId);
+		$sql = "SELECT `id`, `name`, `role` FROM `transport_staffs` WHERE `inst_id`='$instIdEsc' AND `status`='1' ORDER BY `id` DESC";
+		$result = mysqli_query($conn, $sql);
+
+		if ($result) {
+			$grouped = [];
+			while ($row = mysqli_fetch_assoc($result)) {
+				$role = $row['role'];
+				if (!isset($grouped[$role])) {
+					$grouped[$role] = [];
+				}
+				$grouped[$role][] = ['id' => $row['id'], 'name' => $row['name']];
+			}
+
+			$staffs = [];
+			foreach ($grouped as $role => $members) {
+				$staffs[] = ['role' => $role, 'staffs' => $members];
+			}
+
+			header("HTTP/1.0 200 OK");
+			echo json_encode([
+				'status' => 200,
+				'message' => 'Transport staffs list fetched successfully.',
+				'list' => $staffs
+			]);
+		} else {
+			header("HTTP/1.0 500 Internal Server Error");
+			echo json_encode([
+				'status' => 500,
+				'message' => 'Database error: ' . mysqli_error($conn)
+			]);
+		}
+		exit;
+	}
+
 	$limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 10;
 	$page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0
 		? (int)$_GET['page']

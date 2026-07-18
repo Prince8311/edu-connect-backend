@@ -83,10 +83,11 @@ if ($requestMethod === 'POST') {
     }
 
     if ($intent === 'add') {
-        if (!$licenseFile || !isset($licenseFile['error']) || $licenseFile['error'] !== UPLOAD_ERR_OK) {
+        $isDriver = strtolower(trim($inputData['role'] ?? '')) === 'driver';
+        if ($isDriver && (!$licenseFile || !isset($licenseFile['error']) || $licenseFile['error'] !== UPLOAD_ERR_OK)) {
             $data = [
                 'status' => 400,
-                'message' => 'Driving license file is required'
+                'message' => 'Driving license file is required for Driver role'
             ];
             header("HTTP/1.0 400 Bad Request");
             echo json_encode($data);

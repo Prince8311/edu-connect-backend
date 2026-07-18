@@ -18,6 +18,38 @@ if ($requestMethod === 'GET') {
 	global $conn;
 
 	$instituteId = $authResult['inst_id'];
+	$isForm = isset($_GET['isForm']) && strtolower(trim((string) $_GET['isForm'])) === 'true';
+
+	if ($isForm) {
+		$instIdEsc = mysqli_real_escape_string($conn, (string) $instituteId);
+		$formSql = "SELECT `id`, `name`, `latitude`, `longitude`
+			FROM `transport_stopages`
+			WHERE `inst_id`='$instIdEsc' AND `status`='1'
+			ORDER BY `id` DESC";
+
+		$formResult = mysqli_query($conn, $formSql);
+
+		if ($formResult) {
+			$stopages = [];
+			while ($row = mysqli_fetch_assoc($formResult)) {
+				$stopages[] = $row;
+			}
+
+			header("HTTP/1.0 200 OK");
+			echo json_encode([
+				'status' => 200,
+				'message' => 'Stopage list fetched successfully.',
+				'stopages' => $stopages
+			]);
+		} else {
+			header("HTTP/1.0 500 Internal Server Error");
+			echo json_encode([
+				'status' => 500,
+				'message' => 'Database error: ' . mysqli_error($conn)
+			]);
+		}
+		exit;
+	}
 
 	$limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int) $_GET['limit'] : 10;
 	$page = isset($_GET['page']) && is_numeric($_GET['page']) && (int) $_GET['page'] > 0

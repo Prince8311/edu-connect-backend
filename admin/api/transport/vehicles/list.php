@@ -19,6 +19,37 @@ if ($requestMethod === 'GET') {
     global $conn;
     $instituteId = $authResult['inst_id'];
 
+    $isForm = isset($_GET['isForm']) && strtolower(trim((string) $_GET['isForm'])) === 'true';
+
+    if ($isForm) {
+        $instIdEsc = mysqli_real_escape_string($conn, (string) $instituteId);
+        $sql = "SELECT `id`, `name`, `number`, `type`, `capacity` FROM `transport_vehicles` WHERE `inst_id`='$instIdEsc' AND `status`='1' ORDER BY `id` DESC";
+        $result = mysqli_query($conn, $sql);
+
+        if ($result) {
+            $vehicles = [];
+            while ($row = mysqli_fetch_assoc($result)) {
+                $vehicles[] = $row;
+            }
+
+            $data = [
+                'status' => 200,
+                'message' => 'Vehicle list fetched successfully.',
+                'vehicles' => $vehicles
+            ];
+            header("HTTP/1.0 200 OK");
+            echo json_encode($data);
+        } else {
+            $data = [
+                'status' => 500,
+                'message' => 'Database error: ' . mysqli_error($conn)
+            ];
+            header("HTTP/1.0 500 Internal Server Error");
+            echo json_encode($data);
+        }
+        exit;
+    }
+
     $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 10;
     $page = isset($_GET['page']) && is_numeric($_GET['page']) && $_GET['page'] > 0
         ? (int)$_GET['page']
