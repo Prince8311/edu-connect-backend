@@ -440,7 +440,9 @@ if ($requestMethod === 'POST') {
                         header("HTTP/1.0 400 Bad Request");
                         echo json_encode([
                             "status" => 400,
-                            "message" => "An account already exists with the same email or phone, but the guardian name does not match the provided details."
+                            "message" => "An account already exists with the same email or phone, but the guardian name does not match the provided details.",
+                            "incomingGuardianName" => $incomingGuardianName,
+                            "existingGuardianName" => $existingGuardianName
                         ]);
                         exit;
                     }
