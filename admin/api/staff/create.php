@@ -44,8 +44,13 @@ if ($requestMethod === 'POST') {
         $firstName = findFieldValue($staffFields, ['first name', 'first_name', 'firstname']) ?: '';
         $middleName = findFieldValue($staffFields, ['middle name', 'middle_name', 'middlename']) ?: '';
         $lastName = findFieldValue($staffFields, ['last name', 'last_name', 'lastname']) ?: '';
-        $fullName = trim($firstName . ' ' . $middleName . ' ' . $lastName);
-        return $fullName ?: 'Student';
+        $fullName = implode(' ', array_filter([
+            $firstName,
+            $middleName,
+            $lastName
+        ]));
+
+        return $fullName ?: 'Staff';
     }
 
     function getStaffFirstLastName(array $staffFields): string
