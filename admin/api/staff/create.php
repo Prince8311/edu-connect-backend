@@ -48,6 +48,14 @@ if ($requestMethod === 'POST') {
         return $fullName ?: 'Student';
     }
 
+    function getStaffFirstLastName(array $staffFields): string
+    {
+        $firstName = findFieldValue($staffFields, ['first name', 'first_name', 'firstname']) ?: '';
+        $lastName = findFieldValue($staffFields, ['last name', 'last_name', 'lastname']) ?: '';
+
+        return trim($firstName . ' ' . $lastName);
+    }
+
     function generateRandomPassword($length = 10)
     {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -112,6 +120,61 @@ if ($requestMethod === 'POST') {
             $mail->send();
         } catch (PHPMailerException $e) {
             throw new \Exception('Failed to send enrollment email: ' . $e->getMessage());
+        }
+    }
+
+    function sendTeacherRoleUpgradeEmail(
+        string $email,
+        string $staffName,
+        string $staffId
+    ): void {
+        if (empty($email)) {
+            return;
+        }
+
+        $staffName = $staffName ?: 'Staff';
+        $mail = new PHPMailer(true);
+
+        try {
+            $mail->isSMTP();
+            $mail->Host       = getenv('SMTP_HOST');
+            $mail->SMTPAuth   = true;
+            $mail->Username   = getenv('SMTP_MAIL');
+            $mail->Password   = getenv('SMTP_PASSWORD');
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port       = getenv('SMTP_PORT');
+            $mail->CharSet    = 'UTF-8';
+
+            $mail->isHTML(true);
+            $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
+            $mail->addAddress($email, $staffName);
+            $mail->Subject = 'Teacher access added to your existing account';
+            $mail->Body = '<!DOCTYPE html>
+                            <html lang="en">
+                                <head>
+                                    <meta charset="UTF-8">
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                </head>
+                                <body style="margin:0;padding:0;font-family:Arial,sans-serif;color:#333;">
+                                    <div style="padding:20px;">
+                                        <h2 style="color:#333;">Dear ' . htmlspecialchars($staffName, ENT_QUOTES) . ',</h2>
+                                        <p style="font-size:14px;line-height:1.6;">
+                                        This is to inform you that teacher access has been added to your existing account in our institution.
+                                        </p>
+                                        <p style="font-size:14px;line-height:1.6;">
+                                        Staff ID: <strong>' . htmlspecialchars($staffId, ENT_QUOTES) . '</strong>
+                                        </p>
+                                        <p style="font-size:14px;line-height:1.6;">
+                                        You may continue using your existing login credentials to access your account.
+                                        </p>
+                                        <p style="font-size:14px;line-height:1.6;">Regards,<br>Shetty Ticket Counter Pvt. Ltd.</p>
+                                    </div>
+                                </body>
+                            </html>';
+
+            $mail->send();
+        } catch (PHPMailerException $e) {
+            throw new \Exception('Failed to send teacher role upgrade email: ' . $e->getMessage());
         }
     }
 
@@ -196,6 +259,7 @@ if ($requestMethod === 'POST') {
             $staffFields = $staff['staff_fields'] ?? [];
 
             $staffName  = getStaffFullName($staffFields);
+            $staffFirstLastName = getStaffFirstLastName($staffFields);
             $staffFirstName = findFieldValue($staffFields, ['first name', 'first_name', 'firstname']);
             $staffLastName = findFieldValue($staffFields, ['last name', 'last_name', 'lastname']);
             $staffEmail = findFieldValue($staffFields, ['email']);
@@ -303,10 +367,8 @@ if ($requestMethod === 'POST') {
             }
 
             if ($staffTypeEsc === 'teaching') {
+                $teacherAccountUpdated = false;
                 $teacherCheckClauses = [];
-                if (!empty($staffName)) {
-                    $teacherCheckClauses[] = "LOWER(TRIM(name)) = '" . mysqli_real_escape_string($conn, strtolower(trim($staffName))) . "'";
-                }
                 if (!empty($staffEmail)) {
                     $teacherCheckClauses[] = "LOWER(TRIM(email)) = '" . mysqli_real_escape_string($conn, strtolower(trim($staffEmail))) . "'";
                 }
@@ -315,11 +377,23 @@ if ($requestMethod === 'POST') {
                 }
 
                 if (!empty($teacherCheckClauses)) {
-                    $teacherCheckSql = "SELECT id, user_type FROM users WHERE " . implode(' AND ', $teacherCheckClauses) . " LIMIT 1";
+                    $teacherCheckSql = "SELECT id, name, email, phone, user_type FROM users WHERE " . implode(' OR ', $teacherCheckClauses) . " LIMIT 1";
                     $teacherCheckResult = mysqli_query($conn, $teacherCheckSql);
 
                     if ($teacherCheckResult && mysqli_num_rows($teacherCheckResult) > 0) {
                         $teacherRow = mysqli_fetch_assoc($teacherCheckResult);
+                        $existingUserName = strtolower(trim((string) ($teacherRow['name'] ?? '')));
+                        $incomingStaffName = strtolower(trim((string) $staffFirstLastName));
+
+                        if ($incomingStaffName === '' || $existingUserName !== $incomingStaffName) {
+                            header("HTTP/1.0 400 Bad Request");
+                            echo json_encode([
+                                "status" => 400,
+                                "message" => "An account already exists with the same email or phone, but the name does not match the provided staff details."
+                            ]);
+                            exit;
+                        }
+
                         $existingUserType = strtolower(trim((string) ($teacherRow['user_type'] ?? '')));
                         $newTeacherUserType = null;
 
@@ -354,6 +428,7 @@ if ($requestMethod === 'POST') {
                             }
 
                             $newUserId = $teacherRow['id'];
+                            $teacherAccountUpdated = true;
                         } else {
                             if ($profileImageFileName !== null && $profileImageFileName !== '') {
                                 $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
@@ -492,12 +567,20 @@ if ($requestMethod === 'POST') {
             }
 
             if (!empty($staffEmail) && filter_var($staffEmail, FILTER_VALIDATE_EMAIL) && !preg_match('/dummy|test|example|invalid|@yourdomain|@domain|@mailinator|@tempmail|@fake|@sample/i', $staffEmail)) {
-                sendStaffEnrollmentEmail(
-                    $staffEmail,
-                    $staffName,
-                    $staffId,
-                    $plainPassword
-                );
+                if ($staffTypeEsc === 'teaching' && isset($teacherAccountUpdated) && $teacherAccountUpdated) {
+                    sendTeacherRoleUpgradeEmail(
+                        $staffEmail,
+                        $staffName,
+                        $staffId
+                    );
+                } else {
+                    sendStaffEnrollmentEmail(
+                        $staffEmail,
+                        $staffName,
+                        $staffId,
+                        $plainPassword
+                    );
+                }
             }
         }
 
