@@ -407,7 +407,7 @@ if ($requestMethod === 'POST') {
                         }
 
                         if ($existingUserType === 'guardian') {
-                            $newTeacherUserType = "'guardian','teacher'";
+                            $newTeacherUserType = "guardian,teacher";
                         }
 
                         if ($newTeacherUserType !== null) {
