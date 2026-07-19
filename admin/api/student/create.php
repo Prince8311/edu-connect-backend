@@ -203,6 +203,36 @@ if ($requestMethod === 'POST') {
             $plainPassword = generateRandomPassword(10);
             $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
 
+            // Handle profile image upload (only when isBulkUpload is false and file is provided)
+            $profileImageFileName = null;
+            if (!$isBulkUpload && !empty($_FILES) && isset($_FILES['profile_image'])) {
+                $uploadedFile = $_FILES['profile_image'];
+                if ($uploadedFile['error'] === UPLOAD_ERR_OK) {
+                    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mimeType = finfo_file($finfo, $uploadedFile['tmp_name']);
+                    finfo_close($finfo);
+                    
+                    if (in_array($mimeType, $allowedMimes)) {
+                        $profileImagesDir = __DIR__ . '/../../../profile-images/student/';
+                        if (!is_dir($profileImagesDir)) {
+                            mkdir($profileImagesDir, 0755, true);
+                        }
+                        
+                        $fileExt = pathinfo($uploadedFile['name'], PATHINFO_EXTENSION);
+                        $currentTime = time();
+                        $profileImageFileName = strtolower(trim($studentFirstName)) . '-profile-' . $currentTime . '.' . $fileExt;
+                        $profileImagePath = $profileImagesDir . $profileImageFileName;
+                        
+                        if (!move_uploaded_file($uploadedFile['tmp_name'], $profileImagePath)) {
+                            throw new \Exception("Failed to save profile image");
+                        }
+                    } else {
+                        throw new \Exception("Invalid image file format. Allowed: JPEG, PNG, GIF, WebP");
+                    }
+                }
+            }
+
             $nameEsc  = mysqli_real_escape_string($conn, $studentName);
             $emailEsc = mysqli_real_escape_string($conn, $studentEmail);
             $phoneEsc = mysqli_real_escape_string($conn, $studentPhone);
@@ -309,7 +339,9 @@ if ($requestMethod === 'POST') {
                 $newUserId = null;
             } else {
                 // Create student user as well
-                $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'student', '$passEsc')";
+                $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
+                $profileImageValue = ($profileImageFileName !== null) ? "'$profileImageEsc'" : "NULL";
+                $userSql = "INSERT INTO users (name, profile_image, email, phone, user_type, password) VALUES ('$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'student', '$passEsc')";
                 if (!mysqli_query($conn, $userSql)) {
                     throw new \Exception("Failed to insert student user");
                 }
@@ -318,8 +350,10 @@ if ($requestMethod === 'POST') {
 
             $userIdValue   = ($newUserId !== null) ? "'$newUserId'" : "NULL";
             $guardianIdValue = ($guardianUserId !== null) ? "'$guardianUserId'" : "NULL";
+            $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
+            $profileImageValue = ($profileImageFileName !== null) ? "'$profileImageEsc'" : "NULL";
 
-            $studentSql = "INSERT INTO students (inst_id, user_id, guardian_id, enrollment_id, created_at) VALUES ('$instituteId', $userIdValue, $guardianIdValue, '$enrollmentId', NOW())";
+            $studentSql = "INSERT INTO students (profile_image, inst_id, user_id, guardian_id, enrollment_id, created_at) VALUES ($profileImageValue, '$instituteId', $userIdValue, $guardianIdValue, '$enrollmentId', NOW())";
             if (!mysqli_query($conn, $studentSql)) {
                 throw new \Exception("Failed to insert student");
             }
