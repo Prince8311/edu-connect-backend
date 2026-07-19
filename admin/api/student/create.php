@@ -302,7 +302,6 @@ if ($requestMethod === 'POST') {
             $studentEmail = findFieldValue($studentFields, ['email'], $studentSectionId);
             $studentPhone = findFieldValue($studentFields, ['contact no.', 'phone', 'mobile'], $studentSectionId);
             $guardianName  = findFieldValue($studentFields, ['name'], $guardianSectionId) ?: getStudentFullName($studentFields, $guardianSectionId);
-            $guardianFirstLastName = getStudentFirstLastName($studentFields, $guardianSectionId);
             $guardianEmail = findFieldValue($studentFields, ['email'], $guardianSectionId);
             $guardianPhone = findFieldValue($studentFields, ['contact no.', 'phone', 'mobile'], $guardianSectionId);
 
@@ -434,7 +433,7 @@ if ($requestMethod === 'POST') {
                 if ($guardianCheckResult && mysqli_num_rows($guardianCheckResult) > 0) {
                     $guardianRow = mysqli_fetch_assoc($guardianCheckResult);
                     $existingGuardianName = strtolower(trim((string) ($guardianRow['name'] ?? '')));
-                    $incomingGuardianName = strtolower(trim((string) $guardianFirstLastName));
+                    $incomingGuardianName = strtolower(trim((string) $guardianName));
 
                     if ($incomingGuardianName === '' || $existingGuardianName !== $incomingGuardianName) {
                         header("HTTP/1.0 400 Bad Request");
