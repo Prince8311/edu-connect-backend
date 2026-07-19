@@ -125,6 +125,80 @@ if ($requestMethod === 'POST') {
         }
     }
 
+    function sendGuardianEnrollmentEmail(
+        string $email,
+        string $guardianName,
+        string $studentName,
+        string $enrollmentId,
+        string $guardianLogin,
+        ?string $guardianPassword,
+        bool $isExistingAccount
+    ): void {
+        if (empty($email)) {
+            return;
+        }
+
+        $guardianName = $guardianName ?: 'Parent/Guardian';
+        $studentName = $studentName ?: 'Student';
+        $mail = new PHPMailer(true);
+
+        if ($guardianPassword !== null && $guardianPassword !== '') {
+            $credentialsHtml = '<p style="font-size:14px;line-height:1.6;">
+                                Guardian Login: <strong>' . htmlspecialchars($guardianLogin, ENT_QUOTES) . '</strong><br>
+                                Password: <strong>' . htmlspecialchars($guardianPassword, ENT_QUOTES) . '</strong>
+                                </p>';
+        } else {
+            $credentialsHtml = '<p style="font-size:14px;line-height:1.6;">
+                                Your guardian account already exists. Please continue using your existing login credentials.
+                                </p>';
+        }
+
+        try {
+            $mail->isSMTP();
+            $mail->Host       = getenv('SMTP_HOST');
+            $mail->SMTPAuth   = true;
+            $mail->Username   = getenv('SMTP_MAIL');
+            $mail->Password   = getenv('SMTP_PASSWORD');
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port       = getenv('SMTP_PORT');
+            $mail->CharSet    = 'UTF-8';
+
+            $mail->isHTML(true);
+            $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
+            $mail->addAddress($email, $guardianName);
+            $mail->Subject = $isExistingAccount
+                ? 'Student record added to your guardian account'
+                : 'Guardian account created and student record added';
+            $mail->Body = '<!DOCTYPE html>
+                            <html lang="en">
+                                <head>
+                                    <meta charset="UTF-8">
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                </head>
+                                <body style="margin:0;padding:0;font-family:Arial,sans-serif;color:#333;">
+                                    <div style="padding:20px;">
+                                        <h2 style="color:#333;">Dear ' . htmlspecialchars($guardianName, ENT_QUOTES) . ',</h2>
+                                        <p style="font-size:14px;line-height:1.6;">
+                                        This is to inform you that your child <strong>' . htmlspecialchars($studentName, ENT_QUOTES) . '</strong> has been successfully enrolled in our institution.
+                                        </p>
+                                        <p style="font-size:14px;line-height:1.6;">
+                                        Enrollment ID: <strong>' . htmlspecialchars($enrollmentId, ENT_QUOTES) . '</strong>
+                                        </p>
+                                        ' . $credentialsHtml . '
+                                        <p style="font-size:14px;line-height:1.6;">
+                                        Please keep this information secure for future use.
+                                        </p>
+                                        <p style="font-size:14px;line-height:1.6;">Regards,<br>Shetty Ticket Counter Pvt. Ltd.</p>
+                                    </div>
+                                </body>
+                            </html>';
+
+            $mail->send();
+        } catch (PHPMailerException $e) {
+            throw new \Exception('Failed to send guardian enrollment email: ' . $e->getMessage());
+        }
+    }
+
     $instituteId = $authResult['inst_id'];
 
     // Support both JSON body and multipart/form-data (FormData from frontend)
@@ -326,6 +400,7 @@ if ($requestMethod === 'POST') {
             $guardianPassEsc = mysqli_real_escape_string($conn, $guardianHashedPassword);
 
             $guardianUserId = null;
+            $isNewGuardianUser = false;
 
             if (!empty($guardianName) || !empty($guardianEmail) || !empty($guardianPhone)) {
                 $guardianCheckClauses = [];
@@ -362,6 +437,7 @@ if ($requestMethod === 'POST') {
                         throw new \Exception("Failed to insert guardian user");
                     }
                     $guardianUserId = mysqli_insert_id($conn);
+                    $isNewGuardianUser = true;
                 }
             }
 
@@ -417,6 +493,21 @@ if ($requestMethod === 'POST') {
                     $enrollmentId,
                     $studentSession,
                     $plainPassword
+                );
+            }
+
+            if (!empty($guardianEmail) && filter_var($guardianEmail, FILTER_VALIDATE_EMAIL) && !preg_match('/dummy|test|example|invalid|@yourdomain|@domain|@mailinator|@tempmail|@fake|@sample/i', $guardianEmail)) {
+                $guardianLogin = !empty($guardianEmail) ? $guardianEmail : $guardianPhone;
+                $guardianPasswordForMail = $isNewGuardianUser ? $guardianPlainPassword : null;
+
+                sendGuardianEnrollmentEmail(
+                    $guardianEmail,
+                    $guardianName,
+                    $studentName,
+                    $enrollmentId,
+                    $guardianLogin,
+                    $guardianPasswordForMail,
+                    !$isNewGuardianUser
                 );
             }
         }

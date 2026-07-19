@@ -117,7 +117,21 @@ if ($requestMethod === 'POST') {
 
     $instituteId = $authResult['inst_id'];
 
-    $inputData = json_decode(file_get_contents("php://input"), true);
+    // Support both JSON body and multipart/form-data (FormData from frontend)
+    $inputData = [];
+
+    if (!empty($_POST)) {
+        $inputData = $_POST;
+    } else {
+        $rawInput = file_get_contents("php://input");
+        if ($rawInput !== false && trim($rawInput) !== '') {
+            $decodedInput = json_decode($rawInput, true);
+            if (is_array($decodedInput)) {
+                $inputData = $decodedInput;
+            }
+        }
+    }
+
     if (empty($inputData)) {
         $data = [
             'status' => 400,
@@ -128,9 +142,27 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $staffs = $inputData['staffs'] ?? [];
-    $staffType = mysqli_real_escape_string($conn, $inputData['staffType']);
-    $isBulkUpload = $inputData['isBulkUpload'] ?? false;
+    $staffs = [];
+    $staffsInput = $inputData['staffs'] ?? [];
+    if (is_string($staffsInput)) {
+        $decodedStaffs = json_decode($staffsInput, true);
+        if (is_array($decodedStaffs)) {
+            $staffs = $decodedStaffs;
+        }
+    } elseif (is_array($staffsInput)) {
+        $staffs = $staffsInput;
+    }
+
+    $staffType = isset($inputData['staffType']) ? trim((string) $inputData['staffType']) : '';
+
+    $isBulkUploadInput = $inputData['isBulkUpload'] ?? false;
+    if (is_bool($isBulkUploadInput)) {
+        $isBulkUpload = $isBulkUploadInput;
+    } elseif (is_string($isBulkUploadInput)) {
+        $isBulkUpload = in_array(strtolower(trim($isBulkUploadInput)), ['1', 'true', 'yes', 'on'], true);
+    } else {
+        $isBulkUpload = (bool) $isBulkUploadInput;
+    }
 
     if (empty($staffs)) {
         header("HTTP/1.0 400 Bad Request");
@@ -174,6 +206,41 @@ if ($requestMethod === 'POST') {
 
             $plainPassword = generateRandomPassword(10);
             $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
+
+            // Handle profile image upload (only when isBulkUpload is false and file is provided)
+            $profileImageFileName = null;
+            if (!$isBulkUpload && !empty($_FILES) && isset($_FILES['profile_image'])) {
+                $uploadedFile = $_FILES['profile_image'];
+                if ($uploadedFile['error'] === UPLOAD_ERR_OK) {
+                    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mimeType = finfo_file($finfo, $uploadedFile['tmp_name']);
+                    finfo_close($finfo);
+
+                    if (in_array($mimeType, $allowedMimes, true)) {
+                        $profileFolder = ($staffType === 'teaching') ? 'teacher' : 'admin';
+                        $profileImagesDir = __DIR__ . '/../../../profile-images/' . $profileFolder . '/';
+                        if (!is_dir($profileImagesDir)) {
+                            mkdir($profileImagesDir, 0755, true);
+                        }
+
+                        $fileExt = pathinfo($uploadedFile['name'], PATHINFO_EXTENSION);
+                        $currentTime = time();
+                        $fileBaseName = strtolower(trim((string) $staffFirstName));
+                        if ($fileBaseName === '') {
+                            $fileBaseName = 'staff';
+                        }
+                        $profileImageFileName = $fileBaseName . '-profile-' . $currentTime . '.' . strtolower($fileExt);
+                        $profileImagePath = $profileImagesDir . $profileImageFileName;
+
+                        if (!move_uploaded_file($uploadedFile['tmp_name'], $profileImagePath)) {
+                            throw new \Exception("Failed to save profile image");
+                        }
+                    } else {
+                        throw new \Exception("Invalid image file format. Allowed: JPEG, PNG, GIF, WebP");
+                    }
+                }
+            }
 
             $nameEsc  = mysqli_real_escape_string($conn, $staffName ?? '');
             $emailEsc = mysqli_real_escape_string($conn, $staffEmail ?? '');
@@ -271,7 +338,12 @@ if ($requestMethod === 'POST') {
 
                         if ($newTeacherUserType !== null) {
                             $teacherUserId = mysqli_real_escape_string($conn, $teacherRow['id']);
-                            $updateTypeSql = "UPDATE users SET user_type = '$newTeacherUserType' WHERE id = '$teacherUserId'";
+                            if ($profileImageFileName !== null && $profileImageFileName !== '') {
+                                $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
+                                $updateTypeSql = "UPDATE users SET user_type = '$newTeacherUserType', profile_image = '$profileImageEsc' WHERE id = '$teacherUserId'";
+                            } else {
+                                $updateTypeSql = "UPDATE users SET user_type = '$newTeacherUserType' WHERE id = '$teacherUserId'";
+                            }
                             if (!mysqli_query($conn, $updateTypeSql)) {
                                 header("HTTP/1.0 500 Internal Server Error");
                                 echo json_encode([
@@ -283,7 +355,13 @@ if ($requestMethod === 'POST') {
 
                             $newUserId = $teacherRow['id'];
                         } else {
-                            $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
+                            if ($profileImageFileName !== null && $profileImageFileName !== '') {
+                                $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
+                                $profileImageValue = "'$profileImageEsc'";
+                            } else {
+                                $profileImageValue = "NULL";
+                            }
+                            $userSql = "INSERT INTO users (name, profile_image, email, phone, user_type, password) VALUES ('$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
                             if (!mysqli_query($conn, $userSql)) {
                                 header("HTTP/1.0 500 Internal Server Error");
                                 echo json_encode([
@@ -295,7 +373,13 @@ if ($requestMethod === 'POST') {
                             $newUserId = mysqli_insert_id($conn);
                         }
                     } else {
-                        $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
+                        if ($profileImageFileName !== null && $profileImageFileName !== '') {
+                            $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
+                            $profileImageValue = "'$profileImageEsc'";
+                        } else {
+                            $profileImageValue = "NULL";
+                        }
+                        $userSql = "INSERT INTO users (name, profile_image, email, phone, user_type, password) VALUES ('$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
                         if (!mysqli_query($conn, $userSql)) {
                             header("HTTP/1.0 500 Internal Server Error");
                             echo json_encode([
@@ -307,7 +391,13 @@ if ($requestMethod === 'POST') {
                         $newUserId = mysqli_insert_id($conn);
                     }
                 } else {
-                    $userSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$nameEsc', '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
+                    if ($profileImageFileName !== null && $profileImageFileName !== '') {
+                        $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
+                        $profileImageValue = "'$profileImageEsc'";
+                    } else {
+                        $profileImageValue = "NULL";
+                    }
+                    $userSql = "INSERT INTO users (name, profile_image, email, phone, user_type, password) VALUES ('$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
                     if (!mysqli_query($conn, $userSql)) {
                         header("HTTP/1.0 500 Internal Server Error");
                         echo json_encode([
@@ -355,7 +445,14 @@ if ($requestMethod === 'POST') {
                     }
                 }
 
-                $userSql = "INSERT INTO admin_users (name, inst_id, email, phone, password, status, user_type, user_role) VALUES ('$nameEsc', '$instituteId', '$emailEsc', '$phoneEsc', '$passEsc', 1, 'inst_admin', '$roleEsc')";
+                if ($profileImageFileName !== null && $profileImageFileName !== '') {
+                    $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
+                    $profileImageValue = "'$profileImageEsc'";
+                } else {
+                    $profileImageValue = "NULL";
+                }
+
+                $userSql = "INSERT INTO admin_users (name, inst_id, image, email, phone, password, status, user_type, user_role) VALUES ('$nameEsc', '$instituteId', $profileImageValue, '$emailEsc', '$phoneEsc', '$passEsc', 1, 'inst_admin', '$roleEsc')";
                 if (!mysqli_query($conn, $userSql)) {
                     header("HTTP/1.0 500 Internal Server Error");
                     echo json_encode([
