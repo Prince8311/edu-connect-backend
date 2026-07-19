@@ -61,6 +61,14 @@ if ($requestMethod === 'POST') {
         return $fullName ?: 'Student';
     }
 
+    function getStudentFirstLastName(array $studentFields, $sectionId = null): string
+    {
+        $firstName = findFieldValue($studentFields, ['first name', 'first_name', 'firstname'], $sectionId) ?: '';
+        $lastName = findFieldValue($studentFields, ['last name', 'last_name', 'lastname'], $sectionId) ?: '';
+
+        return trim($firstName . ' ' . $lastName);
+    }
+
     function generateRandomPassword($length = 10)
     {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -288,11 +296,13 @@ if ($requestMethod === 'POST') {
             $guardianSectionId = 2;
 
             $studentName  = getStudentFullName($studentFields, $studentSectionId);
+            $studentFirstLastName = getStudentFirstLastName($studentFields, $studentSectionId);
             $studentFirstName = findFieldValue($studentFields, ['first name', 'first_name', 'firstname'], $studentSectionId);
             $studentLastName = findFieldValue($studentFields, ['last name', 'last_name', 'lastname'], $studentSectionId);
             $studentEmail = findFieldValue($studentFields, ['email'], $studentSectionId);
             $studentPhone = findFieldValue($studentFields, ['contact no.', 'phone', 'mobile'], $studentSectionId);
             $guardianName  = findFieldValue($studentFields, ['name'], $guardianSectionId) ?: getStudentFullName($studentFields, $guardianSectionId);
+            $guardianFirstLastName = getStudentFirstLastName($studentFields, $guardianSectionId);
             $guardianEmail = findFieldValue($studentFields, ['email'], $guardianSectionId);
             $guardianPhone = findFieldValue($studentFields, ['contact no.', 'phone', 'mobile'], $guardianSectionId);
 
@@ -408,9 +418,6 @@ if ($requestMethod === 'POST') {
 
             if (!empty($guardianName) || !empty($guardianEmail) || !empty($guardianPhone)) {
                 $guardianCheckClauses = [];
-                if (!empty($guardianName)) {
-                    $guardianCheckClauses[] = "LOWER(TRIM(name)) = '" . mysqli_real_escape_string($conn, strtolower(trim($guardianName))) . "'";
-                }
                 if (!empty($guardianEmail)) {
                     $guardianCheckClauses[] = "LOWER(TRIM(email)) = '" . mysqli_real_escape_string($conn, strtolower(trim($guardianEmail))) . "'";
                 }
@@ -418,16 +425,31 @@ if ($requestMethod === 'POST') {
                     $guardianCheckClauses[] = "TRIM(phone) = '" . mysqli_real_escape_string($conn, trim($guardianPhone)) . "'";
                 }
 
-                $guardianCheckSql = "SELECT id, user_type FROM users WHERE " . implode(' AND ', $guardianCheckClauses) . " LIMIT 1";
-                $guardianCheckResult = mysqli_query($conn, $guardianCheckSql);
+                $guardianCheckResult = null;
+                if (!empty($guardianCheckClauses)) {
+                    $guardianCheckSql = "SELECT id, name, user_type FROM users WHERE " . implode(' OR ', $guardianCheckClauses) . " LIMIT 1";
+                    $guardianCheckResult = mysqli_query($conn, $guardianCheckSql);
+                }
 
                 if ($guardianCheckResult && mysqli_num_rows($guardianCheckResult) > 0) {
                     $guardianRow = mysqli_fetch_assoc($guardianCheckResult);
+                    $existingGuardianName = strtolower(trim((string) ($guardianRow['name'] ?? '')));
+                    $incomingGuardianName = strtolower(trim((string) $guardianFirstLastName));
+
+                    if ($incomingGuardianName === '' || $existingGuardianName !== $incomingGuardianName) {
+                        header("HTTP/1.0 400 Bad Request");
+                        echo json_encode([
+                            "status" => 400,
+                            "message" => "An account already exists with the same email or phone, but the guardian name does not match the provided details."
+                        ]);
+                        exit;
+                    }
+
                     $existingUserType = $guardianRow['user_type'];
                     $guardianUserId = $guardianRow['id'];
 
                     if ($existingUserType === 'teacher') {
-                            $newUserType = "teacher,guardian";
+                        $newUserType = "teacher,guardian";
                         $updateTypeSql = "UPDATE users SET user_type = '$newUserType' WHERE id = '$guardianUserId'";
                         if (!mysqli_query($conn, $updateTypeSql)) {
                             throw new \Exception("Failed to update guardian user_type");
