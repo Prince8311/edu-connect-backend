@@ -183,7 +183,7 @@ if ($requestMethod === 'POST') {
             $studentLastName = findFieldValue($studentFields, ['last name', 'last_name', 'lastname'], $studentSectionId);
             $studentEmail = findFieldValue($studentFields, ['email'], $studentSectionId);
             $studentPhone = findFieldValue($studentFields, ['contact no.', 'phone', 'mobile'], $studentSectionId);
-            $guardianName  = getStudentFullName($studentFields, $guardianSectionId);
+            $guardianName  = findFieldValue($studentFields, ['name'], $guardianSectionId) ?: getStudentFullName($studentFields, $guardianSectionId);
             $guardianEmail = findFieldValue($studentFields, ['email'], $guardianSectionId);
             $guardianPhone = findFieldValue($studentFields, ['contact no.', 'phone', 'mobile'], $guardianSectionId);
 
@@ -371,15 +371,15 @@ if ($requestMethod === 'POST') {
                 }
             }
 
-            // if (!empty($studentEmail) && filter_var($studentEmail, FILTER_VALIDATE_EMAIL) && !preg_match('/dummy|test|example|invalid|@yourdomain|@domain|@mailinator|@tempmail|@fake|@sample/i', $studentEmail)) {
-            //     sendStudentEnrollmentEmail(
-            //         $studentEmail,
-            //         $studentName,
-            //         $enrollmentId,
-            //         $studentSession,
-            //         $plainPassword
-            //     );
-            // }
+            if (!empty($studentEmail) && filter_var($studentEmail, FILTER_VALIDATE_EMAIL) && !preg_match('/dummy|test|example|invalid|@yourdomain|@domain|@mailinator|@tempmail|@fake|@sample/i', $studentEmail)) {
+                sendStudentEnrollmentEmail(
+                    $studentEmail,
+                    $studentName,
+                    $enrollmentId,
+                    $studentSession,
+                    $plainPassword
+                );
+            }
         }
 
         mysqli_commit($conn);
