@@ -143,13 +143,19 @@ if ($requestMethod === 'POST') {
         $mail = new PHPMailer(true);
 
         if ($guardianPassword !== null && $guardianPassword !== '') {
+            $introHtml = '<p style="font-size:14px;line-height:1.6;">
+                          This is to inform you that your child <strong>' . htmlspecialchars($studentName, ENT_QUOTES) . '</strong> has been successfully enrolled in our institution and a guardian account has been created for you.
+                          </p>';
             $credentialsHtml = '<p style="font-size:14px;line-height:1.6;">
                                 Guardian Login: <strong>' . htmlspecialchars($guardianLogin, ENT_QUOTES) . '</strong><br>
                                 Password: <strong>' . htmlspecialchars($guardianPassword, ENT_QUOTES) . '</strong>
                                 </p>';
         } else {
+            $introHtml = '<p style="font-size:14px;line-height:1.6;">
+                          This is to inform you that another child, <strong>' . htmlspecialchars($studentName, ENT_QUOTES) . '</strong>, has been successfully added to your existing guardian account in our institution.
+                          </p>';
             $credentialsHtml = '<p style="font-size:14px;line-height:1.6;">
-                                Your guardian account already exists. Please continue using your existing login credentials.
+                                Your guardian account already exists. Please continue using your existing login credentials to access the updated student information.
                                 </p>';
         }
 
@@ -178,9 +184,7 @@ if ($requestMethod === 'POST') {
                                 <body style="margin:0;padding:0;font-family:Arial,sans-serif;color:#333;">
                                     <div style="padding:20px;">
                                         <h2 style="color:#333;">Dear ' . htmlspecialchars($guardianName, ENT_QUOTES) . ',</h2>
-                                        <p style="font-size:14px;line-height:1.6;">
-                                        This is to inform you that your child <strong>' . htmlspecialchars($studentName, ENT_QUOTES) . '</strong> has been successfully enrolled in our institution.
-                                        </p>
+                                        ' . $introHtml . '
                                         <p style="font-size:14px;line-height:1.6;">
                                         Enrollment ID: <strong>' . htmlspecialchars($enrollmentId, ENT_QUOTES) . '</strong>
                                         </p>
