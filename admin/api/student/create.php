@@ -127,7 +127,21 @@ if ($requestMethod === 'POST') {
 
     $instituteId = $authResult['inst_id'];
 
-    $inputData = json_decode(file_get_contents("php://input"), true);
+    // Support both JSON body and multipart/form-data (FormData from frontend)
+    $inputData = [];
+
+    if (!empty($_POST)) {
+        $inputData = $_POST;
+    } else {
+        $rawInput = file_get_contents("php://input");
+        if ($rawInput !== false && trim($rawInput) !== '') {
+            $decodedInput = json_decode($rawInput, true);
+            if (is_array($decodedInput)) {
+                $inputData = $decodedInput;
+            }
+        }
+    }
+
     if (empty($inputData)) {
         $data = [
             'status' => 400,
@@ -138,8 +152,25 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $students = $inputData['students'] ?? [];
-    $isBulkUpload = $inputData['isBulkUpload'] ?? false;
+    $students = [];
+    $studentsInput = $inputData['students'] ?? [];
+    if (is_string($studentsInput)) {
+        $decodedStudents = json_decode($studentsInput, true);
+        if (is_array($decodedStudents)) {
+            $students = $decodedStudents;
+        }
+    } elseif (is_array($studentsInput)) {
+        $students = $studentsInput;
+    }
+
+    $isBulkUploadInput = $inputData['isBulkUpload'] ?? false;
+    if (is_bool($isBulkUploadInput)) {
+        $isBulkUpload = $isBulkUploadInput;
+    } elseif (is_string($isBulkUploadInput)) {
+        $isBulkUpload = in_array(strtolower(trim($isBulkUploadInput)), ['1', 'true', 'yes', 'on'], true);
+    } else {
+        $isBulkUpload = (bool) $isBulkUploadInput;
+    }
 
     if (empty($students)) {
         header("HTTP/1.0 400 Bad Request");
@@ -212,18 +243,18 @@ if ($requestMethod === 'POST') {
                     $finfo = finfo_open(FILEINFO_MIME_TYPE);
                     $mimeType = finfo_file($finfo, $uploadedFile['tmp_name']);
                     finfo_close($finfo);
-                    
+
                     if (in_array($mimeType, $allowedMimes)) {
                         $profileImagesDir = __DIR__ . '/../../../profile-images/student/';
                         if (!is_dir($profileImagesDir)) {
                             mkdir($profileImagesDir, 0755, true);
                         }
-                        
+
                         $fileExt = pathinfo($uploadedFile['name'], PATHINFO_EXTENSION);
                         $currentTime = time();
                         $profileImageFileName = strtolower(trim($studentFirstName)) . '-profile-' . $currentTime . '.' . $fileExt;
                         $profileImagePath = $profileImagesDir . $profileImageFileName;
-                        
+
                         if (!move_uploaded_file($uploadedFile['tmp_name'], $profileImagePath)) {
                             throw new \Exception("Failed to save profile image");
                         }
@@ -284,7 +315,7 @@ if ($requestMethod === 'POST') {
 
             // Check if student email/phone matches guardian email/phone
             $contactOverlap = (!empty($studentEmail) && !empty($guardianEmail) && strtolower(trim($studentEmail)) === strtolower(trim($guardianEmail)))
-                           || (!empty($studentPhone) && !empty($guardianPhone) && trim($studentPhone) === trim($guardianPhone));
+                || (!empty($studentPhone) && !empty($guardianPhone) && trim($studentPhone) === trim($guardianPhone));
 
             // Helper: upsert guardian user, returns guardian user_id
             $guardianNameEsc  = mysqli_real_escape_string($conn, $guardianName);
@@ -339,8 +370,12 @@ if ($requestMethod === 'POST') {
                 $newUserId = null;
             } else {
                 // Create student user as well
-                $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
-                $profileImageValue = ($profileImageFileName !== null) ? "'$profileImageEsc'" : "NULL";
+                if ($profileImageFileName !== null && $profileImageFileName !== '') {
+                    $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
+                    $profileImageValue = "'$profileImageEsc'";
+                } else {
+                    $profileImageValue = "NULL";
+                }
                 $userSql = "INSERT INTO users (name, profile_image, email, phone, user_type, password) VALUES ('$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'student', '$passEsc')";
                 if (!mysqli_query($conn, $userSql)) {
                     throw new \Exception("Failed to insert student user");
@@ -350,8 +385,12 @@ if ($requestMethod === 'POST') {
 
             $userIdValue   = ($newUserId !== null) ? "'$newUserId'" : "NULL";
             $guardianIdValue = ($guardianUserId !== null) ? "'$guardianUserId'" : "NULL";
-            $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
-            $profileImageValue = ($profileImageFileName !== null) ? "'$profileImageEsc'" : "NULL";
+            if ($profileImageFileName !== null && $profileImageFileName !== '') {
+                $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
+                $profileImageValue = "'$profileImageEsc'";
+            } else {
+                $profileImageValue = "NULL";
+            }
 
             $studentSql = "INSERT INTO students (profile_image, inst_id, user_id, guardian_id, enrollment_id, created_at) VALUES ($profileImageValue, '$instituteId', $userIdValue, $guardianIdValue, '$enrollmentId', NOW())";
             if (!mysqli_query($conn, $studentSql)) {
