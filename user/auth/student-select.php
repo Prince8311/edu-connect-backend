@@ -74,7 +74,7 @@ if ($requestMethod === 'POST') {
     }
 
     $escapedTempToken = mysqli_real_escape_string($conn, $tempToken);
-    $tokenSql = "SELECT `user_id`, `temp_token_expiry` FROM `user_auth_tokens` WHERE `temp_token`='$escapedTempToken' LIMIT 1";
+    $tokenSql = "SELECT `user_id`, `user_type`, `temp_token_expiry` FROM `user_auth_tokens` WHERE `temp_token`='$escapedTempToken' LIMIT 1";
     $tokenResult = mysqli_query($conn, $tokenSql);
 
     if (!$tokenResult) {
@@ -101,7 +101,30 @@ if ($requestMethod === 'POST') {
 
     $tokenRow = mysqli_fetch_assoc($tokenResult);
     $guardianUserId = (int) $tokenRow['user_id'];
+    $tokenUserType = isset($tokenRow['user_type']) ? strtolower(trim((string) $tokenRow['user_type'])) : '';
     $tempTokenExpiry = $tokenRow['temp_token_expiry'];
+
+    if ($tokenUserType === '') {
+        $response = [
+            'success' => false,
+            'status' => 403,
+            'message' => 'Role selection is incomplete for this session. Please complete role selection and try again.'
+        ];
+        header("HTTP/1.0 403 Forbidden");
+        echo json_encode($response);
+        exit;
+    }
+
+    if ($tokenUserType === 'teacher') {
+        $response = [
+            'success' => false,
+            'status' => 403,
+            'message' => 'The selected role is not eligible for student selection. Please continue using the teacher role flow.'
+        ];
+        header("HTTP/1.0 403 Forbidden");
+        echo json_encode($response);
+        exit;
+    }
 
     if ($tempTokenExpiry === null || time() > strtotime($tempTokenExpiry)) {
         $response = [

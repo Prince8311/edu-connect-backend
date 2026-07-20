@@ -182,7 +182,7 @@ if ($requestMethod === 'POST') {
     $response = [
         'success' => true,
         'status' => 200,
-        'message' => 'Role selected successfully.Please select a student to continue.',
+        'message' => 'Role selected successfully. Please select a student to continue.',
         'data' => [
             'next_screen' => 'selectStudent',
             'tempToken' => $newTempToken
