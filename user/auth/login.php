@@ -6,11 +6,169 @@ if ($requestMethod === 'POST') {
     require __DIR__ . "/../../_db-connect.php";
     global $conn;
 
+    function normalizeUserRoles(string $userType): array
+    {
+        $roles = array_map('trim', explode(',', strtolower($userType)));
+        $roles = array_values(array_filter($roles, static function ($role) {
+            return $role !== '';
+        }));
+
+        return array_values(array_unique($roles));
+    }
+
+    function generateTokenFromPayload(array $payload): string
+    {
+        $jsonPayload = json_encode($payload);
+        $randomBytes = random_bytes(64);
+        $tokenData = $jsonPayload . '|' . bin2hex($randomBytes);
+
+        return base64_encode($tokenData);
+    }
+
+    function respondAfterSuccessfulAuthentication(mysqli $conn, int $userId, array $payload, string $userType): void
+    {
+        $roles = normalizeUserRoles($userType);
+        sort($roles);
+
+        if (count($roles) === 1 && ($roles[0] === 'student' || $roles[0] === 'teacher')) {
+            $activeRole = $roles[0];
+            $authToken = generateTokenFromPayload($payload);
+            $tokenExpiresAt = date("Y-m-d H:i:s", time() + 86400);
+
+            $authCheck = "SELECT * FROM `user_auth_tokens` WHERE `user_id`='$userId'";
+            $authResult = mysqli_query($conn, $authCheck);
+            if (!$authResult) {
+                $response = [
+                    'success' => false,
+                    'status' => 500,
+                    'message' => 'Database error: ' . mysqli_error($conn)
+                ];
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode($response);
+                exit;
+            }
+
+            $loginCount = mysqli_num_rows($authResult);
+            if ($loginCount >= 5000) {
+                $response = [
+                    'success' => false,
+                    'status' => 403,
+                    'message' => 'Maximum device limit reached. You are already logged in on 5 devices. Please log out from another device to continue.'
+                ];
+                header("HTTP/1.0 403 Forbidden");
+                echo json_encode($response);
+                exit;
+            }
+
+            $insertSql = "INSERT INTO `user_auth_tokens`(`user_id`, `user_type`, `auth_token`, `expires_at`) VALUES ('$userId','$activeRole','$authToken','$tokenExpiresAt')";
+            $insertResult = mysqli_query($conn, $insertSql);
+
+            if ($insertResult) {
+                $response = [
+                    'success' => true,
+                    'status' => 200,
+                    'message' => 'Welcome back! You have successfully logged in.',
+                    'data' => [
+                        'next_screen' => 'home',
+                        'user' => $payload,
+                        'authToken' => $authToken
+                    ],
+                ];
+                header("HTTP/1.0 200 OK");
+                echo json_encode($response);
+            } else {
+                $response = [
+                    'success' => false,
+                    'status' => 500,
+                    'message' => 'Database error: ' . mysqli_error($conn)
+                ];
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode($response);
+            }
+            exit;
+        }
+
+        if (count($roles) === 1 && $roles[0] === 'guardian') {
+            $tempToken = generateTokenFromPayload($payload);
+            $tempTokenExpiry = date("Y-m-d H:i:s", time() + 604800);
+            $insertSql = "INSERT INTO `user_auth_tokens`(`user_id`, `user_type`, `temp_token`, `temp_token_expiry`) VALUES ('$userId','guardian','$tempToken','$tempTokenExpiry')";
+            $insertResult = mysqli_query($conn, $insertSql);
+
+            if (!$insertResult) {
+                $response = [
+                    'success' => false,
+                    'status' => 500,
+                    'message' => 'Database error: ' . mysqli_error($conn)
+                ];
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode($response);
+                exit;
+            }
+
+            $response = [
+                'success' => true,
+                'status' => 200,
+                'message' => 'Please select a student to continue.',
+                'data' => [
+                    'next_screen' => 'selectStudent',
+                    'tempToken' => $tempToken
+                ],
+            ];
+            header("HTTP/1.0 200 OK");
+            echo json_encode($response);
+            exit;
+        }
+
+        if (in_array('guardian', $roles, true) && in_array('teacher', $roles, true)) {
+            $tempToken = generateTokenFromPayload($payload);
+            $tempTokenExpiry = date("Y-m-d H:i:s", time() + 604800);
+            $insertSql = "INSERT INTO `user_auth_tokens`(`user_id`, `temp_token`, `temp_token_expiry`) VALUES ('$userId','$tempToken','$tempTokenExpiry')";
+            $insertResult = mysqli_query($conn, $insertSql);
+
+            if (!$insertResult) {
+                $response = [
+                    'success' => false,
+                    'status' => 500,
+                    'message' => 'Database error: ' . mysqli_error($conn)
+                ];
+                header("HTTP/1.0 500 Internal Server Error");
+                echo json_encode($response);
+                exit;
+            }
+
+            $response = [
+                'success' => true,
+                'status' => 200,
+                'message' => 'Please select a role to continue.',
+                'data' => [
+                    'next_screen' => 'selectRole',
+                    'tempToken' => $tempToken
+                ],
+            ];
+            header("HTTP/1.0 200 OK");
+            echo json_encode($response);
+            exit;
+        }
+
+        $response = [
+            'success' => false,
+            'status' => 403,
+            'message' => 'Authentication denied.',
+            'userType' => $userType
+        ];
+        header("HTTP/1.0 403 Forbidden");
+        echo json_encode($response);
+        exit;
+    }
+
     $inputData = json_decode(file_get_contents("php://input"), true);
 
     if (!empty($inputData)) {
         $user = mysqli_real_escape_string($conn, $inputData['name']);
-        $loginByOtp = isset($inputData['loginByOtp']) ? (bool)$inputData['loginByOtp'] : false;
+        $loginByOtp = isset($inputData['loginByOtp'])
+            ? filter_var($inputData['loginByOtp'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
+            : false;
+        $loginByOtp = ($loginByOtp === null) ? false : $loginByOtp;
 
         $sql = "SELECT * FROM `users` WHERE `name`='$user' OR `email`='$user' OR `phone`='$user'";
         $result = mysqli_query($conn, $sql);
@@ -28,6 +186,19 @@ if ($requestMethod === 'POST') {
 
         if (mysqli_num_rows($result) === 1) {
             $data = mysqli_fetch_assoc($result);
+            $accountStatus = isset($data['status']) ? (int) $data['status'] : 0;
+
+            if ($accountStatus !== 1) {
+                $response = [
+                    'success' => false,
+                    'status' => 403,
+                    'message' => 'Your account is currently deactivated. Please contact your institution for assistance.'
+                ];
+                header("HTTP/1.0 403 Forbidden");
+                echo json_encode($response);
+                exit;
+            }
+
             $userId = $data['id'];
             $userName = $data['name'];
             $userEmail = $data['email'];
@@ -40,46 +211,7 @@ if ($requestMethod === 'POST') {
                 'phone' => $userPhone,
                 'type' => $userType,
             ];
-            $jsonPayload = json_encode($payload);
-            $randomBytes = random_bytes(64);
-            $tokenData = $jsonPayload . '|' . bin2hex($randomBytes);
-            $authToken = base64_encode($tokenData);
-            $tokenExpiresAt = date("Y-m-d H:i:s", time() + 86400);
 
-            if ($userType != "student" && $userType != "teacher") {
-                $response = [
-                    'success' => false,
-                    'status' => 403,
-                    'message' => 'Authentication denied.',
-                    'userType' => $userType
-                ];
-                header("HTTP/1.0 403 Forbidden");
-                echo json_encode($response);
-                exit;
-            }
-            $authCheck = "SELECT * FROM `user_auth_tokens` WHERE `user_id`='$userId'";
-            $authResult = mysqli_query($conn, $authCheck);
-            if (!$authResult) {
-                $response = [
-                    'success' => false,
-                    'status' => 500,
-                    'message' => 'Database error: ' . mysqli_error($conn)
-                ];
-                header("HTTP/1.0 500 Internal Server Error");
-                echo json_encode($response);
-                exit;
-            }
-            $loginCount = mysqli_num_rows($authResult);
-            if ($loginCount >= 5000) {
-                $response = [
-                    'success' => false,
-                    'status' => 403,
-                    'message' => 'Maximum device limit reached. You are already logged in on 5 devices. Please log out from another device to continue.'
-                ];
-                header("HTTP/1.0 403 Forbidden");
-                echo json_encode($response);
-                exit;
-            }
             if ($loginByOtp) {
                 $otp = isset($inputData['otp']) ? trim($inputData['otp']) : null;
                 if (empty($otp)) {
@@ -133,21 +265,8 @@ if ($requestMethod === 'POST') {
                     $updateUserSql = "UPDATE `users` SET `mail_otp`=NULL, `mail_otp_expires_at`=NULL WHERE `id` = '$userId'";
                     $updateResult = mysqli_query($conn, $updateUserSql);
 
-                    $insertSql = "INSERT INTO `user_auth_tokens`(`user_id`, `auth_token`, `expires_at`) VALUES ('$userId','$authToken','$tokenExpiresAt')";
-                    $insertResult = mysqli_query($conn, $insertSql);
-
-                    if ($updateResult && $insertResult) {
-                        $response = [
-                            'success' => true,
-                            'status' => 200,
-                            'message' => 'Welcome back! You have successfully logged in.',
-                            'data' => [
-                                'user' => $payload,
-                                'authToken' => $authToken
-                            ],
-                        ];
-                        header("HTTP/1.0 200 OK");
-                        echo json_encode($response);
+                    if ($updateResult) {
+                        respondAfterSuccessfulAuthentication($conn, (int) $userId, $payload, $userType);
                     } else {
                         $response = [
                             'success' => false,
@@ -197,21 +316,8 @@ if ($requestMethod === 'POST') {
                     $updateUserSql = "UPDATE `users` SET `phone_otp`=NULL, `phone_otp_expires_at`=NULL WHERE `id` = '$userId'";
                     $updateResult = mysqli_query($conn, $updateUserSql);
 
-                    $insertSql = "INSERT INTO `user_auth_tokens`(`user_id`, `auth_token`, `expires_at`) VALUES ('$userId','$authToken','$tokenExpiresAt')";
-                    $insertResult = mysqli_query($conn, $insertSql);
-
-                    if ($updateResult && $insertResult) {
-                        $response = [
-                            'success' => true,
-                            'status' => 200,
-                            'message' => 'Welcome back! You have successfully logged in.',
-                            'data' => [
-                                'user' => $payload,
-                                'authToken' => $authToken
-                            ],
-                        ];
-                        header("HTTP/1.0 200 OK");
-                        echo json_encode($response);
+                    if ($updateResult) {
+                        respondAfterSuccessfulAuthentication($conn, (int) $userId, $payload, $userType);
                     } else {
                         $response = [
                             'success' => false,
@@ -227,30 +333,7 @@ if ($requestMethod === 'POST') {
                 $userPassword = $data['password'];
 
                 if (password_verify($password, $userPassword)) {
-                    $insertSql = "INSERT INTO `user_auth_tokens`(`user_id`, `auth_token`, `expires_at`) VALUES ('$userId','$authToken','$tokenExpiresAt')";
-                    $insertResult = mysqli_query($conn, $insertSql);
-
-                    if ($insertResult) {
-                        $response = [
-                            'success' => true,
-                            'status' => 200,
-                            'message' => 'Welcome back! You have successfully logged in.',
-                            'data' => [
-                                'user' => $payload,
-                                'authToken' => $authToken
-                            ],
-                        ];
-                        header("HTTP/1.0 200 OK");
-                        echo json_encode($response);
-                    } else {
-                        $response = [
-                            'success' => false,
-                            'status' => 500,
-                            'message' => 'Database error: ' . mysqli_error($conn)
-                        ];
-                        header("HTTP/1.0 500 Internal Server Error");
-                        echo json_encode($response);
-                    }
+                    respondAfterSuccessfulAuthentication($conn, (int) $userId, $payload, $userType);
                 } else {
                     $response = [
                         'success' => false,
