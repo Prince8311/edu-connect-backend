@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 require __DIR__ . "/../../utils/headers.php";
 
@@ -205,8 +205,6 @@ if ($requestMethod === 'POST') {
     header("HTTP/1.0 200 OK");
     echo json_encode($response);
     exit;
-
-    
 } else {
     $response = [
         'success' => false,
@@ -216,5 +214,3 @@ if ($requestMethod === 'POST') {
     header("HTTP/1.0 405 Method Not Allowed");
     echo json_encode($response);
 }
-
-?>
