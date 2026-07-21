@@ -119,7 +119,7 @@ function userAuthenticateRequest()
     }
 
     $escapedToken = mysqli_real_escape_string($conn, $token);
-    $sql = "SELECT * FROM `user_auth_tokens` WHERE `auth_token`='$escapedToken'";
+    $sql = "SELECT `id`, `user_id`, `user_type`, `student_id`, `auth_token`, `expires_at` FROM `user_auth_tokens` WHERE `auth_token`='$escapedToken'";
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) === 0) {
@@ -142,9 +142,16 @@ function userAuthenticateRequest()
         ];
     }
 
-    return [
+    $responseData = [
         'authenticated' => true,
         'token' => $token,
-        'userId' => $row['user_id']
+        'userId' => $row['user_id'],
+        'user_type' => $row['user_type']
     ];
+
+    if ($row['user_type'] === 'guardian') {
+        $responseData['student_id'] = $row['student_id'];
+    }
+
+    return $responseData;
 }
