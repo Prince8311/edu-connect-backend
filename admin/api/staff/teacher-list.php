@@ -30,7 +30,7 @@ if ($requestMethod === 'GET') {
 
     $subjectCondition = "";
     if (!empty($subject)) {
-        $subjectCondition = " AND sfv.value = '$subject' ";
+        $subjectCondition = " AND FIND_IN_SET('$subject', REPLACE(sfv.value, ', ', ',')) > 0 ";
     }
 
     $countQuery = "SELECT COUNT(DISTINCT t.id) AS total FROM teachers t LEFT JOIN staff_field_values sfv ON sfv.staff_id = t.id AND sfv.staff_type = 'teaching' AND sfv.field_name = 'Subject' AND sfv.inst_id = '$instituteId' WHERE t.inst_id = '$instituteId' $subjectCondition";
