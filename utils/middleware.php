@@ -142,11 +142,48 @@ function userAuthenticateRequest()
         ];
     }
 
+    $userId = mysqli_real_escape_string($conn, (string) $row['user_id']);
+    $instId = null;
+    $userSql = "SELECT `id`, `inst_id` FROM `users` WHERE `id` = '$userId' LIMIT 1";
+    $userResult = mysqli_query($conn, $userSql);
+    if (!$userResult || mysqli_num_rows($userResult) === 0) {
+        return [
+            'authenticated' => false,
+            'status' => 404,
+            'message' => 'Invalid user reference. No account was found for the authenticated token.',
+            'userId' => $row['user_id']
+        ];
+    }
+
+    $user = mysqli_fetch_assoc($userResult);
+    $instId = $user['inst_id'] ?? null;
+
+    if ($instId === null || $instId === '') {
+        return [
+            'authenticated' => false,
+            'status' => 404,
+            'message' => 'No institution is associated with this user account.'
+        ];
+    }
+
+    $instEsc = mysqli_real_escape_string($conn, (string) $instId);
+    $instSql = "SELECT `id` FROM `institutions` WHERE `inst_id` = '$instEsc' OR `id` = '$instEsc' LIMIT 1";
+    $instResult = mysqli_query($conn, $instSql);
+    if (!$instResult || mysqli_num_rows($instResult) === 0) {
+        return [
+            'authenticated' => false,
+            'status' => 404,
+            'message' => 'Institution not found for the associated account.',
+            'inst_id' => $instId
+        ];
+    }
+
     $responseData = [
         'authenticated' => true,
         'token' => $token,
         'userId' => $row['user_id'],
-        'user_type' => $row['user_type']
+        'user_type' => $row['user_type'],
+        'inst_id' => $instId
     ];
 
     if ($row['user_type'] === 'guardian') {

@@ -457,7 +457,7 @@ if ($requestMethod === 'POST') {
                     // if already 'guardian', do nothing
                 } else {
                     // Insert new guardian user
-                    $insertGuardianSql = "INSERT INTO users (name, email, phone, user_type, password) VALUES ('$guardianNameEsc', '$guardianEmailEsc', '$guardianPhoneEsc', 'guardian', '$guardianPassEsc')";
+                    $insertGuardianSql = "INSERT INTO users (inst_id, name, email, phone, user_type, password) VALUES ('$instituteId', '$guardianNameEsc', '$guardianEmailEsc', '$guardianPhoneEsc', 'guardian', '$guardianPassEsc')";
                     if (!mysqli_query($conn, $insertGuardianSql)) {
                         throw new \Exception("Failed to insert guardian user");
                     }
@@ -477,7 +477,7 @@ if ($requestMethod === 'POST') {
                 } else {
                     $profileImageValue = "NULL";
                 }
-                $userSql = "INSERT INTO users (name, profile_image, email, phone, user_type, password) VALUES ('$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'student', '$passEsc')";
+                $userSql = "INSERT INTO users (inst_id, name, profile_image, email, phone, user_type, password) VALUES ('$instituteId', '$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'student', '$passEsc')";
                 if (!mysqli_query($conn, $userSql)) {
                     throw new \Exception("Failed to insert student user");
                 }

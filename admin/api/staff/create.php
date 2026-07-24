@@ -441,7 +441,7 @@ if ($requestMethod === 'POST') {
                             } else {
                                 $profileImageValue = "NULL";
                             }
-                            $userSql = "INSERT INTO users (name, profile_image, email, phone, user_type, password) VALUES ('$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
+                            $userSql = "INSERT INTO users (inst_id, name, profile_image, email, phone, user_type, password) VALUES ('$instituteId', '$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
                             if (!mysqli_query($conn, $userSql)) {
                                 header("HTTP/1.0 500 Internal Server Error");
                                 echo json_encode([
@@ -459,7 +459,7 @@ if ($requestMethod === 'POST') {
                         } else {
                             $profileImageValue = "NULL";
                         }
-                        $userSql = "INSERT INTO users (name, profile_image, email, phone, user_type, password) VALUES ('$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
+                        $userSql = "INSERT INTO users (inst_id, name, profile_image, email, phone, user_type, password) VALUES ('$instituteId', '$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
                         if (!mysqli_query($conn, $userSql)) {
                             header("HTTP/1.0 500 Internal Server Error");
                             echo json_encode([
@@ -477,7 +477,7 @@ if ($requestMethod === 'POST') {
                     } else {
                         $profileImageValue = "NULL";
                     }
-                    $userSql = "INSERT INTO users (name, profile_image, email, phone, user_type, password) VALUES ('$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
+                    $userSql = "INSERT INTO users (inst_id, name, profile_image, email, phone, user_type, password) VALUES ('$instituteId', '$nameEsc', $profileImageValue, '$emailEsc', '$phoneEsc', 'teacher', '$passEsc')";
                     if (!mysqli_query($conn, $userSql)) {
                         header("HTTP/1.0 500 Internal Server Error");
                         echo json_encode([
