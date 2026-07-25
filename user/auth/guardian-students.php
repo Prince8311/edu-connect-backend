@@ -77,6 +77,7 @@ if ($requestMethod === 'GET') {
             s.`id`,
             s.`user_id`,
             s.`enrollment_id`,
+            u.`inst_id`,
             u.`name`,
             u.`profile_image`,
             u.`email`,
@@ -101,13 +102,39 @@ if ($requestMethod === 'GET') {
 
     $students = [];
     while ($row = mysqli_fetch_assoc($studentsResult)) {
+        $studentId = (string) $row['id'];
+        $studentInstId = isset($row['inst_id']) ? (string) $row['inst_id'] : '';
+        $studentClass = null;
+        $studentSection = null;
+
+        if ($studentInstId !== '' && $studentId !== '') {
+            $escapedStudentInstId = mysqli_real_escape_string($conn, $studentInstId);
+            $escapedStudentId = mysqli_real_escape_string($conn, $studentId);
+            $studentFieldsSql = "SELECT `field_name`, `value` FROM `student_field_values` WHERE `inst_id` = '$escapedStudentInstId' AND `student_id` = '$escapedStudentId' AND `field_name` IN ('Class / Standard', 'Section')";
+            $studentFieldsResult = mysqli_query($conn, $studentFieldsSql);
+
+            if ($studentFieldsResult) {
+                while ($fieldRow = mysqli_fetch_assoc($studentFieldsResult)) {
+                    if ((string) $fieldRow['field_name'] === 'Class / Standard') {
+                        $studentClass = trim((string) $fieldRow['value']);
+                    }
+                    if ((string) $fieldRow['field_name'] === 'Section') {
+                        $studentSection = trim((string) $fieldRow['value']);
+                    }
+                }
+            }
+        }
+
         $students[] = [
             'id' => (int) $row['id'],
+            'inst_id' => $studentInstId,
             'name' => $row['name'],
             'profile_image' => $row['profile_image'],
             'email' => $row['email'],
             'phone' => $row['phone'],
             'enrollment_id' => $row['enrollment_id'],
+            'class' => $studentClass,
+            'section' => $studentSection,
         ];
     }
 
