@@ -323,12 +323,15 @@ if ($requestMethod === 'GET') {
 
             $classItem = [
                 'id' => $row['id'],
-                'class' => $row['class'],
-                'section' => $row['section'],
                 'period' => $row['period'],
                 'time' => $row['time'],
                 'subject' => $row['subject'],
             ];
+
+            if ($userType === 'teacher') {
+                $classItem['class'] = $row['class'];
+                $classItem['section'] = $row['section'];
+            }
 
             if ($userType === 'student' || $userType === 'guardian') {
                 $teacherIdRaw = isset($row['teacher']) ? trim((string) $row['teacher']) : '';
@@ -360,7 +363,7 @@ if ($requestMethod === 'GET') {
         'status' => 200,
         'message' => 'Scheduled classes fetched successfully.',
         'data' => [
-            'scheduledClasses' => $scheduledClasses
+            'scheduled_classes' => $scheduledClasses
         ]
     ];
 
@@ -373,7 +376,7 @@ if ($requestMethod === 'GET') {
     }
 
     if ($intent === 'today') {
-        $responseData['data']['todayDayName'] = $todayDayName;
+        $responseData['data']['today_day_name'] = $todayDayName;
     }
 
     header("HTTP/1.0 200 OK");
