@@ -250,6 +250,56 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
+    if ($intent === 'weekly') {
+        $shortDayToFull = [
+            'Sun' => 'Sunday',
+            'Mon' => 'Monday',
+            'Tue' => 'Tuesday',
+            'Wed' => 'Wednesday',
+            'Thu' => 'Thursday',
+            'Fri' => 'Friday',
+            'Sat' => 'Saturday',
+        ];
+
+        $groupedByDay = [];
+        foreach ($scheduledClasses as $row) {
+            $shortDay = isset($row['day']) ? trim((string) $row['day']) : '';
+            $fullDay = isset($shortDayToFull[$shortDay]) ? $shortDayToFull[$shortDay] : $shortDay;
+
+            if (!isset($groupedByDay[$fullDay])) {
+                $groupedByDay[$fullDay] = [
+                    'day' => $fullDay,
+                    'classes' => []
+                ];
+            }
+
+            $groupedByDay[$fullDay]['classes'][] = [
+                'id' => $row['id'],
+                'class' => $row['class'],
+                'section' => $row['section'],
+                'period' => $row['period'],
+                'time' => $row['time'],
+                'subject' => $row['subject'],
+            ];
+        }
+
+        $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        $weeklyGroupedClasses = [];
+        foreach ($dayOrder as $dayName) {
+            if (isset($groupedByDay[$dayName])) {
+                $weeklyGroupedClasses[] = $groupedByDay[$dayName];
+            }
+        }
+
+        foreach ($groupedByDay as $dayName => $dayData) {
+            if (!in_array($dayName, $dayOrder, true)) {
+                $weeklyGroupedClasses[] = $dayData;
+            }
+        }
+
+        $scheduledClasses = $weeklyGroupedClasses;
+    }
+
     $responseData = [
         'success' => true,
         'status' => 200,
