@@ -261,6 +261,39 @@ if ($requestMethod === 'GET') {
             'Sat' => 'Saturday',
         ];
 
+        $teacherNameByTeacherId = [];
+        if ($userType === 'student' || $userType === 'guardian') {
+            $teacherIds = [];
+            foreach ($scheduledClasses as $row) {
+                $teacherIdRaw = isset($row['teacher']) ? trim((string) $row['teacher']) : '';
+                if ($teacherIdRaw !== '' && strtolower($teacherIdRaw) !== 'n/a') {
+                    $teacherIds[$teacherIdRaw] = true;
+                }
+            }
+
+            if (!empty($teacherIds)) {
+                $escapedTeacherIds = [];
+                foreach (array_keys($teacherIds) as $teacherId) {
+                    $escapedTeacherIds[] = "'" . mysqli_real_escape_string($conn, $teacherId) . "'";
+                }
+
+                $teacherLookupSql = "SELECT t.`id` AS `teacher_id`, u.`name` AS `teacher_name`
+                    FROM `teachers` t
+                    LEFT JOIN `users` u ON u.`id` = t.`user_id`
+                    WHERE t.`inst_id` = '$instituteId' AND t.`id` IN (" . implode(',', $escapedTeacherIds) . ")";
+                $teacherLookupResult = mysqli_query($conn, $teacherLookupSql);
+
+                if ($teacherLookupResult) {
+                    while ($teacherRow = mysqli_fetch_assoc($teacherLookupResult)) {
+                        $teacherKey = (string) $teacherRow['teacher_id'];
+                        $teacherNameByTeacherId[$teacherKey] = isset($teacherRow['teacher_name'])
+                            ? trim((string) $teacherRow['teacher_name'])
+                            : '';
+                    }
+                }
+            }
+        }
+
         $groupedByDay = [];
         foreach ($scheduledClasses as $row) {
             $shortDay = isset($row['day']) ? trim((string) $row['day']) : '';
@@ -273,7 +306,7 @@ if ($requestMethod === 'GET') {
                 ];
             }
 
-            $groupedByDay[$fullDay]['classes'][] = [
+            $classItem = [
                 'id' => $row['id'],
                 'class' => $row['class'],
                 'section' => $row['section'],
@@ -281,6 +314,13 @@ if ($requestMethod === 'GET') {
                 'time' => $row['time'],
                 'subject' => $row['subject'],
             ];
+
+            if ($userType === 'student' || $userType === 'guardian') {
+                $teacherIdRaw = isset($row['teacher']) ? trim((string) $row['teacher']) : '';
+                $classItem['teacher'] = $teacherNameByTeacherId[$teacherIdRaw] ?? null;
+            }
+
+            $groupedByDay[$fullDay]['classes'][] = $classItem;
         }
 
         $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
