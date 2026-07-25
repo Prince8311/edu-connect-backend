@@ -54,6 +54,9 @@ if ($requestMethod === 'GET') {
     $todayShortDay = $dayNameToShort[$todayDayName] ?? substr($todayDayName, 0, 3);
 
     $scheduledClasses = [];
+    $studentClass = null;
+    $studentSection = null;
+    $teacherClassRoom = null;
 
     if ($userType === 'teacher') {
         $teacherStmt = $conn->prepare("SELECT `id`, `class_teacher` FROM `teachers` WHERE `inst_id` = ? AND `user_id` = ? LIMIT 1");
@@ -84,6 +87,15 @@ if ($requestMethod === 'GET') {
         }
 
         $teacherId = (string) $teacherRow['id'];
+        $classTeacherRaw = isset($teacherRow['class_teacher']) ? trim((string) $teacherRow['class_teacher']) : '';
+        if ($classTeacherRaw !== '') {
+            $classTeacherParts = preg_split('/\s*-\s*/', $classTeacherRaw, 2);
+            if (is_array($classTeacherParts) && count($classTeacherParts) === 2) {
+                $teacherClassRoom = trim((string) $classTeacherParts[0]) . ' - ' . trim((string) $classTeacherParts[1]);
+            } else {
+                $teacherClassRoom = $classTeacherRaw;
+            }
+        }
 
         $timeTableSql = "SELECT `id`, `inst_id`, `class`, `section`, `day`, `period`, `time`, `subject`, `teacher`, `status`
             FROM `time_table`
@@ -206,6 +218,9 @@ if ($requestMethod === 'GET') {
             ]);
             exit;
         }
+
+        $studentClass = $classStandard;
+        $studentSection = $section;
 
         $timeTableSql = "SELECT `id`, `inst_id`, `class`, `section`, `day`, `period`, `time`, `subject`, `teacher`, `status`
             FROM `time_table`
@@ -348,6 +363,14 @@ if ($requestMethod === 'GET') {
             'scheduledClasses' => $scheduledClasses
         ]
     ];
+
+    if ($userType === 'student' || $userType === 'guardian') {
+        $responseData['data']['class_room'] = trim((string) $studentClass) . ' - ' . trim((string) $studentSection);
+    }
+
+    if ($userType === 'teacher') {
+        $responseData['data']['class_teacher'] = $teacherClassRoom;
+    }
 
     if ($intent === 'today') {
         $responseData['data']['todayDayName'] = $todayDayName;
