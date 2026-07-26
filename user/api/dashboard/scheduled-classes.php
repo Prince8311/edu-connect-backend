@@ -367,16 +367,38 @@ if ($requestMethod === 'GET') {
         ]
     ];
 
-    if ($userType === 'student' || $userType === 'guardian') {
-        $responseData['data']['class_room'] = trim((string) $studentClass) . ' - ' . trim((string) $studentSection);
-    }
-
-    if ($userType === 'teacher') {
-        $responseData['data']['class_teacher'] = $teacherClassRoom;
-    }
-
     if ($intent === 'today') {
+        if ($userType === 'student' || $userType === 'guardian') {
+            $responseData['data']['class_room'] = trim((string) $studentClass) . ' - ' . trim((string) $studentSection);
+        }
+
+        if ($userType === 'teacher') {
+            $responseData['data']['class_teacher'] = $teacherClassRoom;
+        }
+
         $responseData['data']['today_day_name'] = $todayDayName;
+    } elseif ($intent === 'weekly') {
+        $breakTime = null;
+
+        $breakStmt = $conn->prepare("SELECT `start`, `end` FROM `time_slots` WHERE `inst_id` = ? AND `name` = 'Break' LIMIT 1");
+        if ($breakStmt) {
+            $breakStmt->bind_param('s', $instituteId);
+            $breakStmt->execute();
+            $breakResult = $breakStmt->get_result();
+            $breakRow = $breakResult ? $breakResult->fetch_assoc() : null;
+            $breakStmt->close();
+
+            if ($breakRow) {
+                $breakStart = isset($breakRow['start']) ? trim((string) $breakRow['start']) : '';
+                $breakEnd = isset($breakRow['end']) ? trim((string) $breakRow['end']) : '';
+
+                if ($breakStart !== '' || $breakEnd !== '') {
+                    $breakTime = trim($breakStart . ' - ' . $breakEnd, ' -');
+                }
+            }
+        }
+
+        $responseData['data']['break_time'] = $breakTime;
     }
 
     header("HTTP/1.0 200 OK");
