@@ -265,6 +265,37 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
+    $studentCountByClassSection = [];
+    if ($userType === 'teacher') {
+        foreach ($scheduledClasses as $row) {
+            $classKey = (string) $row['class'] . '|' . (string) $row['section'];
+            if (!isset($studentCountByClassSection[$classKey])) {
+                $countSql = "SELECT COUNT(DISTINCT student_id) as count
+                    FROM student_field_values
+                    WHERE inst_id = ?
+                      AND field_name = 'Class / Standard'
+                      AND value = ?
+                      AND student_id IN (
+                        SELECT student_id FROM student_field_values
+                        WHERE inst_id = ?
+                          AND field_name = 'Section'
+                          AND value = ?
+                      )";
+                $countStmt = $conn->prepare($countSql);
+                if ($countStmt) {
+                    $countStmt->bind_param('ssss', $instituteId, $row['class'], $instituteId, $row['section']);
+                    $countStmt->execute();
+                    $countResult = $countStmt->get_result();
+                    $countRow = $countResult ? $countResult->fetch_assoc() : null;
+                    $studentCountByClassSection[$classKey] = $countRow ? (int) $countRow['count'] : 0;
+                    $countStmt->close();
+                } else {
+                    $studentCountByClassSection[$classKey] = 0;
+                }
+            }
+        }
+    }
+
     if ($intent === 'weekly') {
         $shortDayToFull = [
             'Sun' => 'Sunday',
@@ -331,6 +362,8 @@ if ($requestMethod === 'GET') {
             if ($userType === 'teacher') {
                 $classItem['class'] = $row['class'];
                 $classItem['section'] = $row['section'];
+                $classKey = (string) $row['class'] . '|' . (string) $row['section'];
+                $classItem['student_no'] = $studentCountByClassSection[$classKey] ?? 0;
             }
 
             if ($userType === 'student' || $userType === 'guardian') {
@@ -400,6 +433,24 @@ if ($requestMethod === 'GET') {
                 'time' => $row['time'],
                 'subject' => $row['subject'],
                 'teacher' => $teacherNameByTeacherId[$teacherIdRaw] ?? null,
+            ];
+        }
+
+        $scheduledClasses = $todayClasses;
+    }
+
+    if ($intent === 'today' && $userType === 'teacher') {
+        $todayClasses = [];
+        foreach ($scheduledClasses as $row) {
+            $classKey = (string) $row['class'] . '|' . (string) $row['section'];
+            $todayClasses[] = [
+                'id' => $row['id'],
+                'period' => $row['period'],
+                'time' => $row['time'],
+                'subject' => $row['subject'],
+                'class' => $row['class'],
+                'section' => $row['section'],
+                'student_no' => $studentCountByClassSection[$classKey] ?? 0,
             ];
         }
 
