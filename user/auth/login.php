@@ -203,12 +203,14 @@ if ($requestMethod === 'POST') {
             $userName = $data['name'];
             $userEmail = $data['email'];
             $userPhone = $data['phone'];
+            $userProfileImage = isset($data['profile_image']) ? $data['profile_image'] : null;
             $userType = $data['user_type'];
             $payload = [
                 'id' => $userId,
                 'name' => $userName,
                 'email' => $userEmail,
                 'phone' => $userPhone,
+                'profile_image' => $userProfileImage,
                 'type' => $userType,
             ];
 

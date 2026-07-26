@@ -125,6 +125,22 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
+    $payloadUserId = isset($payload['id']) ? (int) $payload['id'] : 0;
+    if ($payloadUserId > 0) {
+        $profileStmt = $conn->prepare("SELECT `profile_image` FROM `users` WHERE `id` = ? LIMIT 1");
+        if ($profileStmt) {
+            $profileStmt->bind_param('i', $payloadUserId);
+            $profileStmt->execute();
+            $profileResult = $profileStmt->get_result();
+            $profileRow = $profileResult ? $profileResult->fetch_assoc() : null;
+            $profileStmt->close();
+
+            if ($profileRow) {
+                $payload['profile_image'] = isset($profileRow['profile_image']) ? $profileRow['profile_image'] : null;
+            }
+        }
+    }
+
     $payload['type'] = $role;
 
     if ($role === 'teacher') {
