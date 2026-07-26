@@ -551,6 +551,9 @@ if ($requestMethod === 'GET') {
 
         $responseData['data']['today_day_name'] = $todayDayName;
     } elseif ($intent === 'weekly') {
+        $responseData['data']['weekly_scheduled_classes'] = $scheduledClasses;
+        unset($responseData['data']['scheduled_classes']);
+
         $breakTime = null;
 
         $breakStmt = $conn->prepare("SELECT `start`, `end` FROM `time_slots` WHERE `inst_id` = ? AND `name` = 'Break' LIMIT 1");
