@@ -142,9 +142,7 @@ if ($requestMethod === 'GET') {
         'success' => true,
         'status' => 200,
         'message' => 'Students fetched successfully.',
-        'data' => [
-            'students' => $students
-        ],
+        'data' => $students,
     ];
     header("HTTP/1.0 200 OK");
     echo json_encode($response);
