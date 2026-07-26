@@ -265,6 +265,69 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
+    $toOrdinalLabel = static function ($number) {
+        $number = (int) $number;
+        $mod100 = $number % 100;
+        if ($mod100 >= 11 && $mod100 <= 13) {
+            return $number . 'th';
+        }
+
+        $mod10 = $number % 10;
+        if ($mod10 === 1) {
+            return $number . 'st';
+        }
+        if ($mod10 === 2) {
+            return $number . 'nd';
+        }
+        if ($mod10 === 3) {
+            return $number . 'rd';
+        }
+
+        return $number . 'th';
+    };
+
+    $normalizeTimeRange = static function ($value) {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return '';
+        }
+
+        $parts = preg_split('/\s*-\s*/', $value, 2);
+        if (is_array($parts) && count($parts) === 2) {
+            return strtolower(trim((string) $parts[0]) . ' - ' . trim((string) $parts[1]));
+        }
+
+        return strtolower(preg_replace('/\s+/', ' ', $value));
+    };
+
+    $timeSlotOrdinalByRange = [];
+    if ($userType === 'student' || $userType === 'guardian') {
+        $timeSlotSql = "SELECT `start`, `end` FROM `time_slots` WHERE `inst_id` = ? ORDER BY STR_TO_DATE(`start`, '%h:%i %p') ASC";
+        $timeSlotStmt = $conn->prepare($timeSlotSql);
+        if ($timeSlotStmt) {
+            $timeSlotStmt->bind_param('s', $instituteId);
+            $timeSlotStmt->execute();
+            $timeSlotResult = $timeSlotStmt->get_result();
+
+            $slotPosition = 1;
+            while ($timeSlotResult && $timeSlotRow = $timeSlotResult->fetch_assoc()) {
+                $slotStart = isset($timeSlotRow['start']) ? trim((string) $timeSlotRow['start']) : '';
+                $slotEnd = isset($timeSlotRow['end']) ? trim((string) $timeSlotRow['end']) : '';
+                if ($slotStart === '' || $slotEnd === '') {
+                    continue;
+                }
+
+                $slotRange = $normalizeTimeRange($slotStart . ' - ' . $slotEnd);
+                if ($slotRange !== '' && !isset($timeSlotOrdinalByRange[$slotRange])) {
+                    $timeSlotOrdinalByRange[$slotRange] = $toOrdinalLabel($slotPosition);
+                    $slotPosition++;
+                }
+            }
+
+            $timeSlotStmt->close();
+        }
+    }
+
     $studentCountByClassSection = [];
     if ($userType === 'teacher') {
         foreach ($scheduledClasses as $row) {
@@ -369,6 +432,11 @@ if ($requestMethod === 'GET') {
             if ($userType === 'student' || $userType === 'guardian') {
                 $teacherIdRaw = isset($row['teacher']) ? trim((string) $row['teacher']) : '';
                 $classItem['teacher'] = $teacherNameByTeacherId[$teacherIdRaw] ?? null;
+
+                $normalizedClassTime = $normalizeTimeRange(isset($row['time']) ? $row['time'] : '');
+                if ($normalizedClassTime !== '' && isset($timeSlotOrdinalByRange[$normalizedClassTime])) {
+                    $classItem['period'] = $timeSlotOrdinalByRange[$normalizedClassTime];
+                }
             }
 
             $groupedByDay[$fullDay]['classes'][] = $classItem;
@@ -427,9 +495,15 @@ if ($requestMethod === 'GET') {
         $todayClasses = [];
         foreach ($scheduledClasses as $row) {
             $teacherIdRaw = isset($row['teacher']) ? trim((string) $row['teacher']) : '';
+            $normalizedClassTime = $normalizeTimeRange(isset($row['time']) ? $row['time'] : '');
+            $periodLabel = $row['period'];
+            if ($normalizedClassTime !== '' && isset($timeSlotOrdinalByRange[$normalizedClassTime])) {
+                $periodLabel = $timeSlotOrdinalByRange[$normalizedClassTime];
+            }
+
             $todayClasses[] = [
                 'id' => $row['id'],
-                'period' => $row['period'],
+                'period' => $periodLabel,
                 'time' => $row['time'],
                 'subject' => $row['subject'],
                 'teacher' => $teacherNameByTeacherId[$teacherIdRaw] ?? null,
