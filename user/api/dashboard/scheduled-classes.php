@@ -302,7 +302,7 @@ if ($requestMethod === 'GET') {
 
     $timeSlotOrdinalByRange = [];
     if ($userType === 'student' || $userType === 'guardian') {
-        $timeSlotSql = "SELECT `start`, `end` FROM `time_slots` WHERE `inst_id` = ? ORDER BY STR_TO_DATE(`start`, '%h:%i %p') ASC";
+        $timeSlotSql = "SELECT `name`, `start`, `end` FROM `time_slots` WHERE `inst_id` = ? ORDER BY STR_TO_DATE(`start`, '%h:%i %p') ASC";
         $timeSlotStmt = $conn->prepare($timeSlotSql);
         if ($timeSlotStmt) {
             $timeSlotStmt->bind_param('s', $instituteId);
@@ -311,6 +311,11 @@ if ($requestMethod === 'GET') {
 
             $slotPosition = 1;
             while ($timeSlotResult && $timeSlotRow = $timeSlotResult->fetch_assoc()) {
+                $slotName = isset($timeSlotRow['name']) ? strtolower(trim((string) $timeSlotRow['name'])) : '';
+                if ($slotName === 'break') {
+                    continue;
+                }
+
                 $slotStart = isset($timeSlotRow['start']) ? trim((string) $timeSlotRow['start']) : '';
                 $slotEnd = isset($timeSlotRow['end']) ? trim((string) $timeSlotRow['end']) : '';
                 if ($slotStart === '' || $slotEnd === '') {
