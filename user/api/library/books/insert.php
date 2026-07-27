@@ -19,6 +19,16 @@ if ($requestMethod === 'POST') {
 
     $instituteId = mysqli_real_escape_string($conn, (string) ($authResult['inst_id'] ?? ''));
     $userId      = (int) ($authResult['userId'] ?? 0);
+    $userType    = strtolower(trim((string) ($authResult['user_type'] ?? '')));
+
+    if ($userType !== 'teacher') {
+        header("HTTP/1.0 403 Forbidden");
+        echo json_encode([
+            'status'  => 403,
+            'message' => 'Access denied. Only teachers are authorized to add books to the library.'
+        ]);
+        exit;
+    }
 
     // --- Validate required text fields ---
     $bookName = trim((string) ($_POST['name'] ?? ''));
