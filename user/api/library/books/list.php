@@ -54,7 +54,7 @@ if ($requestMethod === 'GET') {
     $sql    = "SELECT lb.`id`, lb.`inst_id`, lb.`name`, lb.`short_code`, lb.`cover_image`,
                       lb.`class`, lb.`subject`, lb.`author`,
                       lb.`uploaded_by`, u.`name` AS uploaded_by_name,
-                      lb.`uploaded_at`
+                      DATE_FORMAT(lb.`uploaded_at`, '%d %b, %Y') AS uploaded_at
                FROM `library_books` lb
                LEFT JOIN `users` u ON u.`id` = lb.`uploaded_by`
                $whereSQL
