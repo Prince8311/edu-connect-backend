@@ -43,12 +43,13 @@ if ($requestMethod === 'GET') {
     while ($row = mysqli_fetch_assoc($result)) {
         $responseData[] = $row['class'];
     }
-    $response = [
+    header("HTTP/1.0 200 OK");
+    echo json_encode([
         'success' => true,
         'status' => 200,
         'message' => 'Classes fetched successfully',
         'data' => $responseData
-    ];
+    ]);
 } else {
     $response = [
         'success' => false,
