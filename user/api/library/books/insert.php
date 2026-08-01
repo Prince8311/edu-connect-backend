@@ -45,7 +45,7 @@ if ($requestMethod === 'POST') {
     // --- Validate cover image ---
     if (empty($_FILES) || !isset($_FILES['cover_image']) || $_FILES['cover_image']['error'] === UPLOAD_ERR_NO_FILE) {
         header("HTTP/1.0 400 Bad Request");
-        echo json_encode(['status' => 400, 'message' => 'cover_image file is required']);
+        echo json_encode(['status' => 400, 'message' => 'Cover image file is required']);
         exit;
     }
 
