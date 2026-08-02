@@ -23,20 +23,53 @@ if ($requestMethod === 'GET') {
     $limit   = max(1, min(100, (int) ($_GET['limit'] ?? 10)));
     $offset  = ($page - 1) * $limit;
 
-    // Optional filters
-    $filterClass   = trim((string) ($_GET['class'] ?? ''));
-    $filterSubject = trim((string) ($_GET['subject'] ?? ''));
-    $search        = trim((string) ($_GET['search'] ?? ''));
+    // Optional filters (single, comma-separated, or array values)
+    $filterClassRaw   = $_GET['class'] ?? '';
+    $filterSubjectRaw = $_GET['subject'] ?? '';
+    $search           = trim((string) ($_GET['search'] ?? ''));
+
+    $normalizeFilterValues = function ($raw) {
+        $values = [];
+
+        if (is_array($raw)) {
+            foreach ($raw as $value) {
+                $parts = explode(',', (string) $value);
+                foreach ($parts as $part) {
+                    $clean = trim($part);
+                    if ($clean !== '') {
+                        $values[] = $clean;
+                    }
+                }
+            }
+        } else {
+            $parts = explode(',', (string) $raw);
+            foreach ($parts as $part) {
+                $clean = trim($part);
+                if ($clean !== '') {
+                    $values[] = $clean;
+                }
+            }
+        }
+
+        return array_values(array_unique($values));
+    };
+
+    $filterClasses  = $normalizeFilterValues($filterClassRaw);
+    $filterSubjects = $normalizeFilterValues($filterSubjectRaw);
 
     $whereClauses = ["`lb`.`inst_id` = '$instituteId'"];
 
-    if ($filterClass !== '') {
-        $filterClassEsc = mysqli_real_escape_string($conn, $filterClass);
-        $whereClauses[] = "`lb`.`class` = '$filterClassEsc'";
+    if (!empty($filterClasses)) {
+        $escapedClasses = array_map(function ($value) use ($conn) {
+            return "'" . mysqli_real_escape_string($conn, $value) . "'";
+        }, $filterClasses);
+        $whereClauses[] = "`lb`.`class` IN (" . implode(', ', $escapedClasses) . ")";
     }
-    if ($filterSubject !== '') {
-        $filterSubjectEsc = mysqli_real_escape_string($conn, $filterSubject);
-        $whereClauses[] = "`lb`.`subject` = '$filterSubjectEsc'";
+    if (!empty($filterSubjects)) {
+        $escapedSubjects = array_map(function ($value) use ($conn) {
+            return "'" . mysqli_real_escape_string($conn, $value) . "'";
+        }, $filterSubjects);
+        $whereClauses[] = "`lb`.`subject` IN (" . implode(', ', $escapedSubjects) . ")";
     }
     if ($search !== '') {
         $searchEsc      = mysqli_real_escape_string($conn, $search);
