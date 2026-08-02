@@ -160,7 +160,7 @@ if ($requestMethod === 'GET') {
 			}
 		}
 
-		$timeTableSql = "SELECT `id`, `inst_id`, `class`, `section`, `day`, `period`, `time`, `subject`, `teacher`, `status`
+		$timeTableSql = "SELECT `id`, `inst_id`, `classroom_id`, `class`, `section`, `day`, `period`, `time`, `subject`, `teacher`, `status`
 			FROM `time_table`
 			WHERE `inst_id` = ? AND `teacher` = ? AND `status` = 1 AND TRIM(LOWER(`day`)) = ?
 			ORDER BY STR_TO_DATE(SUBSTRING_INDEX(`time`, ' - ', 1), '%h:%i %p') ASC";
@@ -277,7 +277,7 @@ if ($requestMethod === 'GET') {
 		$studentClass = $classStandard;
 		$studentSection = $section;
 
-		$timeTableSql = "SELECT `id`, `inst_id`, `class`, `section`, `day`, `period`, `time`, `subject`, `teacher`, `status`
+		$timeTableSql = "SELECT `id`, `inst_id`, `classroom_id`, `class`, `section`, `day`, `period`, `time`, `subject`, `teacher`, `status`
 			FROM `time_table`
 			WHERE `inst_id` = ? AND `class` = ? AND `section` = ? AND `status` = 1 AND TRIM(LOWER(`day`)) = ?
 			ORDER BY STR_TO_DATE(SUBSTRING_INDEX(`time`, ' - ', 1), '%h:%i %p') ASC";
@@ -447,8 +447,8 @@ if ($requestMethod === 'GET') {
 			$classKey = (string) $ongoingRow['class'] . '|' . (string) $ongoingRow['section'];
 			$ongoingClass = [
 				'id' => $ongoingRow['id'],
+				'classroom_id' => $ongoingRow['classroom_id'] ?? null,
 				'period' => $ongoingRow['period'],
-				'time' => $ongoingRow['time'],
 				'start_time' => $startTime,
 				'end_time' => $endTime,
 				'subject' => $ongoingRow['subject'],
@@ -468,6 +468,7 @@ if ($requestMethod === 'GET') {
 
 			$ongoingClass = [
 				'id' => $ongoingRow['id'],
+				'classroom_id' => $ongoingRow['classroom_id'] ?? null,
 				'period' => $periodLabel,
 				'start_time' => $startTime,
 				'end_time' => $endTime,
