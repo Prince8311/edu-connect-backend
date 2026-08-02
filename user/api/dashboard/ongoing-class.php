@@ -468,14 +468,6 @@ if ($requestMethod === 'GET') {
 		]
 	];
 
-	if ($userType === 'student' || $userType === 'guardian') {
-		$responseData['data']['class_room'] = trim((string) $studentClass) . ' - ' . trim((string) $studentSection);
-	}
-
-	if ($userType === 'teacher') {
-		$responseData['data']['class_teacher'] = $teacherClassRoom;
-	}
-
 	header("HTTP/1.0 200 OK");
 	echo json_encode($responseData);
 	exit;

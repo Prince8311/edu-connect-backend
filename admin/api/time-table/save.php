@@ -49,7 +49,7 @@ if ($requestMethod === 'POST') {
 
     if ($type === 'week') {
         $newStatus = 1; // set status 1 for week
-        $updateStmt = $conn->prepare("UPDATE time_table SET status = ? WHERE inst_id = ? AND `class` = ? AND `section` = ? AND status = 0");
+        $updateStmt = $conn->prepare("UPDATE time_table SET status = ?, `classroom_id` = CONCAT(TRIM(`class`), '-', TRIM(`section`), '-', UPPER(LEFT(TRIM(`day`), 1)), '-', UPPER(LEFT(TRIM(`subject`), 1))) WHERE inst_id = ? AND `class` = ? AND `section` = ? AND status = 0");
         if (!$updateStmt) {
             $data = ['status' => 500, 'message' => 'Failed to prepare update statement'];
             header("HTTP/1.0 500 Internal Server Error");
@@ -105,7 +105,7 @@ if ($requestMethod === 'POST') {
     } else {
         $dayFullName = ucfirst($dayShort);
     }
-    $updateStmt = $conn->prepare("UPDATE time_table SET status = ? WHERE inst_id = ? AND `class` = ? AND `section` = ? AND TRIM(LOWER(day)) = ? AND status = 0");
+    $updateStmt = $conn->prepare("UPDATE time_table SET status = ?, `classroom_id` = CONCAT(TRIM(`class`), '-', TRIM(`section`), '-', UPPER(LEFT(TRIM(`day`), 1)), '-', UPPER(LEFT(TRIM(`subject`), 1))) WHERE inst_id = ? AND `class` = ? AND `section` = ? AND TRIM(LOWER(day)) = ? AND status = 0");
     if (!$updateStmt) {
         $data = ['status' => 500, 'message' => 'Failed to prepare day update statement'];
         header("HTTP/1.0 500 Internal Server Error");
