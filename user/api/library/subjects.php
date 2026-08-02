@@ -29,19 +29,14 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
-    if ($class === '') {
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode([
-            'success' => false,
-            'status' => 400,
-            'message' => 'Class query parameter is required.'
-        ]);
-        exit;
+    $whereClause = "WHERE `inst_id` = '$instituteId'";
+    if ($class !== '') {
+        $whereClause .= " AND `class` = '$class'";
     }
 
     $sql = "SELECT `subject`
             FROM `class_wise_subjects`
-            WHERE `inst_id` = '$instituteId' AND `class` = '$class'";
+            $whereClause";
     $result = mysqli_query($conn, $sql);
 
     if (!$result) {
