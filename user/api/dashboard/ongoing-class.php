@@ -62,6 +62,20 @@ if ($requestMethod === 'GET') {
 		return strtolower(preg_replace('/\s+/', ' ', $value));
 	};
 
+	$splitTimeRange = static function ($value) {
+		$value = trim((string) $value);
+		if ($value === '') {
+			return ['', ''];
+		}
+
+		$parts = preg_split('/\s*-\s*/', $value, 2);
+		if (!is_array($parts) || count($parts) !== 2) {
+			return [$value, ''];
+		}
+
+		return [trim((string) $parts[0]), trim((string) $parts[1])];
+	};
+
 	$parseTimeToTimestamp = static function ($timeValue) {
 		$timeValue = trim((string) $timeValue);
 		if ($timeValue === '') {
@@ -427,12 +441,16 @@ if ($requestMethod === 'GET') {
 
 	$ongoingClass = null;
 	if ($ongoingRow !== null) {
+		list($startTime, $endTime) = $splitTimeRange(isset($ongoingRow['time']) ? $ongoingRow['time'] : '');
+
 		if ($userType === 'teacher') {
 			$classKey = (string) $ongoingRow['class'] . '|' . (string) $ongoingRow['section'];
 			$ongoingClass = [
 				'id' => $ongoingRow['id'],
 				'period' => $ongoingRow['period'],
 				'time' => $ongoingRow['time'],
+				'start_time' => $startTime,
+				'end_time' => $endTime,
 				'subject' => $ongoingRow['subject'],
 				'class' => $ongoingRow['class'],
 				'section' => $ongoingRow['section'],
@@ -451,7 +469,8 @@ if ($requestMethod === 'GET') {
 			$ongoingClass = [
 				'id' => $ongoingRow['id'],
 				'period' => $periodLabel,
-				'time' => $ongoingRow['time'],
+				'start_time' => $startTime,
+				'end_time' => $endTime,
 				'subject' => $ongoingRow['subject'],
 				'teacher' => $teacherNameByTeacherId[$teacherIdRaw] ?? null,
 			];
