@@ -338,11 +338,23 @@ if ($requestMethod === 'POST') {
         if (!empty($s['co_teachers'])) {
             $co = array_map('trim', explode(',', $s['co_teachers']));
         }
+        $teacherPool = [];
+        $primaryTeacher = trim((string) $s['subject_teacher']);
+        if ($primaryTeacher !== '') {
+            $teacherPool[] = $primaryTeacher;
+        }
+        foreach ($co as $coTeacher) {
+            $coTeacher = trim((string) $coTeacher);
+            if ($coTeacher !== '') {
+                $teacherPool[] = $coTeacher;
+            }
+        }
+        $teacherPool = array_values(array_unique($teacherPool));
+
         $subName = $s['subject'];
         $subjectMap[$subName] = [
             'subject' => $subName,
-            'primary' => $s['subject_teacher'],
-            'co' => $co,
+            'teacher_pool' => $teacherPool,
             'assigned' => 0,
             'min' => 0,
             'max' => PHP_INT_MAX,
@@ -584,8 +596,6 @@ if ($requestMethod === 'POST') {
 
         $generated = [];
         $teacherRotation = [];
-        // remember last teacher assigned per subject to prefer repetition when possible
-        $lastAssigned = [];
         for ($i = 0; $i < count($workPeriods); $i++) {
             $p = $workPeriods[$i];
             $slot = $p['slot'];
@@ -594,28 +604,11 @@ if ($requestMethod === 'POST') {
             $timeRange = $slot['start'] . ' - ' . $slot['end'];
             $subjectName = $workPool[$i];
 
-            // try primary then co-teachers, preferring last assigned teacher when available,
-            // otherwise fallback to rotating teachers for repeated subjects
+            // Round-robin across all teachers (primary + co-teachers) for this subject.
             $teacherAssigned = null;
-            $candidates = [];
-            $primary = $subjectMap[$subjectName]['primary'];
-            if ($primary !== null && trim($primary) !== '') $candidates[] = $primary;
-            foreach ($subjectMap[$subjectName]['co'] as $ct) if ($ct !== '') $candidates[] = $ct;
-
+            $candidates = $subjectMap[$subjectName]['teacher_pool'];
             $candidateCount = count($candidates);
-            // 1) try to reassign the last teacher for this subject (so teachers can repeat)
-            $last = $lastAssigned[$subjectName] ?? null;
-            if ($last !== null) {
-                $checkStmt->bind_param('ssss', $instituteId, $day, $timeRange, $last);
-                $checkStmt->execute();
-                $r = $checkStmt->get_result()->fetch_assoc();
-                if ($r['cnt'] == 0) {
-                    $teacherAssigned = $last;
-                }
-            }
-
-            // 2) if last assigned not available, use rotation over candidates
-            if (is_null($teacherAssigned) && $candidateCount > 0) {
+            if ($candidateCount > 0) {
                 $startIndex = $teacherRotation[$subjectName] ?? 0;
                 for ($offset = 0; $offset < $candidateCount; $offset++) {
                     $index = ($startIndex + $offset) % $candidateCount;
@@ -632,11 +625,6 @@ if ($requestMethod === 'POST') {
             }
             if (is_null($teacherAssigned)) {
                 $teacherAssigned = 'N/A';
-            }
-
-            // record last assigned if a real teacher was assigned
-            if ($teacherAssigned !== 'N/A') {
-                $lastAssigned[$subjectName] = $teacherAssigned;
             }
 
             $insertStmt->bind_param('ssssssss', $instituteId, $class, $section, $day, $periodName, $timeRange, $subjectName, $teacherAssigned);
