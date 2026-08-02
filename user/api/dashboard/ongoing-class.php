@@ -481,10 +481,7 @@ if ($requestMethod === 'GET') {
 		'success' => true,
 		'status' => 200,
 		'message' => 'Ongoing class fetched successfully.',
-		'data' => [
-			'ongoing_class' => $ongoingClass,
-			'today_day_name' => $todayDayName,
-		]
+		'data' => $ongoingClass
 	];
 
 	header("HTTP/1.0 200 OK");
