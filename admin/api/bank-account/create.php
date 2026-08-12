@@ -25,10 +25,10 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $accountName = trim((string)($_POST['account_name'] ?? ''));
-    $accountNo = trim((string)($_POST['account_no'] ?? ''));
-    $beneficiaryName = trim((string)($_POST['beneficiary_name'] ?? ''));
-    $ifscCode = strtoupper(trim((string)($_POST['ifsc_code'] ?? '')));
+    $accountName = trim((string)($_POST['accountName'] ?? ''));
+    $accountNo = trim((string)($_POST['accountNo'] ?? ''));
+    $beneficiaryName = trim((string)($_POST['beneficiaryName'] ?? ''));
+    $ifscCode = strtoupper(trim((string)($_POST['ifscCode'] ?? '')));
 
     if ($accountName === '' || $accountNo === '' || $beneficiaryName === '' || $ifscCode === '') {
         $data = [

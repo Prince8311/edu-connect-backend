@@ -14,7 +14,6 @@ if (!$authResult['authenticated']) {
 }
 
 if ($requestMethod === 'GET') {
-
 	require __DIR__ . "/../../../_db-connect.php";
 	global $conn;
 
