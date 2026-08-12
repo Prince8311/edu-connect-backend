@@ -25,10 +25,21 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $accountName = trim((string)($_POST['accountName'] ?? ''));
-    $accountNo = trim((string)($_POST['accountNo'] ?? ''));
-    $beneficiaryName = trim((string)($_POST['beneficiaryName'] ?? ''));
-    $ifscCode = strtoupper(trim((string)($_POST['ifscCode'] ?? '')));
+    $inputData = json_decode($_POST['inputs'], true);
+    if (!is_array($inputData)) {
+        $data = [
+            'status' => 400,
+            'message' => 'Invalid inputs payload'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+
+    $accountName = mysqli_real_escape_string($conn, $inputData['accountName'] ?? '');
+    $accountNo = mysqli_real_escape_string($conn, $inputData['accountNo'] ?? '');
+    $beneficiaryName = mysqli_real_escape_string($conn, $inputData['beneficiaryName'] ?? '');
+    $ifscCode = mysqli_real_escape_string($conn, $inputData['ifscCode'] ?? '');
 
     if ($accountName === '' || $accountNo === '' || $beneficiaryName === '' || $ifscCode === '') {
         $data = [
