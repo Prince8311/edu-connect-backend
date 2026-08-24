@@ -90,6 +90,7 @@ if ($requestMethod === 'GET') {
 
     $data = [
         'status' => 200,
+        'message' => 'Split bank account list retrieved successfully',
         'data' => $list
     ];
     header("HTTP/1.0 200 OK");
