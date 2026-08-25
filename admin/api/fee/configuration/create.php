@@ -49,14 +49,10 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    if (is_string($classesInput)) {
-        $classesInput = json_decode($classesInput, true);
-    }
-
-    if (!is_array($classesInput) || empty($classesInput)) {
+    if (!is_string($classesInput) || trim($classesInput) === '') {
         $data = [
             'status' => 400,
-            'message' => 'classes must be a non-empty array.'
+            'message' => 'classes must be a non-empty comma-separated string.'
         ];
         header("HTTP/1.0 400 Bad Request");
         echo json_encode($data);
@@ -71,24 +67,6 @@ if ($requestMethod === 'POST') {
         $data = [
             'status' => 400,
             'message' => 'scheduled_payments must be a non-empty array.'
-        ];
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode($data);
-        exit;
-    }
-
-    $normalizedClasses = [];
-    foreach ($classesInput as $classItem) {
-        $classItem = trim((string) $classItem);
-        if ($classItem !== '') {
-            $normalizedClasses[] = $classItem;
-        }
-    }
-
-    if (empty($normalizedClasses)) {
-        $data = [
-            'status' => 400,
-            'message' => 'classes must contain valid values.'
         ];
         header("HTTP/1.0 400 Bad Request");
         echo json_encode($data);
@@ -130,7 +108,7 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
-    $classesJson = mysqli_real_escape_string($conn, json_encode(array_values($normalizedClasses)));
+    $classes = mysqli_real_escape_string($conn, $classesInput);
     $appliedFor = mysqli_real_escape_string($conn, $applicableType);
     $feeName = mysqli_real_escape_string($conn, $feeNameInput);
     $type = mysqli_real_escape_string($conn, $configurationTypeInput);
@@ -152,7 +130,7 @@ if ($requestMethod === 'POST') {
     mysqli_begin_transaction($conn);
 
     try {
-        $insertConfigurationSql = "INSERT INTO `fee_configurations`(`inst_id`, `fee_name`, `type`, `classes`, `applied_for`, `tax`, `installments_no`, `receipt_prefix`) VALUES ('$instituteId', '$feeName', '$type', '$classesJson', '$appliedFor', '$taxPercentage', '$installmentsCount', '$receiptPrefix')";
+        $insertConfigurationSql = "INSERT INTO `fee_configurations`(`inst_id`, `fee_name`, `type`, `classes`, `applied_for`, `tax`, `installments_no`, `receipt_prefix`) VALUES ('$instituteId', '$feeName', '$type', '$classes', '$appliedFor', '$taxPercentage', '$installmentsCount', '$receiptPrefix')";
         $insertConfigurationResult = mysqli_query($conn, $insertConfigurationSql);
 
         if (!$insertConfigurationResult) {
