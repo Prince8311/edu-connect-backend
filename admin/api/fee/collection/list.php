@@ -200,6 +200,23 @@ if ($requestMethod === 'GET') {
 
     mysqli_stmt_close($studentStmt);
 
+    foreach ($classes as &$class) {
+        $class['sections'] = array_values(array_filter(
+            $class['sections'],
+            static function ($section) {
+                return !empty($section['students']);
+            }
+        ));
+    }
+    unset($class);
+
+    $classes = array_values(array_filter(
+        $classes,
+        static function ($class) {
+            return !empty($class['sections']);
+        }
+    ));
+
     header("HTTP/1.0 200 OK");
     echo json_encode([
         'status' => 200,
