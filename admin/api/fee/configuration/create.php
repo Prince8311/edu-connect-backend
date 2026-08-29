@@ -130,7 +130,7 @@ if ($requestMethod === 'POST') {
     mysqli_begin_transaction($conn);
 
     try {
-        $insertConfigurationSql = "INSERT INTO `fee_configurations`(`inst_id`, `fee_name`, `type`, `classes`, `applied_for`, `tax`, `installments_no`, `receipt_prefix`) VALUES ('$instituteId', '$feeName', '$type', '$classes', '$appliedFor', '$taxPercentage', '$installmentsCount', '$receiptPrefix')";
+        $insertConfigurationSql = "INSERT INTO `fee_configurations`(`inst_id`, `fee_name`, `type`, `classes`, `applied_for`, `tax`, `installments_no`, `receipt_prefix`, `created_at`) VALUES ('$instituteId', '$feeName', '$type', '$classes', '$appliedFor', '$taxPercentage', '$installmentsCount', '$receiptPrefix', NOW())";
         $insertConfigurationResult = mysqli_query($conn, $insertConfigurationSql);
 
         if (!$insertConfigurationResult) {
