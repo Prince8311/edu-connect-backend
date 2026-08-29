@@ -27,6 +27,79 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
+    $requestedSessionId = isset($_GET['session'])
+        ? trim((string)$_GET['session'])
+        : '';
+
+    if ($requestedSessionId !== '' && (!ctype_digit($requestedSessionId) || (int)$requestedSessionId <= 0)) {
+        header("HTTP/1.0 422 Unprocessable Entity");
+        echo json_encode([
+            'status' => 422,
+            'message' => 'Session id must be a positive integer.'
+        ]);
+        exit;
+    }
+
+    if ($requestedSessionId !== '') {
+        $sessionSql = "SELECT `id`
+                       FROM `academic_sessions`
+                       WHERE `id` = ? AND `inst_id` = ?
+                       LIMIT 1";
+        $sessionStmt = mysqli_prepare($conn, $sessionSql);
+
+        if ($sessionStmt) {
+            $requestedSessionId = (int)$requestedSessionId;
+            mysqli_stmt_bind_param($sessionStmt, 'is', $requestedSessionId, $instituteId);
+        }
+    } else {
+        $sessionSql = "SELECT `id`
+                       FROM `academic_sessions`
+                       WHERE `inst_id` = ? AND `status` = 'Ongoing'
+                       ORDER BY `start_date` DESC, `id` DESC
+                       LIMIT 1";
+        $sessionStmt = mysqli_prepare($conn, $sessionSql);
+
+        if ($sessionStmt) {
+            mysqli_stmt_bind_param($sessionStmt, 's', $instituteId);
+        }
+    }
+
+    if (!$sessionStmt) {
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode([
+            'status' => 500,
+            'message' => 'Failed to prepare academic session query.'
+        ]);
+        exit;
+    }
+
+    if (!mysqli_stmt_execute($sessionStmt)) {
+        mysqli_stmt_close($sessionStmt);
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode([
+            'status' => 500,
+            'message' => 'Failed to fetch academic session.'
+        ]);
+        exit;
+    }
+
+    $sessionResult = mysqli_stmt_get_result($sessionStmt);
+    $session = mysqli_fetch_assoc($sessionResult);
+    mysqli_stmt_close($sessionStmt);
+
+    if (!$session) {
+        header("HTTP/1.0 404 Not Found");
+        echo json_encode([
+            'status' => 404,
+            'message' => $requestedSessionId !== ''
+                ? 'Academic session not found.'
+                : 'No ongoing academic session found.'
+        ]);
+        exit;
+    }
+
+    $sessionId = (int)$session['id'];
+
     if (!isset($_GET['levelId'])) {
         header("HTTP/1.0 400 Bad Request");
         echo json_encode([
@@ -242,6 +315,64 @@ if ($requestMethod === 'GET') {
 
     mysqli_stmt_close($feeStmt);
 
+    $paymentSql = "SELECT `student_id`, COALESCE(SUM(`amount`), 0) AS `paid_total`
+                   FROM `payments`
+                   WHERE `inst_id` = ? AND `session_id` = ?
+                   GROUP BY `student_id`";
+    $paymentStmt = mysqli_prepare($conn, $paymentSql);
+
+    if (!$paymentStmt) {
+        mysqli_stmt_close($studentStmt);
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode([
+            'status' => 500,
+            'message' => 'Failed to prepare payment query.'
+        ]);
+        exit;
+    }
+
+    mysqli_stmt_bind_param($paymentStmt, 'si', $instituteId, $sessionId);
+
+    if (!mysqli_stmt_execute($paymentStmt)) {
+        mysqli_stmt_close($paymentStmt);
+        mysqli_stmt_close($studentStmt);
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode([
+            'status' => 500,
+            'message' => 'Failed to fetch payments.'
+        ]);
+        exit;
+    }
+
+    $paymentResult = mysqli_stmt_get_result($paymentStmt);
+    $studentPayments = [];
+
+    while ($payment = mysqli_fetch_assoc($paymentResult)) {
+        $studentPayments[(int)$payment['student_id']] = (float)$payment['paid_total'];
+    }
+
+    mysqli_stmt_close($paymentStmt);
+
+    $formatAmount = static function ($amount) {
+        $amount = (float)$amount;
+        $absoluteAmount = abs($amount);
+        $divisor = 1;
+        $suffix = '';
+
+        if ($absoluteAmount >= 100000) {
+            $divisor = 100000;
+            $suffix = 'L';
+        } elseif ($absoluteAmount >= 1000) {
+            $divisor = 1000;
+            $suffix = 'K';
+        }
+
+        $formattedAmount = number_format($amount / $divisor, 2, '.', '');
+        $formattedAmount = rtrim(rtrim($formattedAmount, '0'), '.');
+
+        return $formattedAmount . $suffix;
+    };
+
     while ($student = mysqli_fetch_assoc($studentResult)) {
         $className = trim((string)$student['class_name']);
         $sectionName = trim((string)$student['section_name']);
@@ -301,7 +432,8 @@ if ($requestMethod === 'GET') {
             'last_name' => $student['last_name'],
             'contact_no' => $student['contact_no'],
             'date_of_admission' => $student['date_of_admission'],
-            'due_amount' => round($dueAmount, 2)
+            'due_amount' => $formatAmount(round($dueAmount, 2)),
+            'paid_amount' => $formatAmount($studentPayments[(int)$student['student_id']] ?? 0)
         ];
     }
 
