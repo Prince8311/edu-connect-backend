@@ -166,6 +166,9 @@ if ($requestMethod === 'GET') {
             foreach ($sectionNames as $sectionName) {
                 $sections[] = [
                     'section' => $sectionName,
+                    'total_applied' => 0.0,
+                    'total_due' => 0.0,
+                    'total_paid' => 0.0,
                     'students' => []
                 ];
             }
@@ -356,6 +359,11 @@ if ($requestMethod === 'GET') {
     $formatAmount = static function ($amount) {
         $amount = (float)$amount;
         $absoluteAmount = abs($amount);
+
+        if ($absoluteAmount < 0.005) {
+            return '0.00';
+        }
+
         $divisor = 1;
         $suffix = '';
 
@@ -383,6 +391,7 @@ if ($requestMethod === 'GET') {
 
         $indexes = $classSectionIndexes[$className][$sectionName];
         $dueAmount = 0.0;
+        $paidAmount = $studentPayments[(int)$student['student_id']] ?? 0.0;
         $studentClass = strtoupper(preg_replace('/\s+/', '', $className));
         $studentClassSection = $studentClass . strtoupper(preg_replace('/\s+/', '', $sectionName));
         $admissionTimestamp = !empty($student['date_of_admission'])
@@ -424,22 +433,41 @@ if ($requestMethod === 'GET') {
             }
         }
 
+        $nameParts = array_values(array_filter(
+            [
+                trim((string)$student['first_name']),
+                trim((string)$student['middle_name']),
+                trim((string)$student['last_name'])
+            ],
+            static function ($namePart) {
+                return $namePart !== '';
+            }
+        ));
+
+        $classes[$indexes['class_index']]['sections'][$indexes['section_index']]['total_applied'] += $dueAmount;
+        $classes[$indexes['class_index']]['sections'][$indexes['section_index']]['total_due'] += $dueAmount;
+        $classes[$indexes['class_index']]['sections'][$indexes['section_index']]['total_paid'] += $paidAmount;
         $classes[$indexes['class_index']]['sections'][$indexes['section_index']]['students'][] = [
             'student_id' => (int)$student['student_id'],
             'enrollment_id' => $student['enrollment_id'],
-            'first_name' => $student['first_name'],
-            'middle_name' => $student['middle_name'],
-            'last_name' => $student['last_name'],
+            'student_name' => implode(' ', $nameParts),
             'contact_no' => $student['contact_no'],
             'date_of_admission' => $student['date_of_admission'],
             'due_amount' => $formatAmount(round($dueAmount, 2)),
-            'paid_amount' => $formatAmount($studentPayments[(int)$student['student_id']] ?? 0)
+            'paid_amount' => $formatAmount($paidAmount)
         ];
     }
 
     mysqli_stmt_close($studentStmt);
 
     foreach ($classes as &$class) {
+        foreach ($class['sections'] as &$section) {
+            $section['total_applied'] = $formatAmount(round($section['total_applied'], 2));
+            $section['total_due'] = $formatAmount(round($section['total_due'], 2));
+            $section['total_paid'] = $formatAmount(round($section['total_paid'], 2));
+        }
+        unset($section);
+
         $class['sections'] = array_values(array_filter(
             $class['sections'],
             static function ($section) {
