@@ -177,6 +177,70 @@ if ($requestMethod === 'GET') {
     }
 
     $studentResult = mysqli_stmt_get_result($studentStmt);
+    $feeSql = "SELECT
+                    fc.`id`,
+                    fc.`classes`,
+                    fc.`applied_for`,
+                    fc.`tax`,
+                    fc.`created_at`,
+                    COALESCE(SUM(fi.`amount`), 0) AS `installment_total`
+                FROM `fee_configurations` fc
+                LEFT JOIN `fee_installments` fi
+                    ON fi.`configuration_id` = fc.`id`
+                    AND fi.`inst_id` = fc.`inst_id`
+                WHERE fc.`inst_id` = ?
+                GROUP BY
+                    fc.`id`,
+                    fc.`classes`,
+                    fc.`applied_for`,
+                    fc.`tax`,
+                    fc.`created_at`";
+    $feeStmt = mysqli_prepare($conn, $feeSql);
+
+    if (!$feeStmt) {
+        mysqli_stmt_close($studentStmt);
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode([
+            'status' => 500,
+            'message' => 'Failed to prepare fee query.'
+        ]);
+        exit;
+    }
+
+    mysqli_stmt_bind_param($feeStmt, 's', $instituteId);
+
+    if (!mysqli_stmt_execute($feeStmt)) {
+        mysqli_stmt_close($feeStmt);
+        mysqli_stmt_close($studentStmt);
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode([
+            'status' => 500,
+            'message' => 'Failed to fetch fee configurations.'
+        ]);
+        exit;
+    }
+
+    $feeResult = mysqli_stmt_get_result($feeStmt);
+    $feeConfigurations = [];
+
+    while ($fee = mysqli_fetch_assoc($feeResult)) {
+        $configuredClasses = array_values(array_filter(
+            array_map('trim', explode(',', $fee['classes'])),
+            static function ($class) {
+                return $class !== '';
+            }
+        ));
+
+        $feeConfigurations[] = [
+            'classes' => $configuredClasses,
+            'applied_for' => $fee['applied_for'],
+            'tax' => (float)$fee['tax'],
+            'created_at' => $fee['created_at'],
+            'installment_total' => (float)$fee['installment_total']
+        ];
+    }
+
+    mysqli_stmt_close($feeStmt);
 
     while ($student = mysqli_fetch_assoc($studentResult)) {
         $className = trim((string)$student['class_name']);
@@ -187,6 +251,48 @@ if ($requestMethod === 'GET') {
         }
 
         $indexes = $classSectionIndexes[$className][$sectionName];
+        $dueAmount = 0.0;
+        $studentClass = strtoupper(preg_replace('/\s+/', '', $className));
+        $studentClassSection = $studentClass . strtoupper(preg_replace('/\s+/', '', $sectionName));
+        $admissionTimestamp = !empty($student['date_of_admission'])
+            ? strtotime($student['date_of_admission'])
+            : false;
+
+        foreach ($feeConfigurations as $feeConfiguration) {
+            $classMatches = false;
+
+            foreach ($feeConfiguration['classes'] as $configuredClass) {
+                $configuredClass = strtoupper(preg_replace('/\s+/', '', $configuredClass));
+
+                if ($configuredClass === $studentClass || $configuredClass === $studentClassSection) {
+                    $classMatches = true;
+                    break;
+                }
+            }
+
+            if (!$classMatches) {
+                continue;
+            }
+
+            $appliesToStudent = $feeConfiguration['applied_for'] === 'Applicable for all';
+
+            if (!$appliesToStudent && $admissionTimestamp !== false) {
+                $configurationTimestamp = strtotime($feeConfiguration['created_at']);
+
+                if ($configurationTimestamp !== false) {
+                    $studentType = $admissionTimestamp > $configurationTimestamp
+                        ? 'Existing Students'
+                        : 'New Students';
+                    $appliesToStudent = $feeConfiguration['applied_for'] === $studentType;
+                }
+            }
+
+            if ($appliesToStudent) {
+                $dueAmount += $feeConfiguration['installment_total']
+                    * (1 + ($feeConfiguration['tax'] / 100));
+            }
+        }
+
         $classes[$indexes['class_index']]['sections'][$indexes['section_index']]['students'][] = [
             'student_id' => (int)$student['student_id'],
             'enrollment_id' => $student['enrollment_id'],
@@ -194,7 +300,8 @@ if ($requestMethod === 'GET') {
             'middle_name' => $student['middle_name'],
             'last_name' => $student['last_name'],
             'contact_no' => $student['contact_no'],
-            'date_of_admission' => $student['date_of_admission']
+            'date_of_admission' => $student['date_of_admission'],
+            'due_amount' => round($dueAmount, 2)
         ];
     }
 
