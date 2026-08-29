@@ -511,30 +511,30 @@ if ($requestMethod === 'POST') {
                 }
             }
 
-            if (!empty($studentEmail) && filter_var($studentEmail, FILTER_VALIDATE_EMAIL) && !preg_match('/dummy|test|example|invalid|@yourdomain|@domain|@mailinator|@tempmail|@fake|@sample/i', $studentEmail)) {
-                sendStudentEnrollmentEmail(
-                    $studentEmail,
-                    $studentName,
-                    $enrollmentId,
-                    $studentSession,
-                    $plainPassword
-                );
-            }
+            // if (!empty($studentEmail) && filter_var($studentEmail, FILTER_VALIDATE_EMAIL) && !preg_match('/dummy|test|example|invalid|@yourdomain|@domain|@mailinator|@tempmail|@fake|@sample/i', $studentEmail)) {
+            //     sendStudentEnrollmentEmail(
+            //         $studentEmail,
+            //         $studentName,
+            //         $enrollmentId,
+            //         $studentSession,
+            //         $plainPassword
+            //     );
+            // }
 
-            if (!empty($guardianEmail) && filter_var($guardianEmail, FILTER_VALIDATE_EMAIL) && !preg_match('/dummy|test|example|invalid|@yourdomain|@domain|@mailinator|@tempmail|@fake|@sample/i', $guardianEmail)) {
-                $guardianLogin = !empty($guardianEmail) ? $guardianEmail : $guardianPhone;
-                $guardianPasswordForMail = $isNewGuardianUser ? $guardianPlainPassword : null;
+            // if (!empty($guardianEmail) && filter_var($guardianEmail, FILTER_VALIDATE_EMAIL) && !preg_match('/dummy|test|example|invalid|@yourdomain|@domain|@mailinator|@tempmail|@fake|@sample/i', $guardianEmail)) {
+            //     $guardianLogin = !empty($guardianEmail) ? $guardianEmail : $guardianPhone;
+            //     $guardianPasswordForMail = $isNewGuardianUser ? $guardianPlainPassword : null;
 
-                sendGuardianEnrollmentEmail(
-                    $guardianEmail,
-                    $guardianName,
-                    $studentName,
-                    $enrollmentId,
-                    $guardianLogin,
-                    $guardianPasswordForMail,
-                    !$isNewGuardianUser
-                );
-            }
+            //     sendGuardianEnrollmentEmail(
+            //         $guardianEmail,
+            //         $guardianName,
+            //         $studentName,
+            //         $enrollmentId,
+            //         $guardianLogin,
+            //         $guardianPasswordForMail,
+            //         !$isNewGuardianUser
+            //     );
+            // }
         }
 
         mysqli_commit($conn);
