@@ -268,23 +268,19 @@ if ($requestMethod === 'GET') {
     $classSectionMatchCount = 0;
     $sessionEligibleStudentCount = 0;
     $feeSql = "SELECT
-                    fc.`id`,
+                    fc.`id` AS `configuration_id`,
                     fc.`classes`,
                     fc.`applied_for`,
                     fc.`tax`,
-                    fc.`created_at`,
-                    COALESCE(SUM(fi.`amount`), 0) AS `installment_total`
+                    fi.`id` AS `installment_id`,
+                    fi.`scheduled date` AS `scheduled_date`,
+                    fi.`amount` AS `installment_amount`
                 FROM `fee_configurations` fc
                 LEFT JOIN `fee_installments` fi
                     ON fi.`configuration_id` = fc.`id`
                     AND fi.`inst_id` = fc.`inst_id`
                 WHERE fc.`inst_id` = ?
-                GROUP BY
-                    fc.`id`,
-                    fc.`classes`,
-                    fc.`applied_for`,
-                    fc.`tax`,
-                    fc.`created_at`";
+                ORDER BY fc.`id` ASC, fi.`id` ASC";
     $feeStmt = mysqli_prepare($conn, $feeSql);
 
     if (!$feeStmt) {
@@ -314,23 +310,80 @@ if ($requestMethod === 'GET') {
     $feeConfigurations = [];
 
     while ($fee = mysqli_fetch_assoc($feeResult)) {
-        $configuredClasses = array_values(array_filter(
-            array_map('trim', explode(',', $fee['classes'])),
-            static function ($class) {
-                return $class !== '';
-            }
-        ));
+        $configurationId = (int)$fee['configuration_id'];
 
-        $feeConfigurations[] = [
-            'classes' => $configuredClasses,
-            'applied_for' => $fee['applied_for'],
-            'tax' => (float)$fee['tax'],
-            'created_at' => $fee['created_at'],
-            'installment_total' => (float)$fee['installment_total']
-        ];
+        if (!isset($feeConfigurations[$configurationId])) {
+            $configuredClasses = array_values(array_filter(
+                array_map('trim', explode(',', $fee['classes'])),
+                static function ($class) {
+                    return $class !== '';
+                }
+            ));
+
+            $feeConfigurations[$configurationId] = [
+                'classes' => $configuredClasses,
+                'applied_for' => $fee['applied_for'],
+                'tax' => (float)$fee['tax'],
+                'installments' => []
+            ];
+        }
+
+        if ($fee['installment_id'] !== null) {
+            $feeConfigurations[$configurationId]['installments'][] = [
+                'scheduled_date' => $fee['scheduled_date'],
+                'amount' => (float)$fee['installment_amount']
+            ];
+        }
     }
 
     mysqli_stmt_close($feeStmt);
+    $feeConfigurations = array_values($feeConfigurations);
+
+    $today = new DateTimeImmutable('today');
+    $todayTimestamp = $today->getTimestamp();
+    $parseInstallmentDate = static function ($scheduledDate, $year) {
+        $dateObject = DateTimeImmutable::createFromFormat(
+            '!j F Y',
+            trim((string)$scheduledDate) . ' ' . $year
+        );
+        $dateErrors = DateTimeImmutable::getLastErrors();
+
+        if (
+            $dateObject === false
+            || ($dateErrors !== false && ($dateErrors['warning_count'] > 0 || $dateErrors['error_count'] > 0))
+        ) {
+            return false;
+        }
+
+        return $dateObject->getTimestamp();
+    };
+
+    foreach ($feeConfigurations as &$feeConfiguration) {
+        $installments = $feeConfiguration['installments'];
+
+        usort($installments, static function ($first, $second) use ($parseInstallmentDate, $today) {
+            return ($parseInstallmentDate($first['scheduled_date'], $today->format('Y')) ?: PHP_INT_MAX)
+                <=> ($parseInstallmentDate($second['scheduled_date'], $today->format('Y')) ?: PHP_INT_MAX);
+        });
+
+        $feeConfiguration['active_installment_total'] = 0.0;
+
+        if (!empty($installments)) {
+            // The first installment always applies; later installments apply after its scheduled date.
+            $feeConfiguration['active_installment_total'] = $installments[0]['amount'];
+            $firstInstallmentTimestamp = $parseInstallmentDate(
+                $installments[0]['scheduled_date'],
+                $today->format('Y')
+            );
+
+            if ($firstInstallmentTimestamp !== false && $todayTimestamp > $firstInstallmentTimestamp) {
+                foreach (array_slice($installments, 1) as $installment) {
+                    $feeConfiguration['active_installment_total'] += $installment['amount'];
+                }
+            }
+        }
+    }
+    unset($feeConfiguration);
 
     $paymentSql = "SELECT `student_id`, COALESCE(SUM(`amount`), 0) AS `paid_total`
                    FROM `payments`
@@ -457,7 +510,7 @@ if ($requestMethod === 'GET') {
             }
 
             if ($appliesToStudent) {
-                $dueAmount += $feeConfiguration['installment_total']
+                $dueAmount += $feeConfiguration['active_installment_total']
                     * (1 + ($feeConfiguration['tax'] / 100));
             }
         }
@@ -517,15 +570,6 @@ if ($requestMethod === 'GET') {
         'status' => 200,
         'message' => 'Students fetched.',
         'classes' => $classes,
-        'session' => [
-            'id' => $sessionId,
-            'start_date' => $session['start_date'],
-            'end_date' => $session['end_date'],
-            'status' => $session['status']
-        ],
-        'student_query_count' => $studentQueryCount,
-        'class_section_match_count' => $classSectionMatchCount,
-        'session_eligible_student_count' => $sessionEligibleStudentCount
     ];
 
     if ($debugMode) {
