@@ -501,7 +501,16 @@ if ($requestMethod === 'GET') {
     $responseData = [
         'status' => 200,
         'message' => 'Students fetched.',
-        'classes' => $classes
+        'classes' => $classes,
+        'session' => [
+            'id' => $sessionId,
+            'start_date' => $session['start_date'],
+            'end_date' => $session['end_date'],
+            'status' => $session['status']
+        ],
+        'student_query_count' => $studentQueryCount,
+        'class_section_match_count' => $classSectionMatchCount,
+        'session_eligible_student_count' => $sessionEligibleStudentCount
     ];
 
     if ($debugMode) {
