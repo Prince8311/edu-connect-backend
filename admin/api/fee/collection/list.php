@@ -41,7 +41,7 @@ if ($requestMethod === 'GET') {
     }
 
     if ($requestedSessionId !== '') {
-        $sessionSql = "SELECT `id`
+        $sessionSql = "SELECT `id`, `start_date`, `end_date`, `status`
                        FROM `academic_sessions`
                        WHERE `id` = ? AND `inst_id` = ?
                        LIMIT 1";
@@ -52,7 +52,7 @@ if ($requestMethod === 'GET') {
             mysqli_stmt_bind_param($sessionStmt, 'is', $requestedSessionId, $instituteId);
         }
     } else {
-        $sessionSql = "SELECT `id`
+        $sessionSql = "SELECT `id`, `start_date`, `end_date`, `status`
                        FROM `academic_sessions`
                        WHERE `inst_id` = ? AND `status` = 'Ongoing'
                        ORDER BY `start_date` DESC, `id` DESC
@@ -99,6 +99,17 @@ if ($requestMethod === 'GET') {
     }
 
     $sessionId = (int)$session['id'];
+    $sessionStartTimestamp = strtotime($session['start_date']);
+    $sessionEndTimestamp = strtotime($session['end_date']);
+
+    if ($sessionStartTimestamp === false || $sessionEndTimestamp === false) {
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode([
+            'status' => 500,
+            'message' => 'Selected academic session has invalid start or end dates.'
+        ]);
+        exit;
+    }
 
     if (!isset($_GET['levelId'])) {
         header("HTTP/1.0 400 Bad Request");
@@ -398,6 +409,11 @@ if ($requestMethod === 'GET') {
             ? strtotime($student['date_of_admission'])
             : false;
 
+        // Students admitted after the selected session ends do not belong to this collection list.
+        if ($admissionTimestamp !== false && $admissionTimestamp > $sessionEndTimestamp) {
+            continue;
+        }
+
         foreach ($feeConfigurations as $feeConfiguration) {
             $classMatches = false;
 
@@ -417,14 +433,19 @@ if ($requestMethod === 'GET') {
             $appliesToStudent = $feeConfiguration['applied_for'] === 'Applicable for all';
 
             if (!$appliesToStudent && $admissionTimestamp !== false) {
-                $configurationTimestamp = strtotime($feeConfiguration['created_at']);
+                $studentType = null;
 
-                if ($configurationTimestamp !== false) {
-                    $studentType = $admissionTimestamp > $configurationTimestamp
-                        ? 'Existing Students'
-                        : 'New Students';
-                    $appliesToStudent = $feeConfiguration['applied_for'] === $studentType;
+                if ($admissionTimestamp < $sessionStartTimestamp) {
+                    $studentType = 'Existing Students';
+                } elseif (
+                    $session['status'] === 'Ongoing'
+                    && $admissionTimestamp <= $sessionEndTimestamp
+                ) {
+                    $studentType = 'New Students';
                 }
+
+                $appliesToStudent = $studentType !== null
+                    && $feeConfiguration['applied_for'] === $studentType;
             }
 
             if ($appliesToStudent) {
