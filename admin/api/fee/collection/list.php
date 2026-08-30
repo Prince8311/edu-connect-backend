@@ -211,35 +211,19 @@ if ($requestMethod === 'GET') {
                         MAX(CASE WHEN sfv.`field_name` = 'Last Name' THEN sfv.`value` END) AS `last_name`,
                         MAX(CASE WHEN sfv.`field_name` = 'Contact No.' THEN sfv.`value` END) AS `contact_no`,
                         MAX(CASE WHEN sfv.`field_name` = 'Date of Admission' THEN sfv.`value` END) AS `date_of_admission`,
-                        class_field.`value` AS `class_name`,
-                        section_field.`value` AS `section_name`
-                    FROM `students` s
-                    INNER JOIN `student_field_values` class_field
-                        ON class_field.`student_id` = s.`id`
-                        AND class_field.`inst_id` = s.`inst_id`
-                        AND class_field.`field_name` = 'Class / Standard'
-                    INNER JOIN `student_field_values` section_field
-                        ON section_field.`student_id` = s.`id`
-                        AND section_field.`inst_id` = s.`inst_id`
-                        AND section_field.`section_id` = class_field.`section_id`
-                        AND section_field.`field_name` = 'Section'
-                    LEFT JOIN `student_field_values` sfv
-                        ON sfv.`student_id` = s.`id`
-                        AND sfv.`inst_id` = s.`inst_id`
-                        AND sfv.`section_id` = class_field.`section_id`
-                        AND sfv.`field_name` IN (
-                            'First Name',
-                            'Middle Name',
-                            'Last Name',
-                            'Contact No.',
-                            'Date of Admission'
-                        )
-                    WHERE s.`inst_id` = ?
-                    GROUP BY
-                        s.`id`,
-                        s.`enrollment_id`,
-                        class_field.`value`,
-                        section_field.`value`";
+                        MAX(CASE WHEN sfv.`field_name` = 'Class / Standard' THEN sfv.`value` END) AS `class_name`,
+                        MAX(CASE WHEN sfv.`field_name` = 'Section' THEN sfv.`value` END) AS `section_name`
+                    FROM `academic_class_sections` acs
+                    INNER JOIN `student_field_values` sfv
+                        ON sfv.`section_id` = acs.`id`
+                        AND sfv.`inst_id` = acs.`inst_id`
+                    INNER JOIN `students` s
+                        ON s.`id` = sfv.`student_id`
+                        AND s.`inst_id` = sfv.`inst_id`
+                    WHERE acs.`inst_id` = ?
+                        AND acs.`level_id` = ?
+                    GROUP BY s.`id`, s.`enrollment_id`
+                    HAVING class_name IS NOT NULL AND section_name IS NOT NULL";
     $studentStmt = mysqli_prepare($conn, $studentSql);
 
     if (!$studentStmt) {
@@ -251,7 +235,7 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
-    mysqli_stmt_bind_param($studentStmt, 's', $instituteId);
+    mysqli_stmt_bind_param($studentStmt, 'si', $instituteId, $levelId);
 
     if (!mysqli_stmt_execute($studentStmt)) {
         mysqli_stmt_close($studentStmt);
