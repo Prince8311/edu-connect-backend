@@ -30,6 +30,7 @@ if ($requestMethod === 'GET') {
     $requestedSessionId = isset($_GET['session'])
         ? trim((string)$_GET['session'])
         : '';
+    $debugMode = isset($_GET['debug']) && $_GET['debug'] === '1';
 
     if ($requestedSessionId !== '' && (!ctype_digit($requestedSessionId) || (int)$requestedSessionId <= 0)) {
         header("HTTP/1.0 422 Unprocessable Entity");
@@ -248,6 +249,9 @@ if ($requestMethod === 'GET') {
     }
 
     $studentResult = mysqli_stmt_get_result($studentStmt);
+    $studentQueryCount = 0;
+    $classSectionMatchCount = 0;
+    $sessionEligibleStudentCount = 0;
     $feeSql = "SELECT
                     fc.`id`,
                     fc.`classes`,
@@ -377,6 +381,7 @@ if ($requestMethod === 'GET') {
     };
 
     while ($student = mysqli_fetch_assoc($studentResult)) {
+        $studentQueryCount++;
         $className = trim((string)$student['class_name']);
         $sectionName = trim((string)$student['section_name']);
 
@@ -385,6 +390,7 @@ if ($requestMethod === 'GET') {
         }
 
         $indexes = $classSectionIndexes[$className][$sectionName];
+        $classSectionMatchCount++;
         $dueAmount = 0.0;
         $paidAmount = $studentPayments[(int)$student['student_id']] ?? 0.0;
         $studentClass = strtoupper(preg_replace('/\s+/', '', $className));
@@ -397,6 +403,8 @@ if ($requestMethod === 'GET') {
         if ($admissionTimestamp !== false && $admissionTimestamp > $sessionEndTimestamp) {
             continue;
         }
+
+        $sessionEligibleStudentCount++;
 
         foreach ($feeConfigurations as $feeConfiguration) {
             $classMatches = false;
@@ -490,12 +498,28 @@ if ($requestMethod === 'GET') {
         }
     ));
 
-    header("HTTP/1.0 200 OK");
-    echo json_encode([
+    $responseData = [
         'status' => 200,
         'message' => 'Students fetched.',
         'classes' => $classes
-    ]);
+    ];
+
+    if ($debugMode) {
+        $responseData['debug'] = [
+            'session' => [
+                'id' => $sessionId,
+                'start_date' => $session['start_date'],
+                'end_date' => $session['end_date'],
+                'status' => $session['status']
+            ],
+            'student_query_count' => $studentQueryCount,
+            'class_section_match_count' => $classSectionMatchCount,
+            'session_eligible_student_count' => $sessionEligibleStudentCount
+        ];
+    }
+
+    header("HTTP/1.0 200 OK");
+    echo json_encode($responseData);
 } else {
     $data = [
         'status' => 405,
