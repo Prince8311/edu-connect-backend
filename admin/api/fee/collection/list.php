@@ -235,7 +235,6 @@ if ($requestMethod === 'GET') {
                             'Date of Admission'
                         )
                     WHERE s.`inst_id` = ?
-                        AND s.`status` = 1
                     GROUP BY
                         s.`id`,
                         s.`enrollment_id`,
