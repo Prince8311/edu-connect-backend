@@ -99,9 +99,24 @@ if ($requestMethod === 'GET') {
         exit;
     }
 
+    $parseStoredDate = static function ($date) {
+        $date = trim((string)$date);
+        $dateObject = DateTime::createFromFormat('!j F, Y', $date);
+        $dateErrors = DateTime::getLastErrors();
+
+        if (
+            $dateObject === false
+            || ($dateErrors !== false && ($dateErrors['warning_count'] > 0 || $dateErrors['error_count'] > 0))
+        ) {
+            return false;
+        }
+
+        return $dateObject->getTimestamp();
+    };
+
     $sessionId = (int)$session['id'];
-    $sessionStartTimestamp = strtotime($session['start_date']);
-    $sessionEndTimestamp = strtotime($session['end_date']);
+    $sessionStartTimestamp = $parseStoredDate($session['start_date']);
+    $sessionEndTimestamp = $parseStoredDate($session['end_date']);
     $sessionStatus = strtolower(trim((string)$session['status']));
 
     if ($sessionStartTimestamp === false || $sessionEndTimestamp === false) {
@@ -396,7 +411,7 @@ if ($requestMethod === 'GET') {
         $studentClass = strtoupper(preg_replace('/\s+/', '', $className));
         $studentClassSection = $studentClass . strtoupper(preg_replace('/\s+/', '', $sectionName));
         $admissionTimestamp = !empty($student['date_of_admission'])
-            ? strtotime($student['date_of_admission'])
+            ? $parseStoredDate($student['date_of_admission'])
             : false;
 
         // Students admitted after the selected session ends do not belong to this collection list.
