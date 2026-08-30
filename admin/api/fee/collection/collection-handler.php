@@ -576,7 +576,6 @@ if ($requestMethod === 'GET') {
         }
 
         $formattedAmount = number_format($amount / $divisor, 2, '.', '');
-        $formattedAmount = rtrim(rtrim($formattedAmount, '0'), '.');
 
         return $formattedAmount . $suffix;
     };
