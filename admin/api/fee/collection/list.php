@@ -101,6 +101,7 @@ if ($requestMethod === 'GET') {
     $sessionId = (int)$session['id'];
     $sessionStartTimestamp = strtotime($session['start_date']);
     $sessionEndTimestamp = strtotime($session['end_date']);
+    $sessionStatus = strtolower(trim((string)$session['status']));
 
     if ($sessionStartTimestamp === false || $sessionEndTimestamp === false) {
         header("HTTP/1.0 500 Internal Server Error");
@@ -437,11 +438,12 @@ if ($requestMethod === 'GET') {
 
                 if ($admissionTimestamp < $sessionStartTimestamp) {
                     $studentType = 'Existing Students';
-                } elseif (
-                    $session['status'] === 'Ongoing'
-                    && $admissionTimestamp <= $sessionEndTimestamp
-                ) {
-                    $studentType = 'New Students';
+                } elseif ($admissionTimestamp <= $sessionEndTimestamp) {
+                    if (in_array($sessionStatus, ['ongoing', 'upcoming'], true)) {
+                        $studentType = 'New Students';
+                    } elseif ($sessionStatus === 'concluded') {
+                        $studentType = 'Existing Students';
+                    }
                 }
 
                 $appliesToStudent = $studentType !== null
