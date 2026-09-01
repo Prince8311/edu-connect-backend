@@ -302,6 +302,43 @@ usort($installments, static function ($first, $second) {
         ?: $first['installment_id'] <=> $second['installment_id'];
 });
 
+$todayTimestamp = $today->getTimestamp();
+$hasOverduePreviousDue = false;
+
+foreach ($installments as $index => &$installment) {
+    $isPaid = $installment['status'] === 'Paid';
+    $installment['isActive'] = false;
+    $installment['message'] = null;
+
+    if (!$isPaid) {
+        if ($index === 0) {
+            // The first unpaid installment is always available for payment.
+            $installment['isActive'] = true;
+        } else {
+            $previousInstallment = $installments[$index - 1];
+            $previousDate = $previousInstallment['_sort_date'];
+
+            if ($hasOverduePreviousDue) {
+                $installment['message'] = 'Please clear the previous installment dues first.';
+            } elseif ($previousDate === PHP_INT_MAX || $todayTimestamp <= $previousDate) {
+                $installment['message'] = 'This installment can be paid after ' . $previousInstallment['scheduled_date'] . '.';
+            } else {
+                $installment['isActive'] = true;
+            }
+        }
+    }
+
+    if (
+        $installment['due_amount'] !== '0.00'
+        && $installment['_sort_date'] !== PHP_INT_MAX
+        && $todayTimestamp > $installment['_sort_date']
+    ) {
+        $hasOverduePreviousDue = true;
+    }
+
+}
+unset($installment);
+
 foreach ($installments as &$installment) {
     unset($installment['_sort_date']);
 }
