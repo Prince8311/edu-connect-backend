@@ -374,11 +374,43 @@ foreach ($installments as &$installment) {
 }
 unset($installment);
 
+$canSelectInstallment = false;
+
+// Find the next installment whose own scheduled date has not passed yet.
+foreach ($installments as $index => $installment) {
+    $installmentDate = $parseInstallmentDate($installment['scheduled_date']);
+
+    if ($installmentDate === false || $installmentDate->getTimestamp() < $todayTimestamp) {
+        continue;
+    }
+
+    $hasPreviousOverdueDue = false;
+    foreach (array_slice($installments, 0, $index) as $previousInstallment) {
+        $previousDate = $parseInstallmentDate($previousInstallment['scheduled_date']);
+
+        if (
+            $previousInstallment['due_amount'] !== '0.00'
+            && $previousDate !== false
+            && $previousDate->getTimestamp() < $todayTimestamp
+        ) {
+            $hasPreviousOverdueDue = true;
+            break;
+        }
+    }
+
+    // A prior overdue balance can still be selected for payment. Otherwise,
+    // the next installment can be selected only before it receives any payment.
+    $canSelectInstallment = $hasPreviousOverdueDue
+        || (float)$installment['paid_amount'] < 0.005;
+    break;
+}
+
 header("HTTP/1.0 200 OK");
 echo json_encode([
     'status' => 200,
     'message' => 'Student fee installments fetched.',
     'total_due' => $formatCompactAmount($totalDue),
     'overdue' => $formatCompactAmount($overdue),
+    'canSelectInstallment' => $canSelectInstallment,
     'installments' => $installments
 ]);
