@@ -239,6 +239,20 @@ $parseInstallmentDate = static function ($scheduledDate) use ($sessionStartDate,
 $formatAmount = static function ($amount) {
     return number_format(round((float)$amount, 2), 2, '.', '');
 };
+$formatCompactAmount = static function ($amount) {
+    $amount = (float)$amount;
+    $absoluteAmount = abs($amount);
+
+    if ($absoluteAmount >= 100000) {
+        return number_format($amount / 100000, 2, '.', '') . 'L';
+    }
+
+    if ($absoluteAmount >= 1000) {
+        return number_format($amount / 1000, 2, '.', '') . 'K';
+    }
+
+    return number_format($amount, 2, '.', '');
+};
 $today = new DateTimeImmutable('today', new DateTimeZone('Asia/Kolkata'));
 
 $installments = [];
@@ -304,11 +318,31 @@ usort($installments, static function ($first, $second) {
 
 $todayTimestamp = $today->getTimestamp();
 $hasOverduePreviousDue = false;
+$totalDue = 0.0;
+$overdue = 0.0;
 
 foreach ($installments as $index => &$installment) {
     $isPaid = $installment['status'] === 'Paid';
     $installment['isActive'] = false;
     $installment['message'] = null;
+
+    $isIncludedInTotalDue = $index === 0
+        || (
+            $installments[$index - 1]['_sort_date'] !== PHP_INT_MAX
+            && $todayTimestamp > $installments[$index - 1]['_sort_date']
+        );
+
+    if ($isIncludedInTotalDue) {
+        $totalDue += (float)$installment['due_amount'];
+    }
+
+    if (
+        $installment['due_amount'] !== '0.00'
+        && $installment['_sort_date'] !== PHP_INT_MAX
+        && $todayTimestamp > $installment['_sort_date']
+    ) {
+        $overdue += (float)$installment['due_amount'];
+    }
 
     if (!$isPaid) {
         if ($index === 0) {
@@ -328,11 +362,7 @@ foreach ($installments as $index => &$installment) {
         }
     }
 
-    if (
-        $installment['due_amount'] !== '0.00'
-        && $installment['_sort_date'] !== PHP_INT_MAX
-        && $todayTimestamp > $installment['_sort_date']
-    ) {
+    if ($overdue > 0) {
         $hasOverduePreviousDue = true;
     }
 
@@ -348,9 +378,7 @@ header("HTTP/1.0 200 OK");
 echo json_encode([
     'status' => 200,
     'message' => 'Student fee installments fetched.',
-    'session_id' => $sessionId,
-    'student_id' => $studentId,
-    'class' => $class,
-    'section' => $section,
+    'total_due' => $formatCompactAmount($totalDue),
+    'overdue' => $formatCompactAmount($overdue),
     'installments' => $installments
 ]);
