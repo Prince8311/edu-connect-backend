@@ -81,16 +81,19 @@ foreach ($paymentsInput as $index => $payment) {
 
     // Accept the API's camelCase name and the database-style name for compatibility.
     $installmentIdInput = trim((string)($payment['installmentId'] ?? $payment['installment_id'] ?? ''));
-    $amountInput = $payment['amount'] ?? null;
+    $amountInput = isset($payment['amount']) ? trim((string)$payment['amount']) : '';
 
-    $amount = is_numeric($amountInput) ? round((float)$amountInput, 2) : 0;
+    $amountValue = is_numeric($amountInput) ? (float)$amountInput : 0.0;
+    $amount = is_finite($amountValue)
+        ? number_format(round($amountValue, 2), 2, '.', '')
+        : '';
 
     if (
         !ctype_digit($installmentIdInput)
         || (int)$installmentIdInput <= 0
         || !is_numeric($amountInput)
-        || !is_finite((float)$amountInput)
-        || $amount <= 0
+        || !is_finite($amountValue)
+        || (float)$amount <= 0
     ) {
         $data = [
             'status' => 400,
@@ -298,7 +301,7 @@ try {
         $amount = $payment['amount'];
         mysqli_stmt_bind_param(
             $insertStmt,
-            'siiisds',
+            'siiisss',
             $instituteId,
             $sessionId,
             $studentId,
