@@ -43,8 +43,7 @@ function sendGuardianPaymentReceiptEmail(
     string $receiptNo,
     string $paymentDate,
     string $totalAmount,
-    string $receiptPdf,
-    string $logoPath
+    string $receiptPdf
 ): void {
     $mail = new PHPMailer(true);
 
@@ -68,12 +67,6 @@ function sendGuardianPaymentReceiptEmail(
         $mail->setFrom(getenv('SMTP_MAIL'), $institutionName);
         $mail->addAddress($email, 'Parent/Guardian');
 
-        $logoHtml = '';
-        if (is_file($logoPath)) {
-            $mail->addEmbeddedImage($logoPath, 'educonnekt-logo', 'logo.png');
-            $logoHtml = '<img src="cid:educonnekt-logo" alt="Edu Connekt" style="display:block;width:190px;max-width:100%;height:auto;">';
-        }
-
         $mail->Subject = 'Payment received - Receipt ' . $receiptNo;
         $mail->Body = '<!DOCTYPE html>
             <html lang="en">
@@ -89,7 +82,7 @@ function sendGuardianPaymentReceiptEmail(
                                 <tr><td style="height:7px;background:#00658d;"></td></tr>
                                 <tr><td style="height:3px;background:#1da1f2;"></td></tr>
                                 <tr>
-                                    <td style="padding:28px 34px 16px;">' . $logoHtml . '</td>
+                                    <td style="padding:28px 34px 16px;color:#00658d;font-size:24px;font-weight:bold;letter-spacing:-0.5px;">Edu <span style="color:#1da1f2;">Connekt</span></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 34px 30px;">
@@ -432,8 +425,25 @@ $installmentSql = "SELECT
                         fi.`id`,
                         fi.`configuration_id`,
                         fi.`scheduled date` AS `scheduled_date`,
+                        fi.`amount` AS `installment_base_amount`,
                         fc.`receipt_prefix`,
-                        fc.`fee_name`
+                        fc.`fee_name`,
+                        fc.`tax` AS `tax_percentage`,
+                        (
+                            SELECT COUNT(*)
+                            FROM `fee_installments` installment_order
+                            WHERE installment_order.`inst_id` = fi.`inst_id`
+                              AND installment_order.`configuration_id` = fi.`configuration_id`
+                              AND installment_order.`id` <= fi.`id`
+                        ) AS `installment_number`,
+                        COALESCE((
+                            SELECT SUM(existing_payment.`amount`)
+                            FROM `payments` existing_payment
+                            WHERE existing_payment.`inst_id` = fi.`inst_id`
+                              AND existing_payment.`session_id` = ?
+                              AND existing_payment.`student_id` = ?
+                              AND existing_payment.`installment_id` = fi.`id`
+                        ), 0) AS `previously_paid_amount`
                    FROM `fee_installments` fi
                    INNER JOIN `fee_configurations` fc
                        ON fc.`id` = fi.`configuration_id`
@@ -457,7 +467,7 @@ $receiptPrefix = '';
 
 foreach ($payments as $index => $payment) {
     $installmentId = $payment['installment_id'];
-    mysqli_stmt_bind_param($installmentStmt, 'is', $installmentId, $instituteId);
+    mysqli_stmt_bind_param($installmentStmt, 'iiis', $sessionId, $studentId, $installmentId, $instituteId);
 
     if (!mysqli_stmt_execute($installmentStmt)) {
         mysqli_stmt_close($installmentStmt);
@@ -501,6 +511,14 @@ foreach ($payments as $index => $payment) {
 
     $payments[$index]['fee_name'] = trim((string)$installment['fee_name']);
     $payments[$index]['scheduled_date'] = trim((string)$installment['scheduled_date']);
+    $payments[$index]['installment_number'] = (int)$installment['installment_number'];
+    $installmentBaseAmount = (float)$installment['installment_base_amount'];
+    $taxPercentage = (float)$installment['tax_percentage'];
+    $installmentTotalAmount = round($installmentBaseAmount * (1 + ($taxPercentage / 100)), 2);
+    $paidToDate = round((float)$installment['previously_paid_amount'] + (float)$payment['amount'], 2);
+    $payments[$index]['installment_total_amount'] = $installmentTotalAmount;
+    $payments[$index]['paid_to_date'] = $paidToDate;
+    $payments[$index]['due_amount'] = max(0, round($installmentTotalAmount - $paidToDate, 2));
 }
 mysqli_stmt_close($installmentStmt);
 
@@ -509,6 +527,9 @@ $totalAmount = array_sum(array_map(static function ($payment) {
     return (float)$payment['amount'];
 }, $payments));
 $formattedTotalAmount = number_format($totalAmount, 2, '.', ',');
+$totalInstallmentAmount = array_sum(array_column($payments, 'installment_total_amount'));
+$totalPaidToDate = array_sum(array_column($payments, 'paid_to_date'));
+$totalDueAmount = array_sum(array_column($payments, 'due_amount'));
 $institutionAddress = implode(', ', array_filter([
     trim((string)($institution['location'] ?? '')),
     trim((string)($institution['city'] ?? '')),
@@ -534,7 +555,10 @@ try {
         'institution_address' => $institutionAddress,
         'logo_path' => $logoPath,
         'payments' => $payments,
-        'total_amount' => $totalAmount
+        'total_amount' => $totalAmount,
+        'total_installment_amount' => $totalInstallmentAmount,
+        'total_paid_to_date' => $totalPaidToDate,
+        'total_due_amount' => $totalDueAmount
     ]);
 } catch (Throwable $error) {
     $data = [
@@ -619,8 +643,7 @@ if ($guardianEmail !== '' && filter_var($guardianEmail, FILTER_VALIDATE_EMAIL)) 
                 $receiptNo,
                 $paymentDate,
                 $formattedTotalAmount,
-                $receiptPdf,
-                $logoPath
+                $receiptPdf
             );
             $emailSent = true;
             $emailMessage = 'Payment receipt emailed to the guardian successfully.';
