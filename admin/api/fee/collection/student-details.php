@@ -205,11 +205,78 @@ if (!mysqli_stmt_execute($feeStmt)) {
     exit;
 }
 
+$feeResult = mysqli_stmt_get_result($feeStmt);
+
 $normalize = static function ($value) {
     return strtoupper(preg_replace('/\s+/', '', trim((string)$value)));
 };
 $studentClass = $normalize($class);
 $studentClassSection = $studentClass . $normalize($section);
+
+$accountSql = "SELECT
+                    iba.`account_name`,
+                    iba.`account_no`,
+                    iba.`beneficiary_name`,
+                    iba.`ifsc_code`
+               FROM `split_bank_accounts` sba
+               INNER JOIN `institution_bank_accounts` iba
+                   ON iba.`id` = sba.`account_id`
+                  AND iba.`inst_id` = sba.`inst_id`
+               WHERE sba.`inst_id` = ?
+                 AND iba.`inst_id` = ?
+                 AND iba.`status` = 1
+                 AND (
+                     FIND_IN_SET(?, REPLACE(UPPER(sba.`class_section`), ' ', '')) > 0
+                     OR FIND_IN_SET(?, REPLACE(UPPER(sba.`class_section`), ' ', '')) > 0
+                 )
+               ORDER BY
+                   CASE
+                       WHEN FIND_IN_SET(?, REPLACE(UPPER(sba.`class_section`), ' ', '')) > 0 THEN 0
+                       ELSE 1
+                   END,
+                   sba.`id` ASC
+               LIMIT 1";
+$accountStmt = mysqli_prepare($conn, $accountSql);
+
+if (!$accountStmt) {
+    mysqli_stmt_close($feeStmt);
+    header("HTTP/1.0 500 Internal Server Error");
+    echo json_encode(['status' => 500, 'message' => 'Failed to prepare bank account query.']);
+    exit;
+}
+
+mysqli_stmt_bind_param(
+    $accountStmt,
+    'sssss',
+    $instituteId,
+    $instituteId,
+    $studentClassSection,
+    $studentClass,
+    $studentClassSection
+);
+
+if (!mysqli_stmt_execute($accountStmt)) {
+    mysqli_stmt_close($accountStmt);
+    mysqli_stmt_close($feeStmt);
+    header("HTTP/1.0 500 Internal Server Error");
+    echo json_encode(['status' => 500, 'message' => 'Failed to fetch bank account details.']);
+    exit;
+}
+
+$accountDetails = mysqli_fetch_assoc(mysqli_stmt_get_result($accountStmt));
+mysqli_stmt_close($accountStmt);
+
+if ($accountDetails) {
+    $accountDetails = [
+        'account_name' => $accountDetails['account_name'],
+        'account_no' => $accountDetails['account_no'],
+        'beneficiary_name' => $accountDetails['beneficiary_name'],
+        'ifsc_code' => $accountDetails['ifsc_code']
+    ];
+} else {
+    $accountDetails = null;
+}
+
 $parseClasses = static function ($classes) {
     $classes = trim((string)$classes);
     $decodedClasses = json_decode($classes, true);
@@ -256,7 +323,6 @@ $formatCompactAmount = static function ($amount) {
 $today = new DateTimeImmutable('today', new DateTimeZone('Asia/Kolkata'));
 
 $installments = [];
-$feeResult = mysqli_stmt_get_result($feeStmt);
 
 while ($fee = mysqli_fetch_assoc($feeResult)) {
     $classMatches = false;
@@ -412,5 +478,6 @@ echo json_encode([
     'total_due' => $formatCompactAmount($totalDue),
     'overdue' => $formatCompactAmount($overdue),
     'canSelectInstallment' => $canSelectInstallment,
+    'account_details' => $accountDetails,
     'installments' => $installments
 ]);
