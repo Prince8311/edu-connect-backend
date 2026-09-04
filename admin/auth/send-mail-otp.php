@@ -12,6 +12,7 @@ if ($requestMethod === 'POST') {
     require __DIR__ . "/../../PHPMailer/Exception.php";
     require __DIR__ . "/../../PHPMailer/PHPMailer.php";
     require __DIR__ . "/../../PHPMailer/SMTP.php";
+    require __DIR__ . "/../../utils/email-safety.php";
 
     $inputData = json_decode(file_get_contents("php://input"), true);
 
@@ -50,12 +51,24 @@ if ($requestMethod === 'POST') {
                 exit;
             }
 
-            $otp = rand(100000, 999999);
+            $otp = random_int(100000, 999999);
             $otpPart1 = substr($otp, 0, 3);
             $otpPart2 = substr($otp, 3, 3);
             $expiresAt = date("Y-m-d H:i:s", time() + 600);
 
             if ($input === $data['email']) {
+                $emailReservation = reserveEmailSend($conn, $userEmail, 'otp');
+                if (!$emailReservation['allowed']) {
+                    $data = [
+                        'status' => 429,
+                        'message' => $emailReservation['reason']
+                    ];
+                    header('Retry-After: ' . $emailReservation['retry_after']);
+                    header("HTTP/1.0 429 Too Many Requests");
+                    echo json_encode($data);
+                    exit;
+                }
+
                 $mail = new PHPMailer(true);
                 try {
                     $mail->isSMTP();
@@ -139,6 +152,7 @@ if ($requestMethod === 'POST') {
                                             </body>
                                         </html>';
                     $mail->send();
+                    completeEmailSendReservation($conn, (int)$emailReservation['event_id'], true);
                     $updateSql = "UPDATE `admin_users` SET `mail_otp`='$otp', `mail_otp_expires_at`='$expiresAt' WHERE `id` = '$userId'";
                     $updateResult = mysqli_query($conn, $updateSql);
 
@@ -160,6 +174,7 @@ if ($requestMethod === 'POST') {
                         echo json_encode($data);
                     }
                 } catch (Exception $e) {
+                    completeEmailSendReservation($conn, (int)$emailReservation['event_id'], false);
                     $data = [
                         'status' => 500,
                         'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",

@@ -1,10 +1,12 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 date_default_timezone_set('Asia/Kolkata');
 require_once __DIR__ . '/env.php';
 loadEnv(__DIR__ . '/../.env');
+$isProduction = in_array(strtolower((string)getenv('APP_ENV')), ['production', 'prod'], true);
+ini_set('display_errors', $isProduction ? '0' : '1');
+ini_set('display_startup_errors', $isProduction ? '0' : '1');
+ini_set('log_errors', '1');
+error_reporting(E_ALL);
 ini_set('session.cookie_samesite', 'None');
 ini_set('session.cookie_secure', 'true');
 session_set_cookie_params([

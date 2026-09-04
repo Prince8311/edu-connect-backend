@@ -161,6 +161,20 @@ class Database
                 PRIMARY KEY (`id`),
                 UNIQUE KEY `unique_email` (`email`),
                 UNIQUE KEY `unique_phone` (`phone`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci",
+            "CREATE TABLE IF NOT EXISTS `email_send_events` (
+                `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `recipient_hash` CHAR(64) NOT NULL,
+                `ip_hash` CHAR(64) NOT NULL,
+                `category` VARCHAR(40) NOT NULL,
+                `status` ENUM('reserved','sent','failed') NOT NULL DEFAULT 'reserved',
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                INDEX `idx_email_recipient_created` (`recipient_hash`, `created_at`),
+                INDEX `idx_email_ip_created` (`ip_hash`, `created_at`),
+                INDEX `idx_email_category_created` (`category`, `created_at`),
+                INDEX `idx_email_created` (`created_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
         ];
 
@@ -169,7 +183,7 @@ class Database
         return [
             'success' => true,
             'message' => 'Tables created or already exist.',
-            'tables' => ['institutions', 'admin_users', 'admin_auth_tokens', 'roles_permissions', 'users']
+            'tables' => ['institutions', 'admin_users', 'admin_auth_tokens', 'roles_permissions', 'users', 'email_send_events']
         ];
     }
 

@@ -13,6 +13,7 @@ if ($requestMethod === 'POST') {
     require __DIR__ . "/../../../PHPMailer/Exception.php";
     require __DIR__ . "/../../../PHPMailer/PHPMailer.php";
     require __DIR__ . "/../../../PHPMailer/SMTP.php";
+    require __DIR__ . "/../../../utils/email-safety.php";
 
     $inputData = json_decode(file_get_contents("php://input"), true);
 
@@ -28,7 +29,17 @@ if ($requestMethod === 'POST') {
 
     $institutionName = mysqli_real_escape_string($conn, $inputData['institutionName']);
     $phone = mysqli_real_escape_string($conn, $inputData['phone']);
-    $email = mysqli_real_escape_string($conn, $inputData['email']);
+    $recipientEmail = trim((string)$inputData['email']);
+    if (!filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+        $data = [
+            'status' => 400,
+            'message' => 'A valid email address is required.'
+        ];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+    $email = mysqli_real_escape_string($conn, $recipientEmail);
     $location = mysqli_real_escape_string($conn, $inputData['location']);
 
     $nameCheckSql = "SELECT * FROM `institutions` WHERE `inst_name`='$institutionName'";
@@ -78,6 +89,18 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
+    $emailReservation = reserveEmailSend($conn, $recipientEmail, 'institution_registration');
+    if (!$emailReservation['allowed']) {
+        $data = [
+            'status' => 429,
+            'message' => $emailReservation['reason']
+        ];
+        header('Retry-After: ' . $emailReservation['retry_after']);
+        header("HTTP/1.0 429 Too Many Requests");
+        echo json_encode($data);
+        exit;
+    }
+
     $status = 0;
     $insertSql = "INSERT INTO `institutions`(`inst_name`, `phone`, `email`, `status`, `location`) VALUES ('$institutionName','$phone','$email','$status','$location')";
     $insertResult = mysqli_query($conn, $insertSql);
@@ -97,7 +120,7 @@ if ($requestMethod === 'POST') {
 
             $mail->isHTML(true);
             $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
-            $mail->addAddress("$email", 'User');
+            $mail->addAddress($recipientEmail, 'User');
             $mail->Subject = 'Registration successful 📜📜📜';
             $mail->Body    = '<!DOCTYPE html>
                                         <html lang="en">
@@ -163,6 +186,7 @@ if ($requestMethod === 'POST') {
                                             </body>
                                         </html>';
             $mail->send();
+            completeEmailSendReservation($conn, (int)$emailReservation['event_id'], true);
             $data = [
                 'status' => 200,
                 'message' => 'Registration successful.'
@@ -170,6 +194,7 @@ if ($requestMethod === 'POST') {
             header("HTTP/1.0 200 OK");
             echo json_encode($data);
         } catch (Exception $e) {
+            completeEmailSendReservation($conn, (int)$emailReservation['event_id'], false);
             $data = [
                 'status' => 500,
                 'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
@@ -177,6 +202,8 @@ if ($requestMethod === 'POST') {
             header("HTTP/1.0 500 Message could not be sent");
             echo json_encode($data);
         }
+    } else {
+        completeEmailSendReservation($conn, (int)$emailReservation['event_id'], false);
     }
 } else {
     $data = [

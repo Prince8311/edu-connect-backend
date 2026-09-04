@@ -32,6 +32,7 @@ require __DIR__ . "/../../../../PHPMailer/Exception.php";
 require __DIR__ . "/../../../../PHPMailer/PHPMailer.php";
 require __DIR__ . "/../../../../PHPMailer/SMTP.php";
 require __DIR__ . "/../../../../utils/payment-receipt.php";
+require __DIR__ . "/../../../../utils/email-safety.php";
 global $conn;
 $instituteId = $authResult['inst_id'];
 
@@ -605,21 +606,29 @@ $emailSent = false;
 $emailMessage = 'Guardian email is not available or is invalid.';
 
 if ($guardianEmail !== '' && filter_var($guardianEmail, FILTER_VALIDATE_EMAIL)) {
-    try {
-        sendGuardianPaymentReceiptEmail(
-            $guardianEmail,
-            $studentName,
-            $institutionName,
-            $receiptNo,
-            $paymentDate,
-            $formattedTotalAmount,
-            $receiptPdf,
-            $logoPath
-        );
-        $emailSent = true;
-        $emailMessage = 'Payment receipt emailed to the guardian successfully.';
-    } catch (Throwable $error) {
-        $emailMessage = 'Payment was saved, but the receipt email could not be sent.';
+    $emailReservation = reserveEmailSend($conn, $guardianEmail, 'payment_receipt');
+
+    if (!$emailReservation['allowed']) {
+        $emailMessage = 'Payment was saved, but the receipt email was deferred by the email safety limit.';
+    } else {
+        try {
+            sendGuardianPaymentReceiptEmail(
+                $guardianEmail,
+                $studentName,
+                $institutionName,
+                $receiptNo,
+                $paymentDate,
+                $formattedTotalAmount,
+                $receiptPdf,
+                $logoPath
+            );
+            $emailSent = true;
+            $emailMessage = 'Payment receipt emailed to the guardian successfully.';
+            completeEmailSendReservation($conn, (int)$emailReservation['event_id'], true);
+        } catch (Throwable $error) {
+            completeEmailSendReservation($conn, (int)$emailReservation['event_id'], false);
+            $emailMessage = 'Payment was saved, but the receipt email could not be sent.';
+        }
     }
 }
 

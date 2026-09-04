@@ -1,5 +1,10 @@
 <?php
 
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 header('Content-Type: application/json');
 
 if (!in_array($_SERVER['REQUEST_METHOD'], ['GET', 'POST'], true)) {
@@ -106,6 +111,21 @@ $queries = [
         PRIMARY KEY (`id`),
         UNIQUE KEY `unique_email` (`email`),
         UNIQUE KEY `unique_phone` (`phone`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci",
+
+    'email_send_events' => "CREATE TABLE IF NOT EXISTS `email_send_events` (
+        `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `recipient_hash` CHAR(64) NOT NULL,
+        `ip_hash` CHAR(64) NOT NULL,
+        `category` VARCHAR(40) NOT NULL,
+        `status` ENUM('reserved','sent','failed') NOT NULL DEFAULT 'reserved',
+        `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        INDEX `idx_email_recipient_created` (`recipient_hash`, `created_at`),
+        INDEX `idx_email_ip_created` (`ip_hash`, `created_at`),
+        INDEX `idx_email_category_created` (`category`, `created_at`),
+        INDEX `idx_email_created` (`created_at`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
 ];
 

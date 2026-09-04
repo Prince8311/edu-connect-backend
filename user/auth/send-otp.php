@@ -12,6 +12,7 @@ if ($requestMethod === 'POST') {
     require_once __DIR__ . "/../../PHPMailer/Exception.php";
     require_once __DIR__ . "/../../PHPMailer/PHPMailer.php";
     require_once __DIR__ . "/../../PHPMailer/SMTP.php";
+    require_once __DIR__ . "/../../utils/email-safety.php";
 
     $inputData = json_decode(file_get_contents("php://input"), true);
 
@@ -39,7 +40,7 @@ if ($requestMethod === 'POST') {
             $userName = $userData['name'] ?? '';
             $userName = trim($userName);
             $firstName = explode(' ', $userName)[0];
-            $otp = rand(100000, 999999);
+            $otp = random_int(100000, 999999);
             $otpPart1 = substr($otp, 0, 3);
             $otpPart2 = substr($otp, 3, 3);
             $expiresAt = date("Y-m-d H:i:s", time() + 600);
@@ -54,6 +55,19 @@ if ($requestMethod === 'POST') {
                         'message' => 'Email address not verified. Please verify your email or log in using your password.'
                     ];
                     header("HTTP/1.1 403 Forbidden");
+                    echo json_encode($response);
+                    exit;
+                }
+
+                $emailReservation = reserveEmailSend($conn, $input, 'otp');
+                if (!$emailReservation['allowed']) {
+                    $response = [
+                        'success' => false,
+                        'status' => 429,
+                        'message' => $emailReservation['reason']
+                    ];
+                    header('Retry-After: ' . $emailReservation['retry_after']);
+                    header("HTTP/1.0 429 Too Many Requests");
                     echo json_encode($response);
                     exit;
                 }
@@ -141,6 +155,7 @@ if ($requestMethod === 'POST') {
                                             </body>
                                         </html>';
                     $mail->send();
+                    completeEmailSendReservation($conn, (int)$emailReservation['event_id'], true);
 
                     $updateSql = "UPDATE `users` SET `mail_otp`='$otp',`mail_otp_expires_at`='$expiresAt' WHERE `id`='$userId'";
                     $updateResult = mysqli_query($conn, $updateSql);
@@ -163,6 +178,7 @@ if ($requestMethod === 'POST') {
                         echo json_encode($response);
                     }
                 } catch (Exception $e) {
+                    completeEmailSendReservation($conn, (int)$emailReservation['event_id'], false);
                     $response = [
                         'success' => false,
                         'status' => 500,

@@ -24,6 +24,7 @@ if ($requestMethod === 'POST') {
     require __DIR__ . "/../../../PHPMailer/Exception.php";
     require __DIR__ . "/../../../PHPMailer/PHPMailer.php";
     require __DIR__ . "/../../../PHPMailer/SMTP.php";
+    require __DIR__ . "/../../../utils/email-safety.php";
 
     $inputData = json_decode(file_get_contents("php://input"), true);
 
@@ -63,7 +64,14 @@ if ($requestMethod === 'POST') {
         }
 
         $phone = mysqli_real_escape_string($conn, isset($inputData['phone']) ? $inputData['phone'] : '');
-        $email = mysqli_real_escape_string($conn, isset($inputData['email']) ? $inputData['email'] : '');
+        $recipientEmail = trim((string)(isset($inputData['email']) ? $inputData['email'] : ''));
+        if (!filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+            $data = ['status' => 400, 'message' => 'A valid email address is required.'];
+            header("HTTP/1.0 400 Bad Request");
+            echo json_encode($data);
+            exit;
+        }
+        $email = mysqli_real_escape_string($conn, $recipientEmail);
         $status = isset($inputData['status']) ? (int)$inputData['status'] : 1;
         $city = mysqli_real_escape_string($conn, isset($inputData['city']) ? $inputData['city'] : '');
         $state = mysqli_real_escape_string($conn, isset($inputData['state']) ? $inputData['state'] : '');
@@ -109,6 +117,18 @@ if ($requestMethod === 'POST') {
             exit;
         }
 
+        $emailReservation = reserveEmailSend($conn, $recipientEmail, 'institution_update');
+        if (!$emailReservation['allowed']) {
+            $data = [
+                'status' => 429,
+                'message' => $emailReservation['reason']
+            ];
+            header('Retry-After: ' . $emailReservation['retry_after']);
+            header("HTTP/1.0 429 Too Many Requests");
+            echo json_encode($data);
+            exit;
+        }
+
         $updateSql = "UPDATE `institutions` SET `phone`='$phone', `email`='$email', `status`='$status', `city`='$city', `state`='$state', `latitude`='$latitude', `longitude`='$longitude' WHERE `id`='$institutionRowId'";
         $updateResult = mysqli_query($conn, $updateSql);
 
@@ -127,7 +147,7 @@ if ($requestMethod === 'POST') {
 
                 $mail->isHTML(true);
                 $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
-                $mail->addAddress("$email", 'User');
+                $mail->addAddress($recipientEmail, 'User');
                 $mail->Subject = 'Institution details updated successfully 📜📜📜';
                 $mail->Body    = '<!DOCTYPE html>
                                         <html lang="en">
@@ -166,6 +186,7 @@ if ($requestMethod === 'POST') {
                                             </body>
                                         </html>';
                 $mail->send();
+                completeEmailSendReservation($conn, (int)$emailReservation['event_id'], true);
 
                 $data = [
                     'status' => 200,
@@ -174,6 +195,7 @@ if ($requestMethod === 'POST') {
                 header("HTTP/1.0 200 OK");
                 echo json_encode($data);
             } catch (Exception $e) {
+                completeEmailSendReservation($conn, (int)$emailReservation['event_id'], false);
                 $data = [
                     'status' => 500,
                     'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
@@ -182,6 +204,7 @@ if ($requestMethod === 'POST') {
                 echo json_encode($data);
             }
         } else {
+            completeEmailSendReservation($conn, (int)$emailReservation['event_id'], false);
             $data = [
                 'status' => 500,
                 'message' => 'Database error: ' . mysqli_error($conn)
@@ -194,7 +217,14 @@ if ($requestMethod === 'POST') {
 
     $institutionName = mysqli_real_escape_string($conn, $inputData['institutionName']);
     $phone = mysqli_real_escape_string($conn, $inputData['phone']);
-    $email = mysqli_real_escape_string($conn, $inputData['email']);
+    $recipientEmail = trim((string)$inputData['email']);
+    if (!filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+        $data = ['status' => 400, 'message' => 'A valid email address is required.'];
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode($data);
+        exit;
+    }
+    $email = mysqli_real_escape_string($conn, $recipientEmail);
 
     $nameCheckSql = "SELECT * FROM `institutions` WHERE `inst_name`='$institutionName'";
     $nameCheckResult = mysqli_query($conn, $nameCheckSql);
@@ -263,6 +293,18 @@ if ($requestMethod === 'POST') {
     }
     $receiptPrefix = $initials;
 
+    $emailReservation = reserveEmailSend($conn, $recipientEmail, 'institution_account');
+    if (!$emailReservation['allowed']) {
+        $data = [
+            'status' => 429,
+            'message' => $emailReservation['reason']
+        ];
+        header('Retry-After: ' . $emailReservation['retry_after']);
+        header("HTTP/1.0 429 Too Many Requests");
+        echo json_encode($data);
+        exit;
+    }
+
     $adminAddSql = "INSERT INTO `admin_users`(`name`, `inst_id`, `email`, `phone`, `password`, `status`, `user_role`) VALUES ('Administrator','$institutionId','$email','$phone','$hashPass','$status','$userRole')";
     $adminAddResult = mysqli_query($conn, $adminAddSql);
 
@@ -284,7 +326,7 @@ if ($requestMethod === 'POST') {
 
             $mail->isHTML(true);
             $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
-            $mail->addAddress("$email", 'User');
+            $mail->addAddress($recipientEmail, 'User');
             $mail->Subject = 'Account created successfully 📜📜📜';
             $mail->Body    = '<!DOCTYPE html>
                                         <html lang="en">
@@ -336,6 +378,7 @@ if ($requestMethod === 'POST') {
                                             </body>
                                         </html>';
             $mail->send();
+            completeEmailSendReservation($conn, (int)$emailReservation['event_id'], true);
             $data = [
                 'status' => 200,
                 'message' => 'Institution added successfully.'
@@ -343,6 +386,7 @@ if ($requestMethod === 'POST') {
             header("HTTP/1.0 200 OK");
             echo json_encode($data);
         } catch (Exception $e) {
+            completeEmailSendReservation($conn, (int)$emailReservation['event_id'], false);
             $data = [
                 'status' => 500,
                 'message' => "Message could not be sent. Mailer Error: {$mail->ErrorInfo}",
@@ -351,6 +395,7 @@ if ($requestMethod === 'POST') {
             echo json_encode($data);
         }
     } else {
+        completeEmailSendReservation($conn, (int)$emailReservation['event_id'], false);
         $data = [
             'status' => 500,
             'message' => 'Database error: ' . mysqli_error($conn)
