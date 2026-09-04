@@ -160,7 +160,7 @@ function buildPaymentReceiptPdf(array $receipt): string
 
     $pdf->SetFillColor(...$softBlue);
     $pdf->SetDrawColor(...$borderColor);
-    $pdf->roundedRect(15, 67, 180, 23, 3, 'FD');
+    $pdf->roundedRect(15, 67, 180, 18, 3, 'FD');
 
     $summary = [
         ['RECEIPT NUMBER', $receipt['receipt_no']],
