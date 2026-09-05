@@ -471,7 +471,7 @@ foreach ($installments as $index => $installment) {
 
 $overdueMessage = empty($overdueMessageParts)
     ? null
-    : '!' . implode(' & ', $overdueMessageParts);
+    : implode(' & ', $overdueMessageParts);
 
 $canSelectInstallment = false;
 $hasPartiallyPaidOverdueInstallment = false;
