@@ -22,7 +22,7 @@ if ($requestMethod === 'GET') {
 
 	if ($isForm) {
 		$instIdEsc = mysqli_real_escape_string($conn, (string) $instituteId);
-		$formSql = "SELECT `id`, `name`, `latitude`, `longitude`
+		$formSql = "SELECT `id`, `name`, `latitude`, `longitude`, `distance`
 			FROM `transport_stopages`
 			WHERE `inst_id`='$instIdEsc' AND `status`='1'
 			ORDER BY `id` DESC";

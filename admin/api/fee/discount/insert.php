@@ -54,6 +54,9 @@ if ($requestMethod === 'POST') {
     $name = mysqli_real_escape_string($conn, $inputData['name'] ?? '');
     $amount = mysqli_real_escape_string($conn, $inputData['amount'] ?? '');
     $feeType = mysqli_real_escape_string($conn, $inputData['feeType'] ?? '');
+    $discountUnit = $inputData['discountUnit'] ?? null;
+    $discountType = $inputData['discountType'] ?? null;
+    $discountLimit = $inputData['discountLimit'] ?? null;
     $id = (int)($inputData['id'] ?? 0);
 
     if ($name === '' || $amount === '' || $feeType === '') {
@@ -76,6 +79,24 @@ if ($requestMethod === 'POST') {
         exit;
     }
 
+    $validationError = null;
+    if ($discountUnit !== null && !in_array($discountUnit, ['Rupees', 'Percentage'], true)) {
+        $validationError = 'discountUnit must be Rupees, Percentage, or null.';
+    } elseif ($discountType !== null && !in_array($discountType, ['Approx', 'Flat'], true)) {
+        $validationError = 'discountType must be Approx, Flat, or null.';
+    } elseif ($discountLimit !== null && !is_numeric($discountLimit)) {
+        $validationError = 'discountLimit must be numeric or null.';
+    }
+
+    if ($validationError !== null) {
+        header("HTTP/1.0 400 Bad Request");
+        echo json_encode([
+            'status' => 400,
+            'message' => $validationError
+        ]);
+        exit;
+    }
+
     if ($intent === 'update' && $id <= 0) {
         $data = [
             'status' => 400,
@@ -87,11 +108,14 @@ if ($requestMethod === 'POST') {
     }
 
     $instIdEsc = mysqli_real_escape_string($conn, (string)$instituteId);
+    $unitSql = $discountUnit === null ? 'NULL' : "'" . mysqli_real_escape_string($conn, $discountUnit) . "'";
+    $typeSql = $discountType === null ? 'NULL' : "'" . mysqli_real_escape_string($conn, $discountType) . "'";
+    $limitSql = $discountLimit === null ? 'NULL' : "'" . mysqli_real_escape_string($conn, (string)$discountLimit) . "'";
 
     if ($intent === 'add') {
-        $sql = "INSERT INTO `discounts` (`inst_id`, `name`, `amount`, `fee_type`) VALUES ('$instIdEsc', '$name', '$amount', '$feeType')";
+        $sql = "INSERT INTO `discounts` (`inst_id`, `name`, `unit`, `type`, `amount`, `discount_limit`, `fee_type`) VALUES ('$instIdEsc', '$name', $unitSql, $typeSql, '$amount', $limitSql, '$feeType')";
     } else {
-        $sql = "UPDATE `discounts` SET `name`='$name', `amount`='$amount', `fee_type`='$feeType' WHERE `id`='$id' AND `inst_id`='$instIdEsc'";
+        $sql = "UPDATE `discounts` SET `name`='$name', `unit`=$unitSql, `type`=$typeSql, `amount`='$amount', `discount_limit`=$limitSql, `fee_type`='$feeType' WHERE `id`='$id' AND `inst_id`='$instIdEsc'";
     }
 
     $result = mysqli_query($conn, $sql);
