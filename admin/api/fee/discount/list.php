@@ -29,7 +29,24 @@ if ($requestMethod === 'GET') {
     }
 
     $instIdEsc = mysqli_real_escape_string($conn, (string)$instituteId);
-    $sql = "SELECT `id`, `name`, `amount`, `fee_type` FROM `discounts` WHERE `inst_id`='$instIdEsc' ORDER BY `id` DESC";
+    $limit = filter_var($_GET['limit'] ?? 10, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 10;
+    $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
+    $offset = ($page - 1) * $limit;
+
+    $countSql = "SELECT COUNT(*) AS total FROM `discounts` WHERE `inst_id`='$instIdEsc'";
+    $countResult = mysqli_query($conn, $countSql);
+    if ($countResult === false) {
+        header("HTTP/1.0 500 Internal Server Error");
+        echo json_encode([
+            'status' => 500,
+            'message' => 'Database error: ' . mysqli_error($conn)
+        ]);
+        exit;
+    }
+    $totalRow = mysqli_fetch_assoc($countResult);
+    $totalDiscounts = (int)$totalRow['total'];
+
+    $sql = "SELECT `id`, `name`, `unit`, `type`, `amount`, `discount_limit`, `fee_type` FROM `discounts` WHERE `inst_id`='$instIdEsc' ORDER BY `id` DESC LIMIT $limit OFFSET $offset";
     $result = mysqli_query($conn, $sql);
 
     if ($result === false) {
@@ -47,7 +64,10 @@ if ($requestMethod === 'GET') {
         $discounts[] = [
             'id' => (int)$row['id'],
             'name' => $row['name'],
+            'unit' => $row['unit'],
+            'type' => $row['type'],
             'amount' => $row['amount'],
+            'discount_limit' => $row['discount_limit'],
             'fee_type' => $row['fee_type']
         ];
     }
@@ -55,6 +75,8 @@ if ($requestMethod === 'GET') {
     $data = [
         'status' => 200,
         'message' => 'Discount list retrieved successfully',
+        'totalCount' => $totalDiscounts,
+        'currentPage' => $page,
         'data' => $discounts
     ];
     header("HTTP/1.0 200 OK");
