@@ -348,12 +348,12 @@ while ($fee = mysqli_fetch_assoc($feeResult)) {
     $dueAmount = max(0, round($totalAmount - $paidAmount, 2));
     $installmentDate = $parseInstallmentDate($fee['scheduled_date']);
 
-    if ($paidAmount < 0.005) {
-        $status = 'Unpaid';
-    } elseif (abs($paidAmount - $totalAmount) < 0.005) {
+    if ($dueAmount < 0.005) {
         $status = 'Paid';
     } elseif ($dueAmount > 0 && $installmentDate !== false && $installmentDate < $today) {
         $status = 'Overdue';
+    } elseif ($paidAmount < 0.005) {
+        $status = 'Unpaid';
     } else {
         $status = 'Partially Paid';
     }
@@ -441,34 +441,51 @@ foreach ($installments as &$installment) {
 unset($installment);
 
 $canSelectInstallment = false;
+$hasPartiallyPaidOverdueInstallment = false;
 
-// Find the next installment whose own scheduled date has not passed yet.
-foreach ($installments as $index => $installment) {
+foreach ($installments as $installment) {
     $installmentDate = $parseInstallmentDate($installment['scheduled_date']);
 
-    if ($installmentDate === false || $installmentDate->getTimestamp() < $todayTimestamp) {
-        continue;
+    if (
+        (float)$installment['paid_amount'] >= 0.005
+        && (float)$installment['due_amount'] >= 0.005
+        && $installmentDate !== false
+        && $installmentDate->getTimestamp() < $todayTimestamp
+    ) {
+        $hasPartiallyPaidOverdueInstallment = true;
+        break;
     }
+}
 
-    $hasPreviousOverdueDue = false;
-    foreach (array_slice($installments, 0, $index) as $previousInstallment) {
-        $previousDate = $parseInstallmentDate($previousInstallment['scheduled_date']);
+// Find the next installment whose own scheduled date has not passed yet.
+if (!$hasPartiallyPaidOverdueInstallment) {
+    foreach ($installments as $index => $installment) {
+        $installmentDate = $parseInstallmentDate($installment['scheduled_date']);
 
-        if (
-            $previousInstallment['due_amount'] !== '0.00'
-            && $previousDate !== false
-            && $previousDate->getTimestamp() < $todayTimestamp
-        ) {
-            $hasPreviousOverdueDue = true;
-            break;
+        if ($installmentDate === false || $installmentDate->getTimestamp() < $todayTimestamp) {
+            continue;
         }
-    }
 
-    // A prior overdue balance can still be selected for payment. Otherwise,
-    // the next installment can be selected only before it receives any payment.
-    $canSelectInstallment = $hasPreviousOverdueDue
-        || (float)$installment['paid_amount'] < 0.005;
-    break;
+        $hasPreviousOverdueDue = false;
+        foreach (array_slice($installments, 0, $index) as $previousInstallment) {
+            $previousDate = $parseInstallmentDate($previousInstallment['scheduled_date']);
+
+            if (
+                $previousInstallment['due_amount'] !== '0.00'
+                && $previousDate !== false
+                && $previousDate->getTimestamp() < $todayTimestamp
+            ) {
+                $hasPreviousOverdueDue = true;
+                break;
+            }
+        }
+
+        // A fully unpaid overdue installment can be selected with the upcoming
+        // installment. A partially paid overdue installment must be cleared first.
+        $canSelectInstallment = $hasPreviousOverdueDue
+            || (float)$installment['paid_amount'] < 0.005;
+        break;
+    }
 }
 
 header("HTTP/1.0 200 OK");

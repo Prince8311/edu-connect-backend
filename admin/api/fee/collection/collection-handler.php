@@ -591,7 +591,7 @@ if ($requestMethod === 'GET') {
 
         $indexes = $classSectionIndexes[$className][$sectionName];
         $classSectionMatchCount++;
-        $dueAmount = 0.0;
+        $appliedAmount = 0.0;
         $paidAmount = $studentPayments[(int)$student['student_id']] ?? 0.0;
         $studentClass = strtoupper(preg_replace('/\s+/', '', $className));
         $studentClassSection = $studentClass . strtoupper(preg_replace('/\s+/', '', $sectionName));
@@ -642,10 +642,13 @@ if ($requestMethod === 'GET') {
             }
 
             if ($appliesToStudent) {
-                $dueAmount += $feeConfiguration['active_installment_total']
+                $appliedAmount += $feeConfiguration['active_installment_total']
                     * (1 + ($feeConfiguration['tax'] / 100));
             }
         }
+
+        $appliedAmount = round($appliedAmount, 2);
+        $dueAmount = max(0, round($appliedAmount - $paidAmount, 2));
 
         if ($studentsOnly) {
             $nameParts = array_values(array_filter(
@@ -671,7 +674,7 @@ if ($requestMethod === 'GET') {
             continue;
         }
 
-        $classes[$indexes['class_index']]['sections'][$indexes['section_index']]['total_applied'] += $dueAmount;
+        $classes[$indexes['class_index']]['sections'][$indexes['section_index']]['total_applied'] += $appliedAmount;
         $classes[$indexes['class_index']]['sections'][$indexes['section_index']]['total_due'] += $dueAmount;
         $classes[$indexes['class_index']]['sections'][$indexes['section_index']]['total_paid'] += $paidAmount;
         $classes[$indexes['class_index']]['sections'][$indexes['section_index']]['student_count']++;
