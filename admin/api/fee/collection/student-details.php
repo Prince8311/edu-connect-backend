@@ -320,6 +320,16 @@ $formatCompactAmount = static function ($amount) {
 
     return number_format($amount, 2, '.', '');
 };
+$formatOrdinal = static function (int $number) {
+    $lastTwoDigits = $number % 100;
+
+    if ($lastTwoDigits >= 11 && $lastTwoDigits <= 13) {
+        return $number . 'th';
+    }
+
+    $suffixes = [1 => 'st', 2 => 'nd', 3 => 'rd'];
+    return $number . ($suffixes[$number % 10] ?? 'th');
+};
 $today = new DateTimeImmutable('today', new DateTimeZone('Asia/Kolkata'));
 
 $installments = [];
@@ -440,6 +450,29 @@ foreach ($installments as &$installment) {
 }
 unset($installment);
 
+$overdueMessageParts = [];
+
+foreach ($installments as $index => $installment) {
+    if ($installment['status'] !== 'Overdue') {
+        continue;
+    }
+
+    $installmentDate = $parseInstallmentDate($installment['scheduled_date']);
+    if ($installmentDate === false) {
+        continue;
+    }
+
+    $daysOverdue = (int)$installmentDate->diff($today)->format('%a');
+    $overdueMessageParts[] = $formatOrdinal($index + 1)
+        . ' installment is overdue by '
+        . $daysOverdue
+        . ($daysOverdue === 1 ? ' day' : ' days');
+}
+
+$overdueMessage = empty($overdueMessageParts)
+    ? null
+    : '!' . implode(' & ', $overdueMessageParts);
+
 $canSelectInstallment = false;
 $hasPartiallyPaidOverdueInstallment = false;
 
@@ -494,6 +527,7 @@ echo json_encode([
     'message' => 'Student fee installments fetched.',
     'total_due' => $formatCompactAmount($totalDue),
     'overdue' => $formatCompactAmount($overdue),
+    'overdue_message' => $overdueMessage,
     'canSelectInstallment' => $canSelectInstallment,
     'account_details' => $accountDetails,
     'installments' => $installments

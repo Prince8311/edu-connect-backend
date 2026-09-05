@@ -154,7 +154,12 @@ $section = trim((string)($inputData['section'] ?? ''));
 $studentIdInput = trim((string)($inputData['studentId'] ?? ''));
 $paymentMethod = trim((string)($inputData['paymentMethod'] ?? ''));
 $paymentDate = trim((string)($inputData['paymentDate'] ?? ''));
-$paymentsInput = $inputData['payments'] ?? null;
+$installmentIdInput = trim((string)($inputData['installmentId'] ?? $inputData['installment_id'] ?? ''));
+$amountInput = isset($inputData['amount']) ? trim((string)$inputData['amount']) : '';
+$amountValue = is_numeric($amountInput) ? (float)$amountInput : 0.0;
+$amount = is_finite($amountValue)
+    ? number_format(round($amountValue, 2), 2, '.', '')
+    : '';
 
 if (
     $class === ''
@@ -163,61 +168,22 @@ if (
     || (int)$studentIdInput <= 0
     || $paymentMethod === ''
     || $paymentDate === ''
-    || !is_array($paymentsInput)
-    || count($paymentsInput) === 0
+    || !ctype_digit($installmentIdInput)
+    || (int)$installmentIdInput <= 0
+    || !is_numeric($amountInput)
+    || !is_finite($amountValue)
+    || (float)$amount <= 0
 ) {
     $data = [
         'status' => 400,
-        'message' => 'class, section, studentId, paymentMethod, paymentDate and a non-empty payments array are required.'
+        'message' => 'class, section, studentId, paymentMethod, paymentDate, installmentId and an amount greater than zero are required.'
     ];
     header("HTTP/1.0 400 Bad Request");
     echo json_encode($data);
     exit;
 }
 
-$payments = [];
-foreach ($paymentsInput as $index => $payment) {
-    if (!is_array($payment)) {
-        $data = [
-            'status' => 400,
-            'message' => 'Each item in payments must be an object.'
-        ];
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode($data);
-        exit;
-    }
-
-    // Accept the API's camelCase name and the database-style name for compatibility.
-    $installmentIdInput = trim((string)($payment['installmentId'] ?? $payment['installment_id'] ?? ''));
-    $amountInput = isset($payment['amount']) ? trim((string)$payment['amount']) : '';
-
-    $amountValue = is_numeric($amountInput) ? (float)$amountInput : 0.0;
-    $amount = is_finite($amountValue)
-        ? number_format(round($amountValue, 2), 2, '.', '')
-        : '';
-
-    if (
-        !ctype_digit($installmentIdInput)
-        || (int)$installmentIdInput <= 0
-        || !is_numeric($amountInput)
-        || !is_finite($amountValue)
-        || (float)$amount <= 0
-    ) {
-        $data = [
-            'status' => 400,
-            'message' => 'Each payment must contain a valid installmentId and an amount greater than zero.',
-            'invalidPaymentIndex' => $index
-        ];
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode($data);
-        exit;
-    }
-
-    $payments[] = [
-        'installment_id' => (int)$installmentIdInput,
-        'amount' => $amount
-    ];
-}
+$installmentId = (int)$installmentIdInput;
 
 $requestedSessionId = isset($_GET['session']) ? trim((string)$_GET['session']) : '';
 
@@ -462,74 +428,56 @@ if (!$installmentStmt) {
     exit;
 }
 
-$configurationId = null;
-$receiptPrefix = '';
+mysqli_stmt_bind_param($installmentStmt, 'iiis', $sessionId, $studentId, $installmentId, $instituteId);
 
-foreach ($payments as $index => $payment) {
-    $installmentId = $payment['installment_id'];
-    mysqli_stmt_bind_param($installmentStmt, 'iiis', $sessionId, $studentId, $installmentId, $instituteId);
-
-    if (!mysqli_stmt_execute($installmentStmt)) {
-        mysqli_stmt_close($installmentStmt);
-        $data = [
-            'status' => 500,
-            'message' => 'Failed to validate fee installments.'
-        ];
-        header("HTTP/1.0 500 Internal Server Error");
-        echo json_encode($data);
-        exit;
-    }
-
-    $installment = mysqli_fetch_assoc(mysqli_stmt_get_result($installmentStmt));
-
-    if (!$installment) {
-        mysqli_stmt_close($installmentStmt);
-        $data = [
-            'status' => 404,
-            'message' => 'A fee installment was not found for this institute.',
-            'invalidPaymentIndex' => $index,
-            'installmentId' => $installmentId
-        ];
-        header("HTTP/1.0 404 Not Found");
-        echo json_encode($data);
-        exit;
-    }
-
-    if ($configurationId === null) {
-        $configurationId = (int)$installment['configuration_id'];
-        $receiptPrefix = trim((string)$installment['receipt_prefix']);
-    } elseif ($configurationId !== (int)$installment['configuration_id']) {
-        mysqli_stmt_close($installmentStmt);
-        $data = [
-            'status' => 400,
-            'message' => 'All payment installments must belong to the same fee configuration.'
-        ];
-        header("HTTP/1.0 400 Bad Request");
-        echo json_encode($data);
-        exit;
-    }
-
-    $payments[$index]['fee_name'] = trim((string)$installment['fee_name']);
-    $payments[$index]['scheduled_date'] = trim((string)$installment['scheduled_date']);
-    $payments[$index]['installment_number'] = (int)$installment['installment_number'];
-    $installmentBaseAmount = (float)$installment['installment_base_amount'];
-    $taxPercentage = (float)$installment['tax_percentage'];
-    $installmentTotalAmount = round($installmentBaseAmount * (1 + ($taxPercentage / 100)), 2);
-    $paidToDate = round((float)$installment['previously_paid_amount'] + (float)$payment['amount'], 2);
-    $payments[$index]['installment_total_amount'] = $installmentTotalAmount;
-    $payments[$index]['paid_to_date'] = $paidToDate;
-    $payments[$index]['due_amount'] = max(0, round($installmentTotalAmount - $paidToDate, 2));
+if (!mysqli_stmt_execute($installmentStmt)) {
+    mysqli_stmt_close($installmentStmt);
+    $data = [
+        'status' => 500,
+        'message' => 'Failed to validate the fee installment.'
+    ];
+    header("HTTP/1.0 500 Internal Server Error");
+    echo json_encode($data);
+    exit;
 }
+
+$installment = mysqli_fetch_assoc(mysqli_stmt_get_result($installmentStmt));
 mysqli_stmt_close($installmentStmt);
 
+if (!$installment) {
+    $data = [
+        'status' => 404,
+        'message' => 'The fee installment was not found for this institute.',
+        'installmentId' => $installmentId
+    ];
+    header("HTTP/1.0 404 Not Found");
+    echo json_encode($data);
+    exit;
+}
+
+$receiptPrefix = trim((string)$installment['receipt_prefix']);
+$installmentBaseAmount = (float)$installment['installment_base_amount'];
+$taxPercentage = (float)$installment['tax_percentage'];
+$installmentTotalAmount = round($installmentBaseAmount * (1 + ($taxPercentage / 100)), 2);
+$paidToDate = round((float)$installment['previously_paid_amount'] + (float)$amount, 2);
+$dueAmount = max(0, round($installmentTotalAmount - $paidToDate, 2));
+$payment = [
+    'installment_id' => $installmentId,
+    'amount' => $amount,
+    'fee_name' => trim((string)$installment['fee_name']),
+    'scheduled_date' => trim((string)$installment['scheduled_date']),
+    'installment_number' => (int)$installment['installment_number'],
+    'installment_total_amount' => $installmentTotalAmount,
+    'paid_to_date' => $paidToDate,
+    'due_amount' => $dueAmount
+];
+
 $receiptNo = $receiptPrefix . random_int(100000, 999999);
-$totalAmount = array_sum(array_map(static function ($payment) {
-    return (float)$payment['amount'];
-}, $payments));
+$totalAmount = (float)$amount;
 $formattedTotalAmount = number_format($totalAmount, 2, '.', ',');
-$totalInstallmentAmount = array_sum(array_column($payments, 'installment_total_amount'));
-$totalPaidToDate = array_sum(array_column($payments, 'paid_to_date'));
-$totalDueAmount = array_sum(array_column($payments, 'due_amount'));
+$totalInstallmentAmount = $installmentTotalAmount;
+$totalPaidToDate = $paidToDate;
+$totalDueAmount = $dueAmount;
 $institutionAddress = implode(', ', array_filter([
     trim((string)($institution['location'] ?? '')),
     trim((string)($institution['city'] ?? '')),
@@ -554,7 +502,7 @@ try {
         'institution_email' => trim((string)($institution['email'] ?? '')),
         'institution_address' => $institutionAddress,
         'logo_path' => $logoPath,
-        'payments' => $payments,
+        'payments' => [$payment],
         'total_amount' => $totalAmount,
         'total_installment_amount' => $totalInstallmentAmount,
         'total_paid_to_date' => $totalPaidToDate,
@@ -586,30 +534,23 @@ if (!$insertStmt) {
 }
 
 mysqli_begin_transaction($conn);
-$insertedPaymentIds = [];
 
 try {
-    foreach ($payments as $payment) {
-        $installmentId = $payment['installment_id'];
-        $amount = $payment['amount'];
-        mysqli_stmt_bind_param(
-            $insertStmt,
-            'siiissss',
-            $instituteId,
-            $sessionId,
-            $studentId,
-            $installmentId,
-            $receiptNo,
-            $paymentMethod,
-            $amount,
-            $paymentDate
-        );
+    mysqli_stmt_bind_param(
+        $insertStmt,
+        'siiissss',
+        $instituteId,
+        $sessionId,
+        $studentId,
+        $installmentId,
+        $receiptNo,
+        $paymentMethod,
+        $amount,
+        $paymentDate
+    );
 
-        if (!mysqli_stmt_execute($insertStmt)) {
-            throw new RuntimeException('Failed to insert payment.');
-        }
-
-        $insertedPaymentIds[] = mysqli_insert_id($conn);
+    if (!mysqli_stmt_execute($insertStmt)) {
+        throw new RuntimeException('Failed to insert payment.');
     }
 
     mysqli_commit($conn);
