@@ -33,7 +33,11 @@ if ($requestMethod === 'GET') {
     $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
     $offset = ($page - 1) * $limit;
 
-    $countSql = "SELECT COUNT(*) AS total FROM `discounts` WHERE `inst_id`='$instIdEsc'";
+    $countSql = "SELECT
+        COUNT(CASE WHEN `name` NOT IN ('Staff Child', 'Advance Pay') OR `name` IS NULL THEN 1 END) AS total,
+        MAX(CASE WHEN `name` = 'Staff Child' AND `status` = 1 THEN 1 ELSE 0 END) AS staff_child_discount,
+        MAX(CASE WHEN `name` = 'Advance Pay' AND `status` = 1 THEN 1 ELSE 0 END) AS advance_pay_discount
+        FROM `discounts` WHERE `inst_id`='$instIdEsc'";
     $countResult = mysqli_query($conn, $countSql);
     if ($countResult === false) {
         header("HTTP/1.0 500 Internal Server Error");
@@ -46,7 +50,7 @@ if ($requestMethod === 'GET') {
     $totalRow = mysqli_fetch_assoc($countResult);
     $totalDiscounts = (int)$totalRow['total'];
 
-    $sql = "SELECT `id`, `name`, `unit`, `type`, `amount`, `discount_limit`, `fee_type` FROM `discounts` WHERE `inst_id`='$instIdEsc' ORDER BY `id` DESC LIMIT $limit OFFSET $offset";
+    $sql = "SELECT `id`, `name`, `unit`, `type`, `amount`, `discount_limit`, `fee_type` FROM `discounts` WHERE `inst_id`='$instIdEsc' AND (`name` NOT IN ('Staff Child', 'Advance Pay') OR `name` IS NULL) ORDER BY `id` DESC LIMIT $limit OFFSET $offset";
     $result = mysqli_query($conn, $sql);
 
     if ($result === false) {
@@ -77,6 +81,8 @@ if ($requestMethod === 'GET') {
         'message' => 'Discount list retrieved successfully',
         'totalCount' => $totalDiscounts,
         'currentPage' => $page,
+        'staffChildDiscount' => (bool)$totalRow['staff_child_discount'],
+        'advancePayDiscount' => (bool)$totalRow['advance_pay_discount'],
         'data' => $discounts
     ];
     header("HTTP/1.0 200 OK");
