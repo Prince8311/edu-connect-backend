@@ -87,6 +87,9 @@ if ($requestMethod === 'POST') {
                     $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
                     $mail->addAddress($input, $userName);
                     $mail->Subject = 'OTP for Authentication';
+                    // Embed local PNGs so email clients do not need remote downloads or SVG support.
+                    $mail->addEmbeddedImage(__DIR__ . '/../../images/logo.png', 'otp-logo', 'logo.png', 'base64', 'image/png');
+                    $mail->addEmbeddedImage(__DIR__ . '/../../images/security.png', 'otp-security', 'security.png', 'base64', 'image/png');
                     $mail->Body    = '<!DOCTYPE html>
                                         <html lang="en">
                                             <head>
@@ -111,7 +114,7 @@ if ($requestMethod === 'POST') {
                                                 <div style="position: relative; width: 100%;">
                                                     <div style="position: relative; background: #FFF; padding: 25px; border-radius: 10px; text-align: center;">
                                                         <div class="logo" style="position: relative; text-align: center;"><img
-                                                                src="https://api.edu-connect.in/images/logo.png" alt="Logo" style="height: 25px;"></div>
+                                                                src="cid:otp-logo" alt="Logo" height="25" style="height: 25px; border: 0;"></div>
                                                         <div
                                                             style="position: relative; width: 300px; padding: 20px; margin: 0 auto; margin-top: 25px; background-color: #FFF;  border-radius: 10px; box-shadow: 0 0 10px rgba(126, 126, 126, 0.3);">
                                                             <div style="position: relative; font-size: 18px; font-weight: 500;">Verify Your Identity</div>
@@ -126,8 +129,8 @@ if ($requestMethod === 'POST') {
                                                                 style="background-color: #E6E7E8; border-radius: 999px; padding: 6px 20px 6px 16px;">
                                                                 <tr>
                                                                     <td style="vertical-align: middle;">
-                                                                        <img src="https://api.edu-connect.in/images/security.svg" alt="Secure"
-                                                                            style="width: 12px; display: block;">
+                                                                        <img src="cid:otp-security" alt="Secure" width="12"
+                                                                            style="width: 12px; display: block; border: 0;">
                                                                     </td>
                                                                     <td style="vertical-align: middle; padding-left: 5px; padding-bottom: 3px;">
                                                                         <span class="poppins-font" style="font-size: 10px; font-weight: 500; color: #555;">
