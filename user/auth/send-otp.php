@@ -87,9 +87,13 @@ if ($requestMethod === 'POST') {
                     $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
                     $mail->addAddress($input, $userName);
                     $mail->Subject = 'OTP for Authentication';
-                    // Embed local PNGs so email clients do not need remote downloads or SVG support.
-                    $mail->addEmbeddedImage(__DIR__ . '/../../images/logo.png', 'otp-logo', 'logo.png', 'base64', 'image/png');
-                    $mail->addEmbeddedImage(__DIR__ . '/../../images/security.png', 'otp-security', 'security.png', 'base64', 'image/png');
+                    // Use unique, RFC-style Content-IDs shared by the HTML and inline attachments.
+                    $imageId = bin2hex(random_bytes(8));
+                    $logoCid = 'logo.' . $imageId . '@educonnekt.in';
+                    $securityCid = 'security.' . $imageId . '@educonnekt.in';
+                    $mail->addEmbeddedImage(__DIR__ . '/../../images/logo.png', $logoCid, 'logo.png', 'base64', 'image/png', 'inline');
+                    $mail->addEmbeddedImage(__DIR__ . '/../../images/security.png', $securityCid, 'security.png', 'base64', 'image/png', 'inline');
+                    $mail->AltBody = 'Your Edu Connekt sign-in code is ' . $otp . '. It is valid for 10 minutes. If you did not request this code, please ignore this email or contact support.';
                     $mail->Body    = '<!DOCTYPE html>
                                         <html lang="en">
                                             <head>
@@ -114,7 +118,7 @@ if ($requestMethod === 'POST') {
                                                 <div style="position: relative; width: 100%;">
                                                     <div style="position: relative; background: #FFF; padding: 25px; border-radius: 10px; text-align: center;">
                                                         <div class="logo" style="position: relative; text-align: center;"><img
-                                                                src="cid:otp-logo" alt="Logo" height="25" style="height: 25px; border: 0;"></div>
+                                                                src="cid:' . $logoCid . '" alt="Edu Connekt" width="160" height="25" style="width: 160px; height: 25px; border: 0; display: block; margin: 0 auto;"></div>
                                                         <div
                                                             style="position: relative; width: 300px; padding: 20px; margin: 0 auto; margin-top: 25px; background-color: #FFF;  border-radius: 10px; box-shadow: 0 0 10px rgba(126, 126, 126, 0.3);">
                                                             <div style="position: relative; font-size: 18px; font-weight: 500;">Verify Your Identity</div>
@@ -129,8 +133,8 @@ if ($requestMethod === 'POST') {
                                                                 style="background-color: #E6E7E8; border-radius: 999px; padding: 6px 20px 6px 16px;">
                                                                 <tr>
                                                                     <td style="vertical-align: middle;">
-                                                                        <img src="cid:otp-security" alt="Secure" width="12"
-                                                                            style="width: 12px; display: block; border: 0;">
+                                                                        <img src="cid:' . $securityCid . '" alt="" width="12" height="14"
+                                                                            style="width: 12px; height: 14px; display: block; border: 0;">
                                                                     </td>
                                                                     <td style="vertical-align: middle; padding-left: 5px; padding-bottom: 3px;">
                                                                         <span class="poppins-font" style="font-size: 10px; font-weight: 500; color: #555;">
