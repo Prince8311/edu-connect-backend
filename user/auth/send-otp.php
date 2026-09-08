@@ -91,8 +91,16 @@ if ($requestMethod === 'POST') {
                     $imageId = bin2hex(random_bytes(8));
                     $logoCid = 'logo.' . $imageId . '@educonnekt.in';
                     $securityCid = 'security.' . $imageId . '@educonnekt.in';
-                    $mail->addEmbeddedImage(__DIR__ . '/../../images/logo.png', $logoCid, 'logo.png', 'base64', 'image/png', 'inline');
-                    $mail->addEmbeddedImage(__DIR__ . '/../../images/security.png', $securityCid, 'security.png', 'base64', 'image/png', 'inline');
+                    // Unnamed inline parts avoid advertising these images as downloadable files.
+                    // addEmbeddedImage() supplies the source filename when its name is empty.
+                    foreach (['logo.png' => $logoCid, 'security.png' => $securityCid] as $imageFile => $imageCid) {
+                        $imageData = @file_get_contents(__DIR__ . '/../../images/' . $imageFile);
+                        if ($imageData === false || $imageData === '') {
+                            $mail->ErrorInfo = 'Could not read email image: ' . $imageFile;
+                            throw new Exception($mail->ErrorInfo);
+                        }
+                        $mail->addStringEmbeddedImage($imageData, $imageCid, '', 'base64', 'image/png', 'inline');
+                    }
                     $mail->AltBody = 'Your Edu Connekt sign-in code is ' . $otp . '. It is valid for 10 minutes. If you did not request this code, please ignore this email or contact support.';
                     $mail->Body    = '<!DOCTYPE html>
                                         <html lang="en">
