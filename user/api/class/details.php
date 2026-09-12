@@ -3,7 +3,7 @@
 require __DIR__ . "/../../../utils/headers.php";
 require __DIR__ . "/../../../utils/middleware.php";
 
-$authResult = adminAuthenticateRequest();
+$authResult = userAuthenticateRequest();
 if (!$authResult['authenticated']) {
 	header("HTTP/1.0 " . $authResult['status']);
 	echo json_encode([
