@@ -95,8 +95,9 @@ if ($requestMethod === 'GET') {
 		$classDetails['teacher'] = $joinName($teacherParts);
 
 		$studentRows = $fetchRows(
-			"SELECT s.`id` AS `student_id`, s.`enrollment_id`, n.`field_name`, n.`value`
+			"SELECT s.`id` AS `student_id`, s.`enrollment_id`, u.`profile_image`, n.`field_name`, n.`value`
 			 FROM `students` s
+			 LEFT JOIN `users` u ON u.`id` = s.`user_id` AND u.`inst_id` = s.`inst_id`
 			 LEFT JOIN `student_field_values` n ON n.`inst_id` = s.`inst_id`
 			 AND n.`student_id` = s.`id`
 			 AND n.`field_name` IN ('First Name', 'Middle Name', 'Last Name')
@@ -120,7 +121,8 @@ if ($requestMethod === 'GET') {
 			$students[$studentId] = [
 				'student_id' => $studentId,
 				'name' => '',
-				'enrollment_id' => $row['enrollment_id']
+				'enrollment_id' => $row['enrollment_id'],
+				'profile_image' => $row['profile_image']
 			];
 			$nameParts[$studentId][$row['field_name'] ?? ''] = $row['value'];
 		}
