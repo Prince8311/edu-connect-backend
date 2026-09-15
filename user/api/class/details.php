@@ -58,6 +58,20 @@ if ($requestMethod === 'GET') {
 			exit;
 		}
 		$classDetails = $rows[0];
+		$attendanceRows = $fetchRows(
+			"SELECT `attendance_type` FROM `institution_attendance_settings`
+			 WHERE `inst_id` = ? AND FIND_IN_SET(?, REPLACE(`classes`, ' ', '')) > 0
+			 ORDER BY `id` ASC LIMIT 1",
+			'ss',
+			$instituteId,
+			trim((string) $classDetails['class'])
+		);
+		$attendanceLabels = [
+			'date_wise' => 'Date wise',
+			'period_wise' => 'Period wise'
+		];
+		$classDetails['attendance_type'] = $attendanceLabels[$attendanceRows[0]['attendance_type'] ?? ''] ?? null;
+
 		$days = [
 			'mon' => 'Monday',
 			'tue' => 'Tuesday',
