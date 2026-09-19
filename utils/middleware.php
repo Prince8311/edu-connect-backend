@@ -188,6 +188,7 @@ function userAuthenticateRequest()
 
     if ($row['user_type'] === 'guardian') {
         $responseData['student_id'] = $row['student_id'];
+        $responseData['token'] = $escapedToken;
     }
 
     return $responseData;

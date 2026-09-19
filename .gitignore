@@ -1,2 +1,6 @@
 # Environment
 .env
+
+# Uploaded files
+/profile-images/
+/documents/
