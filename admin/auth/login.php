@@ -95,6 +95,19 @@ if ($requestMethod === 'POST') {
                 }
 
                 if ($savedOtp == $otp) {
+                    $updateUserSql = "UPDATE `admin_users` SET `mail_otp`=NULL, `mail_otp_expires_at`=NULL WHERE `id` = '$userId'";
+                    $updateResult = mysqli_query($conn, $updateUserSql);
+
+                    if (!$updateResult) {
+                        $data = [
+                            'status' => 500,
+                            'message' => 'Database error: ' . mysqli_error($conn)
+                        ];
+                        header("HTTP/1.0 500 Internal Server Error");
+                        echo json_encode($data);
+                        exit;
+                    }
+
                     $payload = [
                         'id' => $userId,
                         'name' => $userName,
