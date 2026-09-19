@@ -43,7 +43,7 @@ if ($requestMethod === 'GET') {
             u.`phone`
         FROM `students` s
         INNER JOIN `users` u ON u.`id` = s.`user_id`
-        WHERE s.`guardian_id`='$guardianUserId'
+        WHERE s.`guardian_id`='$userId'
           AND s.`status`='1'
     ";
     $studentsResult = mysqli_query($conn, $studentsSql);
