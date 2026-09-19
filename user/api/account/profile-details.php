@@ -20,7 +20,7 @@ if ($requestMethod === 'GET') {
     $instId = mysqli_real_escape_string($conn, (string) $authResult['inst_id']);
     $userType = $authResult['user_type'];
 
-    $fields = "u.id AS user_id, u.name, u.profile_image, u.email,
+    $fields = "u.id AS id, u.name, u.profile_image, u.email,
         IF(u.is_mail_verified = 1, 1, 0) AS is_mail_verified, u.phone,
         IF(u.is_phone_verified = 1, 1, 0) AS is_phone_verified";
     $joins = '';
@@ -46,7 +46,7 @@ if ($requestMethod === 'GET') {
         $joins = " LEFT JOIN teachers t ON t.user_id = u.id AND t.inst_id = '$instId'";
     } elseif ($userType === 'guardian') {
         $studentId = mysqli_real_escape_string($conn, (string) $authResult['student_id']);
-        $fields .= ", s.id AS student_id, s.user_id AS student_user_id,
+        $fields .= ", s.id AS student_id,
             s.enrollment_id AS student_enrollment_id,
             (SELECT MAX(value) FROM student_field_values
                 WHERE student_id = s.id AND inst_id = '$instId' AND section_id = 1
@@ -97,7 +97,6 @@ if ($requestMethod === 'GET') {
             $userData['subject'] = implode(', ', array_map('trim', explode(',', $userData['subject'])));
         } elseif ($userType === 'guardian') {
             $userData['student'] = $userData['student_id'] === null ? null : [
-                'user_id' => $userData['student_user_id'],
                 'enrollment_id' => $userData['student_enrollment_id'],
                 'class_standard' => $userData['student_class_standard'],
                 'section' => $userData['student_section'],
@@ -106,7 +105,6 @@ if ($requestMethod === 'GET') {
             ];
             unset(
                 $userData['student_id'],
-                $userData['student_user_id'],
                 $userData['student_enrollment_id'],
                 $userData['student_class_standard'],
                 $userData['student_section'],
