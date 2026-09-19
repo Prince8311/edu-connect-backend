@@ -70,18 +70,23 @@ if ($requestMethod === 'GET') {
     $totalRow = mysqli_fetch_assoc($countResult);
     $totalStudents = (int)$totalRow['total'];
 
-    $sql = "SELECT s.id, s.enrollment_id, s.status, u.profile_image, MAX(CASE WHEN sfv.field_name = 'First Name' THEN sfv.value END) AS first_name, MAX(CASE WHEN sfv.field_name = 'Middle Name' THEN sfv.value END) AS middle_name, MAX(CASE WHEN sfv.field_name = 'Last Name' THEN sfv.value END) AS last_name, MAX(CASE WHEN sfv.field_name = 'Contact No.' THEN sfv.value END) AS contact_no, MAX(CASE WHEN sfv.field_name = 'Class / Standard' THEN sfv.value END) AS class, MAX(CASE WHEN sfv.field_name = 'Section' THEN sfv.value END) AS section FROM academic_class_sections acs JOIN student_field_values sfv ON acs.id = sfv.section_id JOIN students s ON s.id = sfv.student_id JOIN users u ON u.id = s.user_id WHERE $where GROUP BY s.id, s.enrollment_id, s.status, u.profile_image ORDER BY s.id DESC LIMIT $limit OFFSET $offset";
+    $sql = "SELECT s.id, s.enrollment_id, s.status, u.profile_image, MAX(CASE WHEN sfv.field_name = 'First Name' THEN sfv.value END) AS first_name, MAX(CASE WHEN sfv.field_name = 'Middle Name' THEN sfv.value END) AS middle_name, MAX(CASE WHEN sfv.field_name = 'Last Name' THEN sfv.value END) AS last_name, MAX(CASE WHEN sfv.field_name = 'Contact No.' THEN sfv.value END) AS contact_no, MAX(CASE WHEN sfv.field_name = 'Class / Standard' THEN sfv.value END) AS class, MAX(CASE WHEN sfv.field_name = 'Section' THEN sfv.value END) AS section FROM academic_class_sections acs JOIN student_field_values sfv ON acs.id = sfv.section_id JOIN students s ON s.id = sfv.student_id JOIN users u ON u.id = s.user_id AND u.inst_id = s.inst_id WHERE $where GROUP BY s.id, s.enrollment_id, s.status, u.profile_image ORDER BY s.id DESC LIMIT $limit OFFSET $offset";
     $result = mysqli_query($conn, $sql);
 
     if ($result) {
         $students = [];
         while ($row = mysqli_fetch_assoc($result)) {
 
-            $fullName = trim(
-                ($row['first_name'] ?? '') . ' ' .
-                    ($row['middle_name'] ?? '') . ' ' .
-                    ($row['last_name'] ?? '')
-            );
+            $nameParts = array_map(static function ($namePart) {
+                return trim((string) $namePart);
+            }, [
+                $row['first_name'] ?? null,
+                $row['middle_name'] ?? null,
+                $row['last_name'] ?? null
+            ]);
+            $fullName = implode(' ', array_values(array_filter($nameParts, static function ($namePart) {
+                return $namePart !== '';
+            })));
 
             $students[] = [
                 "id" => $row['id'],

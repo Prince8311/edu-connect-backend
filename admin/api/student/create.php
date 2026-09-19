@@ -486,14 +486,8 @@ if ($requestMethod === 'POST') {
 
             $userIdValue   = ($newUserId !== null) ? "'$newUserId'" : "NULL";
             $guardianIdValue = ($guardianUserId !== null) ? "'$guardianUserId'" : "NULL";
-            if ($profileImageFileName !== null && $profileImageFileName !== '') {
-                $profileImageEsc = mysqli_real_escape_string($conn, $profileImageFileName);
-                $profileImageValue = "'$profileImageEsc'";
-            } else {
-                $profileImageValue = "NULL";
-            }
 
-            $studentSql = "INSERT INTO students (profile_image, inst_id, user_id, guardian_id, enrollment_id, created_at) VALUES ($profileImageValue, '$instituteId', $userIdValue, $guardianIdValue, '$enrollmentId', NOW())";
+            $studentSql = "INSERT INTO students (inst_id, user_id, guardian_id, enrollment_id, created_at) VALUES ('$instituteId', $userIdValue, $guardianIdValue, '$enrollmentId', NOW())";
             if (!mysqli_query($conn, $studentSql)) {
                 throw new \Exception("Failed to insert student");
             }
