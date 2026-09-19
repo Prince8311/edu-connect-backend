@@ -26,7 +26,7 @@ if ($requestMethod === 'GET') {
     $joins = '';
 
     if ($userType === 'student') {
-        $fields .= ", s.id AS student_id, s.guardian_id, s.enrollment_id,
+        $fields .= ", s.enrollment_id,
             (SELECT MAX(value) FROM student_field_values
                 WHERE student_id = s.id AND inst_id = '$instId' AND section_id = 1 AND field_name = 'Session') AS session,
             (SELECT MAX(value) FROM student_field_values
@@ -39,7 +39,7 @@ if ($requestMethod === 'GET') {
         $joins = " LEFT JOIN students s ON s.user_id = u.id AND s.inst_id = '$instId'
             LEFT JOIN users g ON g.id = s.guardian_id AND g.inst_id = '$instId'";
     } elseif ($userType === 'teacher') {
-        $fields .= ", t.id AS teacher_id, t.staff_id,
+        $fields .= ", t.staff_id,
             (SELECT MAX(value) FROM staff_field_values
                 WHERE staff_id = t.id AND inst_id = '$instId' AND section_id = 1
                     AND staff_type = 'teaching' AND field_name = 'Subject') AS subject";
