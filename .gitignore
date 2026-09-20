@@ -2,5 +2,5 @@
 .env
 
 # Uploaded files
-# /profile-images/
-# /documents/
+/profile-images/
+/documents/

@@ -27,7 +27,7 @@ if ($requestMethod === 'GET') {
 
     try {
         // Match the same accounts as biometric login, without issuing any tokens.
-        $statement = mysqli_prepare($conn, "SELECT DISTINCT u.`id` AS `user_id`, u.`name`, u.`profile_image`, u.`user_type` FROM `user_devices` d INNER JOIN `users` u ON u.`id` = d.`user_id` AND u.`inst_id` = d.`inst_id` WHERE d.`device_id` = ? AND d.`device_token` = ? AND d.`$column` = 1 ORDER BY u.`id`");
+        $statement = mysqli_prepare($conn, "SELECT DISTINCT u.`id`, u.`name`, u.`profile_image`, u.`user_type` FROM `user_devices` d INNER JOIN `users` u ON u.`id` = d.`user_id` AND u.`inst_id` = d.`inst_id` WHERE d.`device_id` = ? AND d.`device_token` = ? AND d.`$column` = 1 ORDER BY u.`id`");
         if (!$statement || !mysqli_stmt_bind_param($statement, 'ss', $deviceId, $deviceTokenHash)
             || !mysqli_stmt_execute($statement)) {
             throw new RuntimeException('Unable to look up biometric accounts.');
