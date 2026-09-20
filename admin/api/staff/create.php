@@ -287,7 +287,7 @@ if ($requestMethod === 'POST') {
                     finfo_close($finfo);
 
                     if (in_array($mimeType, $allowedMimes, true)) {
-                        $profileFolder = ($staffType === 'teaching') ? 'teacher' : 'admin';
+                        $profileFolder = ($staffType === 'teaching') ? 'user' : 'admin';
                         $profileImagesDir = __DIR__ . '/../../../profile-images/' . $profileFolder . '/';
                         if (!is_dir($profileImagesDir)) {
                             mkdir($profileImagesDir, 0755, true);

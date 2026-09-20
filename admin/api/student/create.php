@@ -332,7 +332,7 @@ if ($requestMethod === 'POST') {
                     finfo_close($finfo);
 
                     if (in_array($mimeType, $allowedMimes)) {
-                        $profileImagesDir = __DIR__ . '/../../../profile-images/student/';
+                        $profileImagesDir = __DIR__ . '/../../../profile-images/user/';
                         if (!is_dir($profileImagesDir)) {
                             mkdir($profileImagesDir, 0755, true);
                         }
