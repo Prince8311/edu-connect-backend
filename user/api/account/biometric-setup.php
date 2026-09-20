@@ -34,6 +34,12 @@ if ($requestMethod === 'POST') {
         }
     }
 
+    if (!isset($inputData['password']) || !is_string($inputData['password']) || $inputData['password'] === '') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'status' => 400, 'message' => 'password must be a non-empty string.']);
+        exit;
+    }
+
     $biometricType = $inputData['biometric_type'];
     if (!in_array($biometricType, ['fingerPrint', 'faceId'], true)) {
         http_response_code(400);
@@ -51,6 +57,24 @@ if ($requestMethod === 'POST') {
     $deviceTokenHash = hash('sha256', $inputData['device_token']);
 
     try {
+        $statement = mysqli_prepare($conn, 'SELECT `password` FROM `users` WHERE `id` = ? AND `inst_id` = ? LIMIT 1');
+        if (!$statement || !mysqli_stmt_bind_param($statement, 'ss', $userId, $instId)
+            || !mysqli_stmt_execute($statement) || !mysqli_stmt_bind_result($statement, $savedPasswordHash)) {
+            throw new RuntimeException('Unable to look up user password.');
+        }
+        $userFound = mysqli_stmt_fetch($statement);
+        mysqli_stmt_close($statement);
+        if ($userFound === false) {
+            throw new RuntimeException('Unable to read user password.');
+        }
+
+        // Verify the original password bytes against the stored password hash.
+        if ($userFound !== true || !password_verify($inputData['password'], (string) $savedPasswordHash)) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'status' => 401, 'message' => 'Incorrect password. Please try again.']);
+            exit;
+        }
+
         $statement = mysqli_prepare($conn, 'SELECT 1 FROM `user_devices` WHERE `inst_id` = ? AND `user_id` = ? AND `device_id` = ? LIMIT 1');
         if (!$statement || !mysqli_stmt_bind_param($statement, 'sss', $instId, $userId, $deviceId)
             || !mysqli_stmt_execute($statement) || !mysqli_stmt_store_result($statement)) {
