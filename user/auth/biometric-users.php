@@ -55,7 +55,7 @@ if ($requestMethod === 'GET') {
             'success' => true,
             'status' => 200,
             'message' => 'Biometric users retrieved successfully.',
-            'data' => ['userChoose' => count($users) > 1, 'users' => $users],
+            'data' => $users,
         ]);
     } catch (Throwable $exception) {
         http_response_code(500);
