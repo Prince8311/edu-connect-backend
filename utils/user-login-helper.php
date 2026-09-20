@@ -1,5 +1,16 @@
 <?php
 
+function normalizeUserPayload(array $payload): array
+{
+    foreach (['id', 'student'] as $key) {
+        if (array_key_exists($key, $payload) && is_numeric($payload[$key])) {
+            $payload[$key] = (int) $payload[$key];
+        }
+    }
+
+    return $payload;
+}
+
 function normalizeUserRoles(string $userType): array
 {
     $roles = array_map('trim', explode(',', strtolower($userType)));
@@ -12,6 +23,7 @@ function normalizeUserRoles(string $userType): array
 
 function generateTokenFromPayload(array $payload): string
 {
+    $payload = normalizeUserPayload($payload);
     $jsonPayload = json_encode($payload);
     $randomBytes = random_bytes(64);
     $tokenData = $jsonPayload . '|' . bin2hex($randomBytes);
@@ -21,6 +33,7 @@ function generateTokenFromPayload(array $payload): string
 
 function respondAfterSuccessfulAuthentication(mysqli $conn, int $userId, array $payload, string $userType, array $responseData = []): void
 {
+    $payload = normalizeUserPayload($payload);
     $roles = normalizeUserRoles($userType);
     sort($roles);
 

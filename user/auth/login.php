@@ -53,13 +53,15 @@ if ($requestMethod === 'POST') {
             $userProfileImage = isset($data['profile_image']) ? $data['profile_image'] : null;
             $userType = $data['user_type'];
             $payload = [
-                'id' => $userId,
+                'id' => (int) $userId,
                 'name' => $userName,
                 'email' => $userEmail,
                 'phone' => $userPhone,
                 'profile_image' => $userProfileImage,
                 'type' => $userType,
             ];
+
+            $payload = normalizeUserPayload($payload);
 
             if ($loginByOtp) {
                 $otp = isset($inputData['otp']) ? trim($inputData['otp']) : null;

@@ -79,8 +79,8 @@ if ($requestMethod === 'POST') {
             echo json_encode([
                 'success' => true,
                 'status' => 200,
-                'message' => 'Choose user',
-                'data' => ['userChoose' => true, 'users' => $choices],
+                'message' => 'You have multiple accounts associated with this biometric setup. Please select one to continue.',
+                'data' => ['userChoose' => true],
             ]);
             exit;
         }
@@ -104,13 +104,14 @@ if ($requestMethod === 'POST') {
         }
 
         $payload = [
-            'id' => $user['id'],
+            'id' => (int) $user['id'],
             'name' => $user['name'],
             'email' => $user['email'],
             'phone' => $user['phone'],
             'profile_image' => $user['profile_image'],
             'type' => $user['user_type'],
         ];
+        $payload = normalizeUserPayload($payload);
         respondAfterSuccessfulAuthentication($conn, (int) $user['id'], $payload, $user['user_type'], ['userChoose' => $userChoose]);
     } catch (Throwable $exception) {
         http_response_code(500);
