@@ -66,11 +66,7 @@ if ($requestMethod === 'GET') {
 			$instituteId,
 			trim((string) $classDetails['class'])
 		);
-		$attendanceLabels = [
-			'date_wise' => 'Date wise',
-			'period_wise' => 'Period wise'
-		];
-		$classDetails['attendance_type'] = $attendanceLabels[$attendanceRows[0]['attendance_type'] ?? ''] ?? null;
+		$classDetails['attendance_type'] = $attendanceRows[0]['attendance_type'] ?? null;
 
 		$days = [
 			'mon' => 'Monday',
@@ -136,9 +132,66 @@ if ($requestMethod === 'GET') {
 				'student_id' => $studentId,
 				'name' => '',
 				'enrollment_id' => $row['enrollment_id'],
-				'profile_image' => $row['profile_image']
+				'profile_image' => $row['profile_image'],
+				'attendance_status' => 'not marked'
 			];
 			$nameParts[$studentId][$row['field_name'] ?? ''] = $row['value'];
+		}
+
+		if ($classDetails['attendance_type'] === 'date_wise') {
+			$today = date('j F, Y');
+			$classSection = trim((string) $classDetails['class']) . trim((string) $classDetails['section']);
+			$dateWiseAttendanceRows = $fetchRows(
+				"SELECT `present`, `absent` FROM `date_wise_attendance`
+				 WHERE `inst_id` = ? AND `date` = ? AND `class_section` = ?
+				 ORDER BY `id` DESC LIMIT 1",
+				'sss',
+				$instituteId,
+				$today,
+				$classSection
+			);
+
+			if ($dateWiseAttendanceRows) {
+				$presentStudentIds = array_filter(array_map('trim', explode(',', (string) $dateWiseAttendanceRows[0]['present'])), 'strlen');
+				$absentStudentIds = array_filter(array_map('trim', explode(',', (string) $dateWiseAttendanceRows[0]['absent'])), 'strlen');
+				foreach ($students as $studentId => &$student) {
+					if (in_array((string) $studentId, $presentStudentIds, true)) {
+						$student['attendance_status'] = 'present';
+					} elseif (in_array((string) $studentId, $absentStudentIds, true)) {
+						$student['attendance_status'] = 'absent';
+					}
+				}
+				unset($student);
+			}
+		} elseif ($classDetails['attendance_type'] === 'period_wise') {
+			$today = date('j F, Y');
+			$classSection = trim((string) $classDetails['class']) . trim((string) $classDetails['section']);
+			$periodWiseAttendanceRows = $fetchRows(
+				"SELECT `present`, `absent` FROM `period_wise_attendance`
+				 WHERE `inst_id` = ? AND `date` = ? AND `class_section` = ?
+				 AND `period` = ? AND `time_slot` = ? AND `subject` = ?
+				 ORDER BY `id` DESC LIMIT 1",
+				'ssssss',
+				$instituteId,
+				$today,
+				$classSection,
+				$classDetails['period'],
+				$classDetails['time'],
+				$classDetails['subject']
+			);
+
+			if ($periodWiseAttendanceRows) {
+				$presentStudentIds = array_filter(array_map('trim', explode(',', (string) $periodWiseAttendanceRows[0]['present'])), 'strlen');
+				$absentStudentIds = array_filter(array_map('trim', explode(',', (string) $periodWiseAttendanceRows[0]['absent'])), 'strlen');
+				foreach ($students as $studentId => &$student) {
+					if (in_array((string) $studentId, $presentStudentIds, true)) {
+						$student['attendance_status'] = 'present';
+					} elseif (in_array((string) $studentId, $absentStudentIds, true)) {
+						$student['attendance_status'] = 'absent';
+					}
+				}
+				unset($student);
+			}
 		}
 		foreach ($students as $studentId => &$student) {
 			$student['name'] = $joinName($nameParts[$studentId]);
