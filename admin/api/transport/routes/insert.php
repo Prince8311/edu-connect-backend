@@ -118,7 +118,7 @@ if ($requestMethod === 'POST') {
         }
         $transactionStarted = true;
         if ($intent === 'update') {
-            $route = $query('SELECT `id` FROM `transport_routes` WHERE `id`=' . $quote($input['id']) . ' LIMIT 1 FOR UPDATE');
+            $route = $query('SELECT `id` FROM `transport_routes` WHERE `id`=' . $quote($input['id']) . " AND `inst_id`=$instSql LIMIT 1 FOR UPDATE");
             if (mysqli_num_rows($route) === 0) {
                 throw new RuntimeException('Route not found.', 404);
             }
@@ -153,6 +153,9 @@ if ($requestMethod === 'POST') {
             }
         }
         $routeValues = [];
+        if ($intent === 'add') {
+            $routeValues['inst_id'] = $instSql;
+        }
         foreach (['routeName' => 'name', 'vehicleId' => 'assigned_vehicle_id', 'staffs' => 'staffs'] as $field => $column) {
             if (array_key_exists($field, $input)) {
                 $routeValues[$column] = $quote($input[$field]);
@@ -169,7 +172,7 @@ if ($requestMethod === 'POST') {
             foreach ($routeValues as $column => $value) {
                 $updates[] = "`$column`=$value";
             }
-            $query('UPDATE `transport_routes` SET ' . implode(', ', $updates) . ' WHERE `id`=' . $quote($input['id']));
+            $query('UPDATE `transport_routes` SET ' . implode(', ', $updates) . ' WHERE `id`=' . $quote($input['id']) . " AND `inst_id`=$instSql");
         }
         if (!mysqli_commit($conn)) {
             throw new RuntimeException('Could not commit transaction.');
