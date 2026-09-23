@@ -53,7 +53,7 @@ if ($requestMethod === 'POST') {
                 echo json_encode($data);
             }
             $loginCount = mysqli_num_rows($authResult);
-            if ($userType === "super_admin" && $loginCount >= 2) {
+            if ($userType === "super_admin" && $loginCount >= 100) {
                 $data = [
                     'status' => 403,
                     'message' => 'Maximum device limit reached. You are already logged in on 2 devices. Please log out from another device to continue.'

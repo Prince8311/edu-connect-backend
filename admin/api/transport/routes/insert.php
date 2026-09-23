@@ -71,12 +71,9 @@ if ($requestMethod === 'POST') {
     ) {
         $respond(400, 'staffs must be a comma-separated string of staff IDs.');
     }
-    $validTime = function ($value) {
-        return is_string($value) && preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/D', $value);
-    };
     foreach (['startTime', 'endTime'] as $field) {
-        if (array_key_exists($field, $input) && !$validTime($input[$field])) {
-            $respond(400, "$field must use HH:MM or HH:MM:SS format.");
+        if (array_key_exists($field, $input) && !is_string($input[$field])) {
+            $respond(400, "$field must be a string.");
         }
     }
     $stopageIds = [];
@@ -97,8 +94,8 @@ if ($requestMethod === 'POST') {
                 if ($intent === 'add' && !array_key_exists($field, $stopage)) {
                     $respond(400, "Each stopage must contain $field for add.");
                 }
-                if (array_key_exists($field, $stopage) && !$validTime($stopage[$field])) {
-                    $respond(400, "$field must use HH:MM or HH:MM:SS format.");
+                if (array_key_exists($field, $stopage) && !is_string($stopage[$field])) {
+                    $respond(400, "$field must be a string.");
                 }
             }
         }
