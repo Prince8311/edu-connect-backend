@@ -154,7 +154,11 @@ try {
 		'data' => array_values($students)
 	]);
 } catch (Throwable $e) {
-	error_log('Class students API: ' . $e->getMessage());
-	http_response_code(500);
-	echo json_encode(['status' => 500, 'message' => 'Unable to fetch class students.']);
+	$response = [
+        'success' => false,
+        'status' => 405,
+        'message' => $requestMethod . ' Method Not Allowed',
+    ];
+    header("HTTP/1.0 405 Method Not Allowed");
+    echo json_encode($response);
 }
