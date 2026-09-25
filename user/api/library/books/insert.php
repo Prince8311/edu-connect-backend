@@ -111,7 +111,7 @@ if ($requestMethod === 'POST') {
     $subjectEsc    = mysqli_real_escape_string($conn, $subject);
     $authorEsc     = mysqli_real_escape_string($conn, $author);
 
-    $sql = "INSERT INTO `library_books` (`inst_id`, `name`, `short_code`, `cover_image`, `class`, `subject`, `author`, `uploaded_by`)
+    $sql = "INSERT INTO `library_ebooks` (`inst_id`, `name`, `short_code`, `cover_image`, `class`, `subject`, `author`, `uploaded_by`)
             VALUES ('$instituteId', '$nameEsc', '$shortCodeEsc', '$coverEsc', '$classEsc', '$subjectEsc', '$authorEsc', '$userId')";
 
     if (!mysqli_query($conn, $sql)) {

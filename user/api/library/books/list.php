@@ -79,7 +79,7 @@ if ($requestMethod === 'GET') {
     $whereSQL = 'WHERE ' . implode(' AND ', $whereClauses);
 
     // Total count
-    $countSql    = "SELECT COUNT(*) AS total FROM `library_books` lb $whereSQL";
+    $countSql    = "SELECT COUNT(*) AS total FROM `library_ebooks` lb $whereSQL";
     $countResult = mysqli_query($conn, $countSql);
     $totalCount  = (int) mysqli_fetch_assoc($countResult)['total'];
 
@@ -88,7 +88,7 @@ if ($requestMethod === 'GET') {
                       lb.`class`, lb.`subject`, lb.`author`,
                       lb.`uploaded_by`, u.`name` AS uploaded_by_name,
                       DATE_FORMAT(lb.`uploaded_at`, '%d %b, %Y') AS uploaded_at
-               FROM `library_books` lb
+               FROM `library_ebooks` lb
                LEFT JOIN `users` u ON u.`id` = lb.`uploaded_by`
                $whereSQL
                ORDER BY lb.`uploaded_at` DESC

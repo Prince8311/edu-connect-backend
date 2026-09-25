@@ -72,7 +72,7 @@ if ($requestMethod === 'POST') {
     // --------------------------
     // Fetch Book Short Code
     // --------------------------
-    $bookSql = "SELECT short_code FROM library_books WHERE id = '$bookId' AND inst_id = '$instituteId' LIMIT 1";
+    $bookSql = "SELECT short_code FROM library_ebooks WHERE id = '$bookId' AND inst_id = '$instituteId' LIMIT 1";
     $bookQuery = mysqli_query($conn, $bookSql);
 
     if (!$bookQuery || mysqli_num_rows($bookQuery) == 0) {
@@ -115,7 +115,7 @@ if ($requestMethod === 'POST') {
     $fileNameEsc = mysqli_real_escape_string($conn, $fileName);
     $chapterIndexEsc = mysqli_real_escape_string($conn, $chapterIndex);
 
-    $insertSql = "INSERT INTO `library_book_chapters`(`inst_id`, `book_id`, `chapter_index`, `name`, `file_name`) VALUES ('$instituteId','$bookId','$chapterIndexEsc','$chapterNameEsc','$fileNameEsc')";
+    $insertSql = "INSERT INTO `library_ebook_chapters`(`inst_id`, `book_id`, `chapter_index`, `name`, `file_name`) VALUES ('$instituteId','$bookId','$chapterIndexEsc','$chapterNameEsc','$fileNameEsc')";
     $insertQuery = mysqli_query($conn, $insertSql);
 
     if (!$insertQuery) {

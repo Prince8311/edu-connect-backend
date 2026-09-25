@@ -37,12 +37,12 @@ if ($requestMethod === 'GET') {
 
     $whereSQL = "WHERE `inst_id` = '$instituteId' AND `book_id` = '$bookIdEsc'";
 
-    $countSql    = "SELECT COUNT(*) AS total FROM `library_book_chapters` $whereSQL";
+    $countSql    = "SELECT COUNT(*) AS total FROM `library_ebook_chapters` $whereSQL";
     $countResult = mysqli_query($conn, $countSql);
     $totalCount  = (int) mysqli_fetch_assoc($countResult)['total'];
 
     $sql = "SELECT `id`, `chapter_index`, `name`, `file_name`
-			FROM `library_book_chapters`
+			FROM `library_ebook_chapters`
 			$whereSQL
 			ORDER BY `chapter_index` ASC, `id` ASC
 			LIMIT $limit OFFSET $offset";
