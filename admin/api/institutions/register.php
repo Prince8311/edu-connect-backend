@@ -41,6 +41,12 @@ if ($requestMethod === 'POST') {
     }
     $email = mysqli_real_escape_string($conn, $recipientEmail);
     $location = mysqli_real_escape_string($conn, $inputData['location']);
+    $city = mysqli_real_escape_string($conn, (string) ($inputData['city'] ?? ''));
+    $state = mysqli_real_escape_string($conn, (string) ($inputData['state'] ?? ''));
+    $latitude = mysqli_real_escape_string($conn, (string) ($inputData['latitude'] ?? ''));
+    $longitude = mysqli_real_escape_string($conn, (string) ($inputData['longitude'] ?? ''));
+    $startTime = mysqli_real_escape_string($conn, (string) ($inputData['startTime'] ?? ''));
+    $endTime = mysqli_real_escape_string($conn, (string) ($inputData['endTime'] ?? ''));
 
     $nameCheckSql = "SELECT * FROM `institutions` WHERE `inst_name`='$institutionName'";
     $nameCheckResult = mysqli_query($conn, $nameCheckSql);
@@ -102,7 +108,7 @@ if ($requestMethod === 'POST') {
     }
 
     $status = 0;
-    $insertSql = "INSERT INTO `institutions`(`inst_name`, `phone`, `email`, `status`, `location`) VALUES ('$institutionName','$phone','$email','$status','$location')";
+    $insertSql = "INSERT INTO `institutions`(`inst_name`, `phone`, `email`, `status`, `city`, `state`, `location`, `latitude`, `longitude`, `start_time`, `end_time`) VALUES ('$institutionName','$phone','$email','$status','$city','$state','$location','$latitude','$longitude','$startTime','$endTime')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {
