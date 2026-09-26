@@ -1,18 +1,6 @@
 <?php
 
 require __DIR__ . "/../../../utils/headers.php";
-require __DIR__ . "/../../../utils/middleware.php";
-
-$authResult = adminAuthenticateRequest();
-if (!$authResult['authenticated']) {
-    $data = [
-        'status' => $authResult['status'],
-        'message' => $authResult['message']
-    ];
-    header("HTTP/1.0 " . $authResult['status']);
-    echo json_encode($data);
-    exit;
-}
 
 if ($requestMethod === 'GET') {
     require __DIR__ . "/../../../_db-connect.php";
