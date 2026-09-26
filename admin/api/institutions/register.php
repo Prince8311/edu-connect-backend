@@ -45,6 +45,8 @@ if ($requestMethod === 'POST') {
     $state = mysqli_real_escape_string($conn, (string) ($inputData['state'] ?? ''));
     $latitude = mysqli_real_escape_string($conn, (string) ($inputData['latitude'] ?? ''));
     $longitude = mysqli_real_escape_string($conn, (string) ($inputData['longitude'] ?? ''));
+    $board = mysqli_real_escape_string($conn, (string) ($inputData['board'] ?? ''));
+    $affiliationNo = mysqli_real_escape_string($conn, (string) ($inputData['affiliationNo'] ?? ''));
     $startTime = mysqli_real_escape_string($conn, (string) ($inputData['startTime'] ?? ''));
     $endTime = mysqli_real_escape_string($conn, (string) ($inputData['endTime'] ?? ''));
 
@@ -108,7 +110,7 @@ if ($requestMethod === 'POST') {
     }
 
     $status = 0;
-    $insertSql = "INSERT INTO `institutions`(`inst_name`, `phone`, `email`, `status`, `city`, `state`, `location`, `latitude`, `longitude`, `start_time`, `end_time`) VALUES ('$institutionName','$phone','$email','$status','$city','$state','$location','$latitude','$longitude','$startTime','$endTime')";
+    $insertSql = "INSERT INTO `institutions`(`inst_name`, `phone`, `email`, `status`, `city`, `state`, `location`, `latitude`, `longitude`, `board`, `affiliation_no`, `start_time`, `end_time`) VALUES ('$institutionName','$phone','$email','$status','$city','$state','$location','$latitude','$longitude','$board','$affiliationNo','$startTime','$endTime')";
     $insertResult = mysqli_query($conn, $insertSql);
 
     if ($insertResult) {
