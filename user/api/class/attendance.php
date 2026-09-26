@@ -35,12 +35,13 @@ if (!is_string($intent) || !in_array(strtolower(trim($intent)), ['add', 'update'
 }
 $intent = strtolower(trim($intent));
 
-if (!isset($_POST['inputs'])) {
+$rawBody = file_get_contents('php://input');
+if ($rawBody === false || trim($rawBody) === '') {
     $respond(400, 'Empty request data');
 }
-$inputData = json_decode((string) $_POST['inputs'], true);
+$inputData = json_decode($rawBody, true);
 if (!is_array($inputData)) {
-    $respond(400, 'Invalid inputs payload');
+    $respond(400, 'Invalid JSON request body');
 }
 
 $attendanceType = $inputData['attendance_type'] ?? null;
@@ -51,6 +52,9 @@ $attendanceType = strtolower(trim($attendanceType));
 $table = $attendanceType === 'date_wise' ? 'date_wise_attendance' : 'period_wise_attendance';
 
 $normalizeStudentIds = static function ($value) {
+    if ($value === null) {
+        $value = [];
+    }
     if (is_string($value)) {
         $value = $value === '' ? [] : explode(',', $value);
     }
