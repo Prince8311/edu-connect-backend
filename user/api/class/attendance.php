@@ -75,7 +75,7 @@ $normalizeStudentIds = static function ($value) {
 $commonFields = ['class', 'section', 'date', 'present', 'absent'];
 $periodFields = ['period', 'time_slot', 'subject'];
 $requiredFields = array_merge($commonFields, $attendanceType === 'period_wise' ? $periodFields : []);
-if ($intent === 'add') {
+if ($intent === 'add' || $intent === 'update') {
     foreach ($requiredFields as $field) {
         if (!array_key_exists($field, $inputData)) {
             $respond(400, implode(', ', $requiredFields) . ' are required.');
@@ -172,29 +172,35 @@ try {
         $respond(200, 'Attendance added successfully.', ['id' => $attendanceId]);
     }
 
-    $id = $inputData['id'] ?? null;
-    if ((!is_string($id) && !is_int($id)) || !preg_match('/^[1-9][0-9]*$/', trim((string) $id))) {
-        $respond(400, 'A valid id is required for update intent.');
-    }
-    if (!$values) {
-        $respond(400, 'No attendance fields were provided to update.');
-    }
+    $updateFields = ['present' => $values['present'], 'absent' => $values['absent']];
     $assignments = implode(', ', array_map(static function ($column) {
         return '`' . $column . '` = ?';
-    }, array_keys($values)));
-    $sql = 'UPDATE `' . $table . '` SET ' . $assignments . ' WHERE `id` = ? AND `inst_id` = ? LIMIT 1';
+    }, array_keys($updateFields)));
+    $where = '`inst_id` = ? AND `date` = ? AND `class_section` = ?';
+    $whereValues = [$instituteId, $values['date'], $values['class_section']];
+    if ($attendanceType === 'period_wise') {
+        $where .= ' AND `period` = ? AND `time_slot` = ? AND `subject` = ?';
+        $whereValues = array_merge($whereValues, [
+            $values['period'],
+            $values['time_slot'],
+            $values['subject']
+        ]);
+    }
+    $sql = 'UPDATE `' . $table . '` SET ' . $assignments . ' WHERE ' . $where . ' LIMIT 1';
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         throw new RuntimeException('Could not prepare attendance update.');
     }
-    $params = array_merge(array_values($values), [(string) $id, $instituteId]);
+    $params = array_merge(array_values($updateFields), $whereValues);
     $types = str_repeat('s', count($params));
     if (!$stmt->bind_param($types, ...$params) || !$stmt->execute()) {
         throw new RuntimeException($stmt->error ?: 'Could not update attendance.');
     }
     if ($stmt->affected_rows === 0) {
-        $check = $conn->prepare('SELECT `id` FROM `' . $table . '` WHERE `id` = ? AND `inst_id` = ? LIMIT 1');
-        if (!$check || !$check->bind_param('ss', $id, $instituteId) || !$check->execute()) {
+        $check = $conn->prepare('SELECT `id` FROM `' . $table . '` WHERE ' . $where . ' LIMIT 1');
+        $checkParams = $whereValues;
+        $checkTypes = str_repeat('s', count($checkParams));
+        if (!$check || !$check->bind_param($checkTypes, ...$checkParams) || !$check->execute()) {
             throw new RuntimeException('Could not verify attendance row.');
         }
         $exists = $check->get_result()->num_rows > 0;
@@ -205,9 +211,8 @@ try {
         }
     }
     $stmt->close();
-    $respond(200, 'Attendance updated successfully.', ['id' => (int) $id]);
+    $respond(200, 'Attendance updated successfully.');
 } catch (Throwable $error) {
     error_log('Attendance save failed: ' . $error->getMessage());
     $respond(500, 'Failed to save attendance.');
 }
-
