@@ -67,6 +67,34 @@ if ($requestMethod === 'GET') {
 			trim((string) $classDetails['class'])
 		);
 		$classDetails['attendance_type'] = $attendanceRows[0]['attendance_type'] ?? null;
+		$classDetails['attendance_marked'] = false;
+		$today = date('j F, Y');
+		$classSection = trim((string) $classDetails['class']) . '-' . trim((string) $classDetails['section']);
+		if ($classDetails['attendance_type'] === 'date_wise') {
+			$markedRows = $fetchRows(
+				"SELECT `id` FROM `date_wise_attendance`
+				 WHERE `inst_id` = ? AND `date` = ? AND `class_section` = ? LIMIT 1",
+				'sss',
+				$instituteId,
+				$today,
+				$classSection
+			);
+			$classDetails['attendance_marked'] = !empty($markedRows);
+		} elseif ($classDetails['attendance_type'] === 'period_wise') {
+			$markedRows = $fetchRows(
+				"SELECT `id` FROM `period_wise_attendance`
+				 WHERE `inst_id` = ? AND `date` = ? AND `class_section` = ?
+				 AND `period` = ? AND `time_slot` = ? AND `subject` = ? LIMIT 1",
+				'ssssss',
+				$instituteId,
+				$today,
+				$classSection,
+				$classDetails['period'],
+				$classDetails['time'],
+				$classDetails['subject']
+			);
+			$classDetails['attendance_marked'] = !empty($markedRows);
+		}
 
 		$days = [
 			'mon' => 'Monday',

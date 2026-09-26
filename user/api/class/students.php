@@ -107,7 +107,7 @@ try {
 
 	$attendanceRow = [];
 	$today = date('j F, Y');
-	$classSection = trim((string) $classDetails['class']) . trim((string) $classDetails['section']);
+	$classSection = trim((string) $classDetails['class']) . '-' . trim((string) $classDetails['section']);
 	if ($attendanceType === 'date_wise') {
 		$attendanceRow = $fetchRows(
 			"SELECT `present`, `absent` FROM `date_wise_attendance`
