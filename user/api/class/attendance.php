@@ -44,12 +44,124 @@ if (!is_array($inputData)) {
     $respond(400, 'Invalid JSON request body');
 }
 
-$attendanceType = $inputData['attendance_type'] ?? null;
+$attendanceType = $inputData['attendanceType'] ?? $inputData['attendance_type'] ?? null;
 if (!is_string($attendanceType) || !in_array(strtolower(trim($attendanceType)), ['date_wise', 'period_wise'], true)) {
-    $respond(400, 'attendance_type must be date_wise or period_wise.');
+    $respond(400, 'attendanceType (or attendance_type) must be date_wise or period_wise.');
 }
 $attendanceType = strtolower(trim($attendanceType));
 $table = $attendanceType === 'date_wise' ? 'date_wise_attendance' : 'period_wise_attendance';
+
+$parseTimeMinutes = static function ($value) {
+    if (!is_string($value) || trim($value) === '') {
+        return null;
+    }
+    $normalized = strtoupper(trim($value));
+    foreach (['!h:i A', '!g:i A'] as $format) {
+        $parsed = DateTime::createFromFormat($format, $normalized);
+        $errors = DateTime::getLastErrors();
+        if ($parsed instanceof DateTime
+            && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
+            return ((int) $parsed->format('G') * 60) + (int) $parsed->format('i');
+        }
+    }
+    return null;
+};
+
+$isCurrentTimeInRange = static function ($currentMinutes, $range) use ($parseTimeMinutes) {
+    if (!is_string($range) || trim($range) === '') {
+        return false;
+    }
+    $parts = explode('-', trim($range), 2);
+    if (!is_array($parts) || count($parts) !== 2) {
+        return false;
+    }
+    $startMinutes = $parseTimeMinutes(trim($parts[0]));
+    $endMinutes = $parseTimeMinutes(trim($parts[1]));
+    if ($startMinutes === null || $endMinutes === null) {
+        return false;
+    }
+    if ($endMinutes < $startMinutes) {
+        return $currentMinutes >= $startMinutes || $currentMinutes <= $endMinutes;
+    }
+    return $currentMinutes >= $startMinutes && $currentMinutes <= $endMinutes;
+};
+
+$now = new DateTimeImmutable('now');
+$todayDate = $now->format('j F, Y');
+$currentTime = $now->format('h:i A');
+$currentMinutes = $parseTimeMinutes($currentTime);
+if ($attendanceType === 'date_wise') {
+    $requestedDate = $inputData['date'] ?? null;
+    if (!is_string($requestedDate) || trim($requestedDate) !== $todayDate) {
+        $respond(400, 'Attendance can only be submitted for today (' . $todayDate . ').');
+    }
+
+    $institutionStmt = $conn->prepare(
+        'SELECT `start_time`, `end_time` FROM `institutions` WHERE `inst_id` = ? LIMIT 1'
+    );
+    if (!$institutionStmt) {
+        $respond(500, 'Could not validate institution attendance hours.');
+    }
+    $institutionStmt->bind_param('s', $instituteId);
+    if (!$institutionStmt->execute()) {
+        $institutionStmt->close();
+        $respond(500, 'Could not validate institution attendance hours.');
+    }
+    $institutionResult = $institutionStmt->get_result();
+    $institution = $institutionResult ? $institutionResult->fetch_assoc() : null;
+    $institutionStmt->close();
+    if (!$institution
+        || !$isCurrentTimeInRange(
+            $currentMinutes,
+            (string) $institution['start_time'] . ' - ' . (string) $institution['end_time']
+        )) {
+        $respond(403, 'Attendance can only be submitted during your institution operating hours.');
+    }
+} else {
+    $classroomId = $inputData['classroom_id'] ?? null;
+    if ((!is_string($classroomId) && !is_int($classroomId))
+        || !preg_match('/^[1-9][0-9]*$/', trim((string) $classroomId))) {
+        $respond(400, 'A valid classroom_id is required for period-wise attendance.');
+    }
+
+    $scheduleStmt = $conn->prepare(
+        'SELECT `day`, `time` FROM `time_table` WHERE `classroom_id` = ? AND `inst_id` = ?'
+    );
+    if (!$scheduleStmt) {
+        $respond(500, 'Could not validate the class schedule.');
+    }
+    $classroomId = trim((string) $classroomId);
+    $scheduleStmt->bind_param('ss', $classroomId, $instituteId);
+    if (!$scheduleStmt->execute()) {
+        $scheduleStmt->close();
+        $respond(500, 'Could not validate the class schedule.');
+    }
+    $scheduleResult = $scheduleStmt->get_result();
+    $schedules = $scheduleResult ? $scheduleResult->fetch_all(MYSQLI_ASSOC) : [];
+    $scheduleStmt->close();
+    if (!$schedules) {
+        $respond(404, 'The requested class schedule could not be found.');
+    }
+    $todayDay = strtolower($now->format('D'));
+    $hasScheduleToday = false;
+    $isWithinScheduledTime = false;
+    foreach ($schedules as $schedule) {
+        if (strtolower(substr(trim((string) $schedule['day']), 0, 3)) !== $todayDay) {
+            continue;
+        }
+        $hasScheduleToday = true;
+        if ($isCurrentTimeInRange($currentMinutes, (string) $schedule['time'])) {
+            $isWithinScheduledTime = true;
+            break;
+        }
+    }
+    if (!$hasScheduleToday) {
+        $respond(403, 'Attendance can only be submitted on the scheduled class day.');
+    }
+    if (!$isWithinScheduledTime) {
+        $respond(403, 'Attendance can only be submitted during the scheduled class time.');
+    }
+}
 
 $normalizeStudentIds = static function ($value) {
     if ($value === null) {
@@ -118,6 +230,10 @@ if ($hasClass) {
 
 foreach (['present', 'absent'] as $field) {
     if (!array_key_exists($field, $inputData)) {
+        continue;
+    }
+    if ($inputData[$field] === null) {
+        $values[$field] = null;
         continue;
     }
     $normalized = $normalizeStudentIds($inputData[$field]);
