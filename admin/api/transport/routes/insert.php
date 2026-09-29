@@ -40,7 +40,7 @@ if ($requestMethod === 'POST') {
     if (empty($instituteId)) {
         $respond(422, 'Institute ID is missing from authentication.');
     }
-    $fields = ['routeName', 'vehicleId', 'staffs', 'startTime', 'endTime', 'stopages'];
+    $fields = ['routeName', 'vehicleId', 'staffs', 'stopages'];
     foreach ($fields as $field) {
         if ($intent === 'add' && !array_key_exists($field, $input)) {
             $respond(400, "$field is required for add.");
@@ -71,11 +71,7 @@ if ($requestMethod === 'POST') {
     ) {
         $respond(400, 'staffs must be a comma-separated string of staff IDs.');
     }
-    foreach (['startTime', 'endTime'] as $field) {
-        if (array_key_exists($field, $input) && !is_string($input[$field])) {
-            $respond(400, "$field must be a string.");
-        }
-    }
+
     $stopageIds = [];
     if (array_key_exists('stopages', $input)) {
         if (!is_array($input['stopages']) || array_values($input['stopages']) !== $input['stopages']) {
@@ -123,19 +119,7 @@ if ($requestMethod === 'POST') {
                 throw new RuntimeException('Route not found.', 404);
             }
         }
-        $updates = [];
-        foreach (['startTime' => 'start_time', 'endTime' => 'end_time'] as $field => $column) {
-            if (array_key_exists($field, $input)) {
-                $updates[] = "`$column`=" . $quote($input[$field]);
-            }
-        }
-        if ($updates) {
-            $institution = $query("SELECT `id` FROM `institutions` WHERE `inst_id`=$instSql FOR UPDATE");
-            if (mysqli_num_rows($institution) === 0) {
-                throw new RuntimeException('Institution not found.', 404);
-            }
-            $query('UPDATE `institutions` SET ' . implode(', ', $updates) . " WHERE `inst_id`=$instSql");
-        }
+
         foreach ($input['stopages'] ?? [] as $stopage) {
             $where = '`id`=' . $quote($stopage['id']) . " AND `inst_id`=$instSql";
             $existing = $query("SELECT `id` FROM `transport_stopages` WHERE $where LIMIT 1 FOR UPDATE");
