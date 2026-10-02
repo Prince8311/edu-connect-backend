@@ -61,7 +61,16 @@ if ($requestMethod === 'GET') {
 				$time = trim((string) $part);
 				$normalizedTime = null;
 
-				foreach (['!g:i A', '!h:i A', '!G:i', '!H:i'] as $format) {
+				foreach ([
+					'!g:i:s A',
+					'!h:i:s A',
+					'!g:i A',
+					'!h:i A',
+					'!G:i:s',
+					'!H:i:s',
+					'!G:i',
+					'!H:i',
+				] as $format) {
 					$parsedTime = DateTime::createFromFormat($format, $time);
 					if ($parsedTime instanceof DateTime) {
 						$normalizedTime = $parsedTime->format('H:i');
@@ -98,7 +107,20 @@ if ($requestMethod === 'GET') {
 			return null;
 		}
 
-		$formats = ['g:i A', 'h:i A', 'g:i a', 'h:i a'];
+		$formats = [
+			'g:i:s A',
+			'h:i:s A',
+			'g:i A',
+			'h:i A',
+			'g:i:s a',
+			'h:i:s a',
+			'g:i a',
+			'h:i a',
+			'G:i:s',
+			'H:i:s',
+			'G:i',
+			'H:i',
+		];
 		foreach ($formats as $format) {
 			$dt = DateTime::createFromFormat($format, $timeValue);
 			if ($dt instanceof DateTime) {
