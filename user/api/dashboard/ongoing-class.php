@@ -56,32 +56,7 @@ if ($requestMethod === 'GET') {
 
 		$parts = preg_split('/\s*-\s*/', $value, 2);
 		if (is_array($parts) && count($parts) === 2) {
-			$normalizedTimes = [];
-			foreach ($parts as $part) {
-				$time = trim((string) $part);
-				$normalizedTime = null;
-
-				foreach ([
-					'!g:i:s A',
-					'!h:i:s A',
-					'!g:i A',
-					'!h:i A',
-					'!G:i:s',
-					'!H:i:s',
-					'!G:i',
-					'!H:i',
-				] as $format) {
-					$parsedTime = DateTime::createFromFormat($format, $time);
-					if ($parsedTime instanceof DateTime) {
-						$normalizedTime = $parsedTime->format('H:i');
-						break;
-					}
-				}
-
-				$normalizedTimes[] = $normalizedTime ?? strtolower(preg_replace('/\s+/', ' ', $time));
-			}
-
-			return $normalizedTimes[0] . ' - ' . $normalizedTimes[1];
+			return strtolower(trim((string) $parts[0]) . ' - ' . trim((string) $parts[1]));
 		}
 
 		return strtolower(preg_replace('/\s+/', ' ', $value));
@@ -371,12 +346,7 @@ if ($requestMethod === 'GET') {
 		return $number . 'th';
 	};
 
-	$normalizePeriodLabel = static function ($value) {
-		return trim((string) preg_replace('/\s+Period\s*$/i', '', trim((string) $value)));
-	};
-
 	$timeSlotOrdinalByRange = [];
-	$timeSlotOrdinalByStart = [];
 	if ($userType === 'teacher' || $userType === 'student' || $userType === 'guardian') {
 		$timeSlotSql = "SELECT `name`, `start`, `end` FROM `time_slots` WHERE `inst_id` = ? ORDER BY STR_TO_DATE(`start`, '%h:%i %p') ASC";
 		$timeSlotStmt = $conn->prepare($timeSlotSql);
@@ -400,12 +370,7 @@ if ($requestMethod === 'GET') {
 
 				$slotRange = $normalizeTimeRange($slotStart . ' - ' . $slotEnd);
 				if ($slotRange !== '' && !isset($timeSlotOrdinalByRange[$slotRange])) {
-					$ordinalLabel = $toOrdinalLabel($slotPosition);
-					$timeSlotOrdinalByRange[$slotRange] = $ordinalLabel;
-					$normalizedSlotParts = preg_split('/\s*-\s*/', $slotRange, 2);
-					if (is_array($normalizedSlotParts) && isset($normalizedSlotParts[0])) {
-						$timeSlotOrdinalByStart[trim((string) $normalizedSlotParts[0])] = $ordinalLabel;
-					}
+					$timeSlotOrdinalByRange[$slotRange] = $toOrdinalLabel($slotPosition);
 					$slotPosition++;
 				}
 			}
@@ -491,17 +456,9 @@ if ($requestMethod === 'GET') {
 	if ($ongoingRow !== null) {
 		list($startTime, $endTime) = $splitTimeRange(isset($ongoingRow['time']) ? $ongoingRow['time'] : '');
 		$normalizedClassTime = $normalizeTimeRange(isset($ongoingRow['time']) ? $ongoingRow['time'] : '');
-		$periodLabel = $normalizePeriodLabel($ongoingRow['period']);
+		$periodLabel = $ongoingRow['period'];
 		if ($normalizedClassTime !== '' && isset($timeSlotOrdinalByRange[$normalizedClassTime])) {
 			$periodLabel = $timeSlotOrdinalByRange[$normalizedClassTime];
-		} elseif ($normalizedClassTime !== '') {
-			$normalizedClassParts = preg_split('/\s*-\s*/', $normalizedClassTime, 2);
-			$normalizedClassStart = is_array($normalizedClassParts) && isset($normalizedClassParts[0])
-				? trim((string) $normalizedClassParts[0])
-				: '';
-			if ($normalizedClassStart !== '' && isset($timeSlotOrdinalByStart[$normalizedClassStart])) {
-				$periodLabel = $timeSlotOrdinalByStart[$normalizedClassStart];
-			}
 		}
 
 		if ($userType === 'teacher') {
