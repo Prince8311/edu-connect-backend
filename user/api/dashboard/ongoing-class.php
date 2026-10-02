@@ -346,6 +346,36 @@ if ($requestMethod === 'GET') {
 		return $number . 'th';
 	};
 
+	$normalizePeriodLabel = static function ($value) use ($toOrdinalLabel) {
+		$label = strtolower(trim((string) $value));
+		$label = trim((string) preg_replace('/\s+period\s*$/i', '', $label));
+
+		$wordToNumber = [
+			'first' => 1,
+			'second' => 2,
+			'third' => 3,
+			'fourth' => 4,
+			'fifth' => 5,
+			'sixth' => 6,
+			'seventh' => 7,
+			'eighth' => 8,
+			'ninth' => 9,
+			'tenth' => 10,
+			'eleventh' => 11,
+			'twelfth' => 12,
+		];
+
+		if (isset($wordToNumber[$label])) {
+			return $toOrdinalLabel($wordToNumber[$label]);
+		}
+
+		if (preg_match('/^(\d+)(?:st|nd|rd|th)?$/i', $label, $matches)) {
+			return $toOrdinalLabel((int) $matches[1]);
+		}
+
+		return trim((string) $value);
+	};
+
 	$timeSlotOrdinalByRange = [];
 	if ($userType === 'teacher' || $userType === 'student' || $userType === 'guardian') {
 		$timeSlotSql = "SELECT `name`, `start`, `end` FROM `time_slots` WHERE `inst_id` = ? ORDER BY STR_TO_DATE(`start`, '%h:%i %p') ASC";
@@ -456,7 +486,7 @@ if ($requestMethod === 'GET') {
 	if ($ongoingRow !== null) {
 		list($startTime, $endTime) = $splitTimeRange(isset($ongoingRow['time']) ? $ongoingRow['time'] : '');
 		$normalizedClassTime = $normalizeTimeRange(isset($ongoingRow['time']) ? $ongoingRow['time'] : '');
-		$periodLabel = $ongoingRow['period'];
+		$periodLabel = $normalizePeriodLabel($ongoingRow['period']);
 		if ($normalizedClassTime !== '' && isset($timeSlotOrdinalByRange[$normalizedClassTime])) {
 			$periodLabel = $timeSlotOrdinalByRange[$normalizedClassTime];
 		}
