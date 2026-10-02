@@ -333,8 +333,12 @@ if ($requestMethod === 'GET') {
 		return $number . 'th';
 	};
 
+	$normalizePeriodLabel = static function ($value) {
+		return trim((string) preg_replace('/\s+Period\s*$/i', '', trim((string) $value)));
+	};
+
 	$timeSlotOrdinalByRange = [];
-	if ($userType === 'student' || $userType === 'guardian') {
+	if ($userType === 'teacher' || $userType === 'student' || $userType === 'guardian') {
 		$timeSlotSql = "SELECT `name`, `start`, `end` FROM `time_slots` WHERE `inst_id` = ? ORDER BY STR_TO_DATE(`start`, '%h:%i %p') ASC";
 		$timeSlotStmt = $conn->prepare($timeSlotSql);
 		if ($timeSlotStmt) {
@@ -442,13 +446,18 @@ if ($requestMethod === 'GET') {
 	$ongoingClass = null;
 	if ($ongoingRow !== null) {
 		list($startTime, $endTime) = $splitTimeRange(isset($ongoingRow['time']) ? $ongoingRow['time'] : '');
+		$normalizedClassTime = $normalizeTimeRange(isset($ongoingRow['time']) ? $ongoingRow['time'] : '');
+		$periodLabel = $normalizePeriodLabel($ongoingRow['period']);
+		if ($normalizedClassTime !== '' && isset($timeSlotOrdinalByRange[$normalizedClassTime])) {
+			$periodLabel = $timeSlotOrdinalByRange[$normalizedClassTime];
+		}
 
 		if ($userType === 'teacher') {
 			$classKey = (string) $ongoingRow['class'] . '|' . (string) $ongoingRow['section'];
 			$ongoingClass = [
 				'id' => $ongoingRow['id'],
 				'classroom_id' => $ongoingRow['classroom_id'] ?? null,
-				'period' => $ongoingRow['period'],
+				'period' => $periodLabel,
 				'start_time' => $startTime,
 				'end_time' => $endTime,
 				'subject' => $ongoingRow['subject'],
@@ -460,11 +469,6 @@ if ($requestMethod === 'GET') {
 
 		if ($userType === 'student' || $userType === 'guardian') {
 			$teacherIdRaw = isset($ongoingRow['teacher']) ? trim((string) $ongoingRow['teacher']) : '';
-			$normalizedClassTime = $normalizeTimeRange(isset($ongoingRow['time']) ? $ongoingRow['time'] : '');
-			$periodLabel = $ongoingRow['period'];
-			if ($normalizedClassTime !== '' && isset($timeSlotOrdinalByRange[$normalizedClassTime])) {
-				$periodLabel = $timeSlotOrdinalByRange[$normalizedClassTime];
-			}
 
 			$ongoingClass = [
 				'id' => $ongoingRow['id'],
