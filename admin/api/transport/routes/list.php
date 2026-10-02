@@ -28,6 +28,12 @@ if ($requestMethod === 'GET') {
     $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
     $offset = ($page - 1) * $limit;
     $instIdEsc = mysqli_real_escape_string($conn, (string) $instituteId);
+    $search = trim((string) ($_GET['search'] ?? ''));
+    $searchCondition = '';
+    if ($search !== '') {
+        $searchEsc = mysqli_real_escape_string($conn, $search);
+        $searchCondition = " AND r.`name` LIKE '%$searchEsc%'";
+    }
     $query = function ($sql) use ($conn) {
         $result = mysqli_query($conn, $sql);
         if ($result === false) {
@@ -46,7 +52,7 @@ if ($requestMethod === 'GET') {
             // For form dropdown: return all routes with only id and name
             $result = $query("SELECT r.`id`, r.`name`
                 FROM `transport_routes` r
-                WHERE r.`inst_id`='$instIdEsc'
+                WHERE r.`inst_id`='$instIdEsc'$searchCondition
                 ORDER BY r.`id` DESC");
 
             $routes = [];
@@ -62,14 +68,16 @@ if ($requestMethod === 'GET') {
             ]);
         } else {
             // For regular paginated response: return full details
-            $countResult = $query("SELECT COUNT(*) AS total FROM `transport_routes` WHERE `inst_id`='$instIdEsc'");
+            $countResult = $query("SELECT COUNT(*) AS total
+                FROM `transport_routes` r
+                WHERE r.`inst_id`='$instIdEsc'$searchCondition");
             $totalCount = (int) mysqli_fetch_assoc($countResult)['total'];
             $result = $query("SELECT r.`id`, r.`name`, r.`staffs`, r.`stopages`,
                     v.`name` AS vehicle_name, v.`number` AS vehicle_number
                 FROM `transport_routes` r
                 LEFT JOIN `transport_vehicles` v
                     ON v.`id`=r.`assigned_vehicle_id` AND v.`inst_id`=r.`inst_id`
-                WHERE r.`inst_id`='$instIdEsc'
+                WHERE r.`inst_id`='$instIdEsc'$searchCondition
                 ORDER BY r.`id` DESC LIMIT $limit OFFSET $offset");
 
             $routes = [];

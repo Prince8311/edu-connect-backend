@@ -33,6 +33,12 @@ if ($requestMethod === 'GET') {
 
     $instIdEsc = mysqli_real_escape_string($conn, (string) $instituteId);
     $routeIdEsc = mysqli_real_escape_string($conn, (string) $routeId);
+    $search = trim((string) ($_GET['search'] ?? ''));
+    $searchCondition = '';
+    if ($search !== '') {
+        $searchEsc = mysqli_real_escape_string($conn, $search);
+        $searchCondition = " AND `name` LIKE '%$searchEsc%'";
+    }
     
     $query = function ($sql) use ($conn) {
         $result = mysqli_query($conn, $sql);
@@ -72,7 +78,7 @@ if ($requestMethod === 'GET') {
             
             // Fetch stopages with status = 1
             $stopagesResult = $query("SELECT `id`, `name` FROM `transport_stopages`
-                WHERE `inst_id`='$instIdEsc' AND `id` IN (" . implode(',', $quotedIds) . ") AND `status`=1
+                WHERE `inst_id`='$instIdEsc' AND `id` IN (" . implode(',', $quotedIds) . ") AND `status`=1$searchCondition
                 ORDER BY FIELD(`id`, " . implode(',', $quotedIds) . ")");
             
             while ($stopageRow = mysqli_fetch_assoc($stopagesResult)) {
