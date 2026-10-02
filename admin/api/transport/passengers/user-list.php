@@ -20,9 +20,9 @@ if ($requestMethod === 'GET') {
     $search = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
     $searchLike = '%' . $search . '%';
 
-    $sql = "SELECT `id`, `name`, `image`, `enroll_id`, `type`, `directory`, `type_order`, `record_order`
+    $sql = "SELECT `id`, `name`, `phone`, `image`, `enroll_id`, `type`, `directory`, `type_order`, `record_order`
             FROM (
-            SELECT au.`id`, au.`name`, au.`image`, s.`staff_id` AS `enroll_id`,
+            SELECT au.`id`, au.`name`, au.`phone`, au.`image`, s.`staff_id` AS `enroll_id`,
                    'Staff' AS `type`, 'admin' AS `directory`,
                    1 AS `type_order`, s.`id` AS `record_order`
             FROM `staffs` s
@@ -33,7 +33,7 @@ if ($requestMethod === 'GET') {
 
             UNION ALL
 
-            SELECT u.`id`, u.`name`, u.`profile_image` AS `image`,
+            SELECT u.`id`, u.`name`, u.`phone`, u.`profile_image` AS `image`,
                    t.`staff_id` AS `enroll_id`, 'Teacher' AS `type`,
                    'user' AS `directory`, 2 AS `type_order`, t.`id` AS `record_order`
             FROM `teachers` t
@@ -44,7 +44,7 @@ if ($requestMethod === 'GET') {
 
             UNION ALL
 
-            SELECT u.`id`, u.`name`, u.`profile_image` AS `image`,
+            SELECT u.`id`, u.`name`, u.`phone`, u.`profile_image` AS `image`,
                    s.`enrollment_id` AS `enroll_id`, 'Student' AS `type`,
                    'user' AS `directory`, 3 AS `type_order`, s.`id` AS `record_order`
             FROM `students` s
