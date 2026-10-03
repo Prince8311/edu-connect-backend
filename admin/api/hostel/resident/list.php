@@ -111,6 +111,8 @@ $sql = "SELECT
         hr.`id`,
         hr.`user_type`,
         hr.`bed_no`,
+        hr.`food_preference`,
+        hr.`status`,
         hro.`floor_no`,
         hro.`room_no`,
         hb.`name` AS `building_name`,
@@ -222,6 +224,8 @@ while ($row = mysqli_fetch_assoc($result)) {
     $residents[] = [
         'id' => $row['id'],
         'name' => $name,
+        'food_preference' => $row['food_preference'],
+        'status' => $row['status'],
         'user_details' => $userDetails,
         'room' => [
             'number' => $row['room_no'],
