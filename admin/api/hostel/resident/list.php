@@ -224,6 +224,7 @@ while ($row = mysqli_fetch_assoc($result)) {
     $residents[] = [
         'id' => $row['id'],
         'name' => $name,
+        'directory' => in_array($row['user_type'], ['Student', 'Teacher'], true) ? 'user' : 'admin',
         'food_preference' => $row['food_preference'],
         'status' => $row['status'],
         'user_details' => $userDetails,
