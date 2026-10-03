@@ -17,7 +17,82 @@ if (!$authResult['authenticated']) {
 if ($requestMethod === 'GET') {
     require __DIR__ . "/../../../../_db-connect.php";
     global $conn;
-    $instituteId = $authResult['inst_id'];
+    $instituteId = mysqli_real_escape_string($conn, (string) $authResult['inst_id']);
+    $isRoomForm = isset($_GET['isRoomForm']) && $_GET['isRoomForm'] === 'true';
+
+    if ($isRoomForm) {
+        $buildingId = isset($_GET['building_id']) && is_numeric($_GET['building_id'])
+            ? (int) $_GET['building_id']
+            : null;
+
+        if ($buildingId === null || $buildingId <= 0) {
+            header("HTTP/1.0 400 Bad Request");
+            echo json_encode([
+                'status' => 400,
+                'message' => 'building_id is required for room form.'
+            ]);
+            exit;
+        }
+
+        $buildingSql = "SELECT (COALESCE(`living_rooms`, 0) + COALESCE(`sick_rooms`, 0)) AS `total_rooms` FROM `hostel_buildings` WHERE `inst_id`='$instituteId' AND `id`='$buildingId' LIMIT 1";
+        $buildingResult = mysqli_query($conn, $buildingSql);
+        if (!$buildingResult) {
+            header("HTTP/1.0 500 Internal Server Error");
+            echo json_encode([
+                'status' => 500,
+                'message' => 'Database error: ' . mysqli_error($conn)
+            ]);
+            exit;
+        }
+
+        if (mysqli_num_rows($buildingResult) === 0) {
+            header("HTTP/1.0 404 Not Found");
+            echo json_encode([
+                'status' => 404,
+                'message' => 'Building not found.'
+            ]);
+            exit;
+        }
+
+        $building = mysqli_fetch_assoc($buildingResult);
+        $totalRooms = (int) $building['total_rooms'];
+
+        $existingRoomSql = "SELECT `room_no` FROM `hostel_rooms` WHERE `inst_id`='$instituteId' AND `building_id`='$buildingId'";
+        $existingRoomResult = mysqli_query($conn, $existingRoomSql);
+        if (!$existingRoomResult) {
+            header("HTTP/1.0 500 Internal Server Error");
+            echo json_encode([
+                'status' => 500,
+                'message' => 'Database error: ' . mysqli_error($conn)
+            ]);
+            exit;
+        }
+
+        $existingRoomNumbers = [];
+        while ($room = mysqli_fetch_assoc($existingRoomResult)) {
+            $existingRoomNumbers[(int) $room['room_no']] = true;
+        }
+
+        $search = isset($_GET['search']) ? trim((string) $_GET['search']) : '';
+        $availableRoomNumbers = [];
+        for ($roomNo = 1; $roomNo <= $totalRooms; $roomNo++) {
+            if (isset($existingRoomNumbers[$roomNo])) {
+                continue;
+            }
+            if ($search !== '' && strpos((string) $roomNo, $search) === false) {
+                continue;
+            }
+            $availableRoomNumbers[] = $roomNo;
+        }
+
+        header("HTTP/1.0 200 OK");
+        echo json_encode([
+            'status' => 200,
+            'message' => 'Available room numbers fetched.',
+            'roomNumbers' => $availableRoomNumbers
+        ]);
+        exit;
+    }
 
     // -----------------------
     // PAGINATION

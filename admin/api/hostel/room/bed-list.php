@@ -70,7 +70,7 @@ if ($requestMethod === 'GET') {
 
     $allBeds = [];
     for ($i = 1; $i <= $bedCount; $i++) {
-        $allBeds[] = str_pad($i, 2, '0', STR_PAD_LEFT);
+        $allBeds[] = (string) $i;
     }
 
     $occupiedBeds = [];
@@ -79,7 +79,7 @@ if ($requestMethod === 'GET') {
     if ($bedResult) {
         while ($row = mysqli_fetch_assoc($bedResult)) {
             if (!empty($row['bed_no'])) {
-                $occupiedBeds[] = $row['bed_no'];
+                $occupiedBeds[] = (string) (int) $row['bed_no'];
             }
         }
     }
