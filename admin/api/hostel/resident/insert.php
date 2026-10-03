@@ -89,7 +89,6 @@ foreach (['name', 'userId', 'userType', 'roomId', 'bedNo', 'foodPreference', 'st
     }
 }
 
-$name = mysqli_real_escape_string($conn, (string) $inputData['name']);
 $userId = mysqli_real_escape_string($conn, (string) $inputData['userId']);
 $userType = mysqli_real_escape_string($conn, (string) $inputData['userType']);
 $roomId = mysqli_real_escape_string($conn, (string) $inputData['roomId']);
@@ -104,7 +103,7 @@ if (!in_array($foodPreference, ['Veg', 'Non-Veg'], true)) {
     $respond(400, 'Invalid food preference.');
 }
 
-$checkResult = mysqli_query($conn, "SELECT `id` FROM `hostel_residents` WHERE `inst_id`='$instituteId' AND `name`='$name' AND `user_id`='$userId' AND `user_type`='$userType' LIMIT 1");
+$checkResult = mysqli_query($conn, "SELECT `id` FROM `hostel_residents` WHERE `inst_id`='$instituteId' AND `user_id`='$userId' AND `user_type`='$userType' LIMIT 1");
 if (!$checkResult) {
     $respond(500, 'Database error: ' . mysqli_error($conn));
 }
