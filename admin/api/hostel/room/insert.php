@@ -121,7 +121,8 @@ if ($newBedCount < $currentBedCount) {
     }
 }
 
-$updateSql = "UPDATE `hostel_rooms` SET `floor_no`='$floorNo', `bed_count`='$bedCount', `category`='$category', `type`='$type' WHERE `inst_id`='$instituteId' AND `id`='$id'";
+$statusUpdate = array_key_exists('status', $inputData) ? ", `status`='$status'" : '';
+$updateSql = "UPDATE `hostel_rooms` SET `floor_no`='$floorNo', `bed_count`='$bedCount', `category`='$category', `type`='$type'$statusUpdate WHERE `inst_id`='$instituteId' AND `id`='$id'";
 if (!mysqli_query($conn, $updateSql)) {
     mysqli_rollback($conn);
     $respond(500, 'Database error: ' . mysqli_error($conn));
