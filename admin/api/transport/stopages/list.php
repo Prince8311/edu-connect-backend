@@ -18,20 +18,23 @@ if ($requestMethod === 'GET') {
 	global $conn;
 
 	$instituteId = $authResult['inst_id'];
+	$instIdEsc = mysqli_real_escape_string($conn, (string) $instituteId);
 	$isForm = isset($_GET['isForm']) && strtolower(trim((string) $_GET['isForm'])) === 'true';
 
 	if ($isForm) {
-		$instIdEsc = mysqli_real_escape_string($conn, (string) $instituteId);
-		$formSql = "SELECT `id`, `name`, `latitude`, `longitude`, `distance`
-			FROM `transport_stopages`
-			WHERE `inst_id`='$instIdEsc' AND `status`='1'
-			ORDER BY `id` DESC";
+		$formSql = "SELECT ts.`id`, ts.`name`, ts.`latitude`, ts.`longitude`, ts.`distance`,
+				(SELECT COUNT(*) FROM `transport_passengers` tp
+					WHERE tp.`inst_id` = ts.`inst_id` AND tp.`stopage` = ts.`id`) AS `passengers`
+			FROM `transport_stopages` ts
+			WHERE ts.`inst_id`='$instIdEsc' AND ts.`status`='1'
+			ORDER BY ts.`id` DESC";
 
 		$formResult = mysqli_query($conn, $formSql);
 
 		if ($formResult) {
 			$stopages = [];
 			while ($row = mysqli_fetch_assoc($formResult)) {
+				$row['passengers'] = (int) $row['passengers'];
 				$stopages[] = $row;
 			}
 
@@ -57,7 +60,7 @@ if ($requestMethod === 'GET') {
 		: 1;
 	$offset = ($page - 1) * $limit;
 
-	$countSql = "SELECT COUNT(*) AS total FROM `transport_stopages` WHERE `inst_id`='$instituteId'";
+	$countSql = "SELECT COUNT(*) AS total FROM `transport_stopages` WHERE `inst_id`='$instIdEsc'";
 	$countResult = mysqli_query($conn, $countSql);
 
 	if (!$countResult) {
@@ -72,10 +75,12 @@ if ($requestMethod === 'GET') {
 	$totalRow = mysqli_fetch_assoc($countResult);
 	$totalStopages = (int) ($totalRow['total'] ?? 0);
 
-	$sql = "SELECT `id`, `name`, `state`, `city`, `location`, `latitude`, `longitude`, `distance`, `status`
-		FROM `transport_stopages`
-		WHERE `inst_id`='$instituteId'
-		ORDER BY `id` DESC
+	$sql = "SELECT ts.`id`, ts.`name`, ts.`state`, ts.`city`, ts.`location`, ts.`latitude`, ts.`longitude`, ts.`distance`, ts.`status`,
+			(SELECT COUNT(*) FROM `transport_passengers` tp
+				WHERE tp.`inst_id` = ts.`inst_id` AND tp.`stopage` = ts.`id`) AS `passengers`
+		FROM `transport_stopages` ts
+		WHERE ts.`inst_id`='$instIdEsc'
+		ORDER BY ts.`id` DESC
 		LIMIT $limit OFFSET $offset";
 
 	$result = mysqli_query($conn, $sql);
@@ -85,6 +90,7 @@ if ($requestMethod === 'GET') {
 
 		while ($row = mysqli_fetch_assoc($result)) {
 			$row['status'] = ((int) $row['status'] === 1);
+			$row['passengers'] = (int) $row['passengers'];
 			$stopages[] = $row;
 		}
 
