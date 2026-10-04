@@ -72,6 +72,19 @@ function normalizeStopageValue($value)
 	return trim((string) $value);
 }
 
+function calculateStopageDistanceMeters(float $oldLatitude, float $oldLongitude, float $newLatitude, float $newLongitude): float
+{
+	$earthRadius = 6371000;
+	$latitudeDifference = deg2rad($newLatitude - $oldLatitude);
+	$longitudeDifference = deg2rad($newLongitude - $oldLongitude);
+	$a = sin($latitudeDifference / 2) ** 2
+		+ cos(deg2rad($oldLatitude)) * cos(deg2rad($newLatitude))
+		* sin($longitudeDifference / 2) ** 2;
+	$a = min(1, max(0, $a));
+
+	return $earthRadius * 2 * atan2(sqrt($a), sqrt(1 - $a));
+}
+
 $name = normalizeStopageValue($inputData['name'] ?? '');
 $state = normalizeStopageValue($inputData['state'] ?? '');
 $city = normalizeStopageValue($inputData['city'] ?? '');
@@ -81,7 +94,15 @@ $longitude = normalizeStopageValue($inputData['longitude'] ?? '');
 $distance = normalizeStopageValue($inputData['distance'] ?? '');
 $status = filter_var($inputData['status'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
 
-if ($name === '' || $state === '' || $city === '' || $location === '' || $latitude === '' || $longitude === '' || $distance === '') {
+if ($name === '' || $location === '' || $latitude === '' || $longitude === '') {
+	sendStopageError(400, 'Required fields: name, location, latitude, longitude');
+}
+
+if (!is_numeric($latitude) || !is_numeric($longitude) || (float) $latitude < -90 || (float) $latitude > 90 || (float) $longitude < -180 || (float) $longitude > 180) {
+	sendStopageError(400, 'Valid latitude and longitude are required.');
+}
+
+if ($intent === 'add' && ($state === '' || $city === '' || $distance === '')) {
 	sendStopageError(400, 'All fields are required: name, state, city, location, latitude, longitude, distance');
 }
 
@@ -98,9 +119,6 @@ if ($intent === 'add') {
 	$duplicateSql = "SELECT `id` FROM `transport_stopages`
 		WHERE `inst_id` = '$instIdEsc'
 			AND LOWER(TRIM(`name`)) = LOWER(TRIM('$nameEsc'))
-			AND LOWER(TRIM(`location`)) = LOWER(TRIM('$locationEsc'))
-			AND LOWER(TRIM(`latitude`)) = LOWER(TRIM('$latitudeEsc'))
-			AND LOWER(TRIM(`longitude`)) = LOWER(TRIM('$longitudeEsc'))
 		LIMIT 1";
 	$duplicateResult = mysqli_query($conn, $duplicateSql);
 
@@ -135,7 +153,8 @@ if ($id === '') {
 	sendStopageError(400, 'id is required for update intent.');
 }
 
-$existsSql = "SELECT `id` FROM `transport_stopages` WHERE `inst_id` = '$instIdEsc' AND `id` = '" . mysqli_real_escape_string($conn, $id) . "' LIMIT 1";
+$idEsc = mysqli_real_escape_string($conn, $id);
+$existsSql = "SELECT `id`, `latitude`, `longitude` FROM `transport_stopages` WHERE `inst_id` = '$instIdEsc' AND `id` = '$idEsc' LIMIT 1";
 $existsResult = mysqli_query($conn, $existsSql);
 
 if (!$existsResult) {
@@ -146,13 +165,12 @@ if (mysqli_num_rows($existsResult) === 0) {
 	sendStopageError(404, 'Stopage not found.');
 }
 
+$existingStopage = mysqli_fetch_assoc($existsResult);
+
 $duplicateSql = "SELECT `id` FROM `transport_stopages`
 	WHERE `inst_id` = '$instIdEsc'
 		AND LOWER(TRIM(`name`)) = LOWER(TRIM('$nameEsc'))
-		AND LOWER(TRIM(`location`)) = LOWER(TRIM('$locationEsc'))
-		AND LOWER(TRIM(`latitude`)) = LOWER(TRIM('$latitudeEsc'))
-		AND LOWER(TRIM(`longitude`)) = LOWER(TRIM('$longitudeEsc'))
-		AND `id` != '" . mysqli_real_escape_string($conn, $id) . "'
+		AND `id` != '$idEsc'
 	LIMIT 1";
 $duplicateResult = mysqli_query($conn, $duplicateSql);
 
@@ -164,16 +182,39 @@ if (mysqli_num_rows($duplicateResult) > 0) {
 	sendStopageError(400, 'This stopage already exists for this institute.');
 }
 
+$passengerSql = "SELECT `id` FROM `transport_passengers` WHERE `inst_id` = '$instIdEsc' AND `stopage` = '$idEsc' LIMIT 1";
+$passengerResult = mysqli_query($conn, $passengerSql);
+
+if (!$passengerResult) {
+	sendStopageError(500, 'Internal Server Error: ' . mysqli_error($conn));
+}
+
+if (mysqli_num_rows($passengerResult) > 0) {
+	$oldLatitude = $existingStopage['latitude'] ?? null;
+	$oldLongitude = $existingStopage['longitude'] ?? null;
+
+	if (!is_numeric($oldLatitude) || !is_numeric($oldLongitude)) {
+		sendStopageError(500, 'The existing stopage coordinates are invalid.');
+	}
+
+	$distanceInMeters = calculateStopageDistanceMeters(
+		(float) $oldLatitude,
+		(float) $oldLongitude,
+		(float) $latitude,
+		(float) $longitude
+	);
+
+	if ($distanceInMeters >= 100) {
+		sendStopageError(400, 'This stopage is assigned to passengers and cannot be moved by 100 metres or more.');
+	}
+}
+
 $updateSql = "UPDATE `transport_stopages`
 	SET `name` = '$nameEsc',
-		`state` = '$stateEsc',
-		`city` = '$cityEsc',
 		`location` = '$locationEsc',
 		`latitude` = '$latitudeEsc',
-		`longitude` = '$longitudeEsc',
-			`distance` = '$distanceEsc',
-			`status` = '$status'
-	WHERE `inst_id` = '$instIdEsc' AND `id` = '" . mysqli_real_escape_string($conn, $id) . "'";
+		`longitude` = '$longitudeEsc'
+	WHERE `inst_id` = '$instIdEsc' AND `id` = '$idEsc'";
 $updateResult = mysqli_query($conn, $updateSql);
 
 if (!$updateResult) {

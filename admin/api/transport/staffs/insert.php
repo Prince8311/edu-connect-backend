@@ -208,6 +208,35 @@ if ($requestMethod === 'POST') {
 
     $staffRow = mysqli_fetch_assoc($staffResult);
     $hasNewFile = $licenseFile && isset($licenseFile['error']) && $licenseFile['error'] === UPLOAD_ERR_OK;
+    $isDriver = strtolower(trim($inputData['role'] ?? '')) === 'driver';
+
+    if (!$isDriver) {
+        $sql = "UPDATE `transport_staffs` SET `name`='$name', `role`='$role', `contact_no`='$contactNo', `email`='$email', `license_file`=NULL, `status`='$status' WHERE `inst_id`='$instituteId' AND `id`='$id'";
+        $result = mysqli_query($conn, $sql);
+
+        if ($result) {
+            $existingFileName = $staffRow['license_file'] ?? '';
+            $existingFilePath = $existingFileName !== '' ? $uploadDir . $existingFileName : '';
+            if ($existingFilePath !== '' && file_exists($existingFilePath)) {
+                unlink($existingFilePath);
+            }
+
+            $data = [
+                'status' => 200,
+                'message' => 'Transport staff updated successfully.'
+            ];
+            header("HTTP/1.0 200 OK");
+            echo json_encode($data);
+        } else {
+            $data = [
+                'status' => 500,
+                'message' => 'Database error: ' . mysqli_error($conn)
+            ];
+            header("HTTP/1.0 500 Internal Server Error");
+            echo json_encode($data);
+        }
+        exit;
+    }
 
     if (!$hasNewFile) {
         $sql = "UPDATE `transport_staffs` SET `name`='$name', `role`='$role', `contact_no`='$contactNo', `email`='$email', `status`='$status' WHERE `inst_id`='$instituteId' AND `id`='$id'";
