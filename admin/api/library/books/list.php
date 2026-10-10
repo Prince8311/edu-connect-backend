@@ -17,25 +17,52 @@ if ($requestMethod === 'GET') {
     require __DIR__ . "/../../../../_db-connect.php";
     global $conn;
     $instituteId = mysqli_real_escape_string($conn, (string) $authResult['inst_id']);
-    $limit = filter_var($_GET['limit'] ?? 10, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    $limit = $limit === false ? 10 : $limit;
-    $page = $page === false ? 1 : $page;
-    if ($page - 1 > intdiv(PHP_INT_MAX, $limit)) {
-        http_response_code(400);
-        echo json_encode(['status' => 400, 'message' => 'Pagination offset is too large.']);
-        exit;
-    }
-    $offset = ($page - 1) * $limit;
+    $showAll = filter_var($_GET['show_all'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
     try {
+        if ($showAll) {
+            $sql = "SELECT `id`, `name`, `author`, `cover_image`
+                    FROM `library_books`
+                    WHERE `inst_id`='$instituteId' AND `stock` > 0
+                    ORDER BY `created_at` DESC, `book_id` DESC";
+            $result = mysqli_query($conn, $sql);
+            if ($result === false) {
+                throw new RuntimeException(mysqli_error($conn));
+            }
+
+            $books = [];
+            while ($row = mysqli_fetch_assoc($result)) {
+                $books[] = $row;
+            }
+
+            http_response_code(200);
+            echo json_encode([
+                'status' => 200,
+                'message' => 'Available books list fetched successfully.',
+                'totalCount' => count($books),
+                'books' => $books
+            ]);
+            exit;
+        }
+
+        $limit = filter_var($_GET['limit'] ?? 10, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $limit = $limit === false ? 10 : $limit;
+        $page = $page === false ? 1 : $page;
+        if ($page - 1 > intdiv(PHP_INT_MAX, $limit)) {
+            http_response_code(400);
+            echo json_encode(['status' => 400, 'message' => 'Pagination offset is too large.']);
+            exit;
+        }
+        $offset = ($page - 1) * $limit;
+
         $countResult = mysqli_query($conn, "SELECT COUNT(*) AS total FROM `library_books` WHERE `inst_id`='$instituteId'");
         if ($countResult === false) {
             throw new RuntimeException(mysqli_error($conn));
         }
         $totalBooks = (int) mysqli_fetch_assoc($countResult)['total'];
 
-        $sql = "SELECT `book_id`, `name`, `author`, `cover_image`, `stock`
+        $sql = "SELECT `id`, `book_id`, `name`, `author`, `cover_image`, `stock`
                 FROM `library_books` WHERE `inst_id`='$instituteId'
                 ORDER BY `created_at` DESC, `book_id` DESC LIMIT $limit OFFSET $offset";
         $result = mysqli_query($conn, $sql);
