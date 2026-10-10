@@ -100,11 +100,12 @@ if ($requestMethod === 'POST') {
 
         $createdAt = date('Y-m-d H:i:s');
         $query(
-            'INSERT INTO `library_members` (`inst_id`, `user_id`, `user_type`, `library_id`, `created_at`, `created_by`) VALUES ('
+            'INSERT INTO `library_members` (`inst_id`, `user_id`, `user_type`, `enroll_id`, `library_id`, `created_at`, `created_by`) VALUES ('
             . implode(', ', [
                 $quote($instituteId),
                 $quote($memberUserId),
                 $quote($memberUserType),
+                $quote($enrollId),
                 $quote($libraryId),
                 $quote($createdAt),
                 $quote($userId)
