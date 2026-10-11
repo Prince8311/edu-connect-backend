@@ -36,7 +36,7 @@ if ($requestMethod === 'POST') {
         $inputData = $_POST;
     }
 
-    foreach (['memberUserId', 'memberUserType', 'enrollId', 'memberUserEmail'] as $field) {
+    foreach (['memberUserId', 'memberUserType', 'enrollId', 'memberUserEmail', 'memberUsername'] as $field) {
         if (!array_key_exists($field, $inputData)
             || (!is_string($inputData[$field]) && !is_int($inputData[$field]))
             || trim((string) $inputData[$field]) === '') {
@@ -48,6 +48,9 @@ if ($requestMethod === 'POST') {
     $memberUserType = trim((string) $inputData['memberUserType']);
     $enrollId = trim((string) $inputData['enrollId']);
     $memberUserEmail = trim((string) $inputData['memberUserEmail']);
+    $memberUsername = trim((string) $inputData['memberUsername']);
+    $memberNameParts = preg_split('/\s+/u', $memberUsername, -1, PREG_SPLIT_NO_EMPTY);
+    $memberFirstName = $memberNameParts[0] ?? $memberUsername;
     if (!filter_var($memberUserEmail, FILTER_VALIDATE_EMAIL)) {
         $respond(400, 'A valid memberUserEmail is required.');
     }
@@ -63,11 +66,23 @@ if ($requestMethod === 'POST') {
     };
 
     $transactionStarted = false;
+    $institutionName = null;
     try {
         if (!mysqli_begin_transaction($conn)) {
             throw new RuntimeException('Could not start transaction.');
         }
         $transactionStarted = true;
+
+        $institutionResult = $query(
+            'SELECT `inst_name` FROM `institutions` WHERE `inst_id`=' . $quote($instituteId) . ' LIMIT 1'
+        );
+        $institution = mysqli_fetch_assoc($institutionResult);
+        if (!$institution || trim((string) $institution['inst_name']) === '') {
+            mysqli_rollback($conn);
+            $transactionStarted = false;
+            $respond(404, 'Institution not found.');
+        }
+        $institutionName = trim((string) $institution['inst_name']);
 
         $existingResult = $query(
             'SELECT `id` FROM `library_members` WHERE `inst_id`=' . $quote($instituteId)
@@ -137,9 +152,11 @@ if ($requestMethod === 'POST') {
         $mail->CharSet = 'UTF-8';
 
         $safeLibraryId = htmlspecialchars($libraryId, ENT_QUOTES, 'UTF-8');
+        $safeMemberFirstName = htmlspecialchars($memberFirstName, ENT_QUOTES, 'UTF-8');
+        $safeInstitutionName = htmlspecialchars($institutionName, ENT_QUOTES, 'UTF-8');
         $mail->isHTML(true);
         $mail->setFrom(getenv('SMTP_MAIL'), getenv('SMTP_MAIL'));
-        $mail->addAddress($memberUserEmail);
+        $mail->addAddress($memberUserEmail, $memberUsername);
         $mail->Subject = 'Your Library Membership Has Been Created';
         $mail->Body = '<!DOCTYPE html>
             <html lang="en">
@@ -150,25 +167,28 @@ if ($requestMethod === 'POST') {
                 <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,sans-serif;color:#2d3748;">
                     <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
                         <div style="background:#ffffff;border-radius:8px;padding:32px;border:1px solid #e2e8f0;">
-                            <h2 style="margin:0 0 20px;color:#1a365d;">Library Membership Confirmation</h2>
-                            <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">Dear Library Member,</p>
+                            <h2 style="margin:0 0 20px;color:#1a365d;">' . $safeInstitutionName . ' Library Membership</h2>
+                            <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">Dear ' . $safeMemberFirstName . ',</p>
                             <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">
-                                Your library membership has been created successfully. Please keep the following Library ID for your records:
+                                We are pleased to confirm that your library membership with <strong>' . $safeInstitutionName . '</strong> has been created successfully. Please keep the following Library ID for your records:
                             </p>
                             <p style="font-size:20px;line-height:1.5;margin:20px 0;padding:14px;background:#edf2f7;border-radius:6px;text-align:center;">
                                 <strong>' . $safeLibraryId . '</strong>
                             </p>
                             <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">
-                                Please collect your library card from your institution at your convenience.
+                                Please collect your library card from <strong>' . $safeInstitutionName . '</strong> at your convenience.
                             </p>
-                            <p style="font-size:15px;line-height:1.7;margin:24px 0 0;">Regards,<br>Library Administration</p>
+                            <p style="font-size:15px;line-height:1.7;margin:24px 0 0;">Regards,<br>Library Administration<br>' . $safeInstitutionName . '</p>
                         </div>
                     </div>
                 </body>
             </html>';
-        $mail->AltBody = "Dear Library Member,\n\nYour library membership has been created successfully.\nLibrary ID: "
+        $mail->AltBody = 'Dear ' . $memberFirstName
+            . ",\n\nWe are pleased to confirm that your library membership with " . $institutionName
+            . " has been created successfully.\nLibrary ID: "
             . $libraryId
-            . "\n\nPlease collect your library card from your institution at your convenience.\n\nRegards,\nLibrary Administration";
+            . "\n\nPlease collect your library card from " . $institutionName
+            . ".\n\nRegards,\nLibrary Administration\n" . $institutionName;
         $mail->send();
         $emailSent = true;
     } catch (PHPMailerException $error) {
@@ -178,7 +198,7 @@ if ($requestMethod === 'POST') {
     $message = $emailSent
         ? 'Library member added and email sent successfully.'
         : 'Library member added successfully, but the email could not be sent.';
-    $respond(201, $message, ['library_id' => $libraryId, 'email_sent' => $emailSent]);
+    $respond(200, $message, ['library_id' => $libraryId, 'email_sent' => $emailSent]);
 } else {
     $data = [
         'status' => 405,
