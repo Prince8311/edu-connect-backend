@@ -118,6 +118,9 @@ if ($requestMethod === 'GET') {
                 'id' => $row['id'],
                 'user_id' => $row['user_id'],
                 'user_type' => $row['user_type'],
+                'directory' => in_array(strtolower((string) $row['user_type']), ['student', 'teacher'], true)
+                    ? 'user'
+                    : 'admin',
                 'enroll_id' => $row['enroll_id'],
                 'library_id' => $row['library_id'],
                 'name' => $row['member_name'],
