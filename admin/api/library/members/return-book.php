@@ -41,10 +41,19 @@ if ($requestMethod === 'POST') {
     $issueId = trim((string) $inputData['issueId']);
     $returnedOn = trim((string) $inputData['returnedOn']);
 
+    $transactionStarted = false;
     try {
+        if (!mysqli_begin_transaction($conn)) {
+            throw new RuntimeException('Could not start transaction.');
+        }
+        $transactionStarted = true;
+
         $findStatement = mysqli_prepare(
             $conn,
-            'SELECT `id` FROM `library_books_issue` WHERE `id` = ? AND `inst_id` = ? LIMIT 1'
+            'SELECT `book_id`, `returned_on`
+             FROM `library_books_issue`
+             WHERE `id` = ? AND `inst_id` = ?
+             LIMIT 1 FOR UPDATE'
         );
         if ($findStatement === false) {
             throw new RuntimeException(mysqli_error($conn));
@@ -55,15 +64,20 @@ if ($requestMethod === 'POST') {
             throw new RuntimeException(mysqli_stmt_error($findStatement));
         }
 
-        if (!mysqli_stmt_store_result($findStatement)) {
-            throw new RuntimeException(mysqli_stmt_error($findStatement));
-        }
-        $issueExists = mysqli_stmt_num_rows($findStatement) > 0;
+        mysqli_stmt_bind_result($findStatement, $bookId, $existingReturnedOn);
+        $issueExists = mysqli_stmt_fetch($findStatement);
         mysqli_stmt_close($findStatement);
         unset($findStatement);
 
         if (!$issueExists) {
+            mysqli_rollback($conn);
+            $transactionStarted = false;
             $respond(404, 'Book issue record not found.');
+        }
+        if ($existingReturnedOn !== null && $existingReturnedOn !== '') {
+            mysqli_rollback($conn);
+            $transactionStarted = false;
+            $respond(409, 'This book has already been returned.');
         }
 
         $currentDateTime = date('Y-m-d H:i:s');
@@ -91,13 +105,50 @@ if ($requestMethod === 'POST') {
 
         mysqli_stmt_close($updateStatement);
         unset($updateStatement);
+
+        $stockStatement = mysqli_prepare(
+            $conn,
+            'UPDATE `library_books`
+             SET `stock` = `stock` + 1
+             WHERE `id` = ? AND `inst_id` = ?'
+        );
+        if ($stockStatement === false) {
+            throw new RuntimeException(mysqli_error($conn));
+        }
+
+        if (!mysqli_stmt_bind_param($stockStatement, 'ss', $bookId, $instituteId)
+            || !mysqli_stmt_execute($stockStatement)) {
+            throw new RuntimeException(mysqli_stmt_error($stockStatement));
+        }
+
+        $stockUpdated = mysqli_stmt_affected_rows($stockStatement) === 1;
+        mysqli_stmt_close($stockStatement);
+        unset($stockStatement);
+
+        if (!$stockUpdated) {
+            mysqli_rollback($conn);
+            $transactionStarted = false;
+            $respond(409, 'Associated book record not found.');
+        }
+
+        if (!mysqli_commit($conn)) {
+            throw new RuntimeException('Could not commit book return changes.');
+        }
+        $transactionStarted = false;
+
         $respond(200, 'Book returned successfully.');
     } catch (Throwable $error) {
+        if ($transactionStarted) {
+            mysqli_rollback($conn);
+        }
         if (isset($findStatement) && $findStatement instanceof mysqli_stmt) {
             mysqli_stmt_close($findStatement);
         }
         if (isset($updateStatement) && $updateStatement instanceof mysqli_stmt) {
             mysqli_stmt_close($updateStatement);
+        }
+        if (isset($stockStatement) && $stockStatement instanceof mysqli_stmt) {
+            mysqli_stmt_close($stockStatement);
         }
         error_log('Book return failed: ' . $error->getMessage());
         $respond(500, 'Failed to return book.');

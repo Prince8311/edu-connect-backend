@@ -45,7 +45,13 @@ if ($requestMethod === 'POST') {
     $issuedAt = trim((string) $inputData['issuedAt']);
     $currentDateTime = date('Y-m-d H:i:s');
 
+    $transactionStarted = false;
     try {
+        if (!mysqli_begin_transaction($conn)) {
+            throw new RuntimeException('Could not start transaction.');
+        }
+        $transactionStarted = true;
+
         $statement = mysqli_prepare(
             $conn,
             'INSERT INTO `library_books_issue`
@@ -71,11 +77,48 @@ if ($requestMethod === 'POST') {
 
         $issueId = mysqli_insert_id($conn);
         mysqli_stmt_close($statement);
+        unset($statement);
+
+        $stockStatement = mysqli_prepare(
+            $conn,
+            'UPDATE `library_books`
+             SET `stock` = `stock` - 1
+             WHERE `id` = ? AND `inst_id` = ? AND `stock` > 0'
+        );
+        if ($stockStatement === false) {
+            throw new RuntimeException(mysqli_error($conn));
+        }
+
+        if (!mysqli_stmt_bind_param($stockStatement, 'ss', $bookId, $instituteId)
+            || !mysqli_stmt_execute($stockStatement)) {
+            throw new RuntimeException(mysqli_stmt_error($stockStatement));
+        }
+
+        $stockUpdated = mysqli_stmt_affected_rows($stockStatement) === 1;
+        mysqli_stmt_close($stockStatement);
+        unset($stockStatement);
+
+        if (!$stockUpdated) {
+            mysqli_rollback($conn);
+            $transactionStarted = false;
+            $respond(409, 'Book not found or out of stock.');
+        }
+
+        if (!mysqli_commit($conn)) {
+            throw new RuntimeException('Could not commit book issue changes.');
+        }
+        $transactionStarted = false;
 
         $respond(200, 'Book issued successfully.', ['issue_id' => $issueId]);
     } catch (Throwable $error) {
+        if ($transactionStarted) {
+            mysqli_rollback($conn);
+        }
         if (isset($statement) && $statement instanceof mysqli_stmt) {
             mysqli_stmt_close($statement);
+        }
+        if (isset($stockStatement) && $stockStatement instanceof mysqli_stmt) {
+            mysqli_stmt_close($stockStatement);
         }
         error_log('Book issue failed: ' . $error->getMessage());
         $respond(500, 'Failed to issue book.');
