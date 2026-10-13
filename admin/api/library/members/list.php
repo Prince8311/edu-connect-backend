@@ -58,6 +58,7 @@ if ($requestMethod === 'GET') {
                         lm.`id`,
                         lm.`user_type`,
                         lm.`enroll_id`,
+                        lm.`library_id`,
                         CASE
                             WHEN LOWER(lm.`user_type`) IN ('student', 'teacher') THEN member_user.`name`
                             WHEN LOWER(lm.`user_type`) IN ('staff', 'stuff') THEN member_admin.`name`
@@ -86,6 +87,7 @@ if ($requestMethod === 'GET') {
                         ? 'user'
                         : 'admin',
                     'enroll_id' => $row['enroll_id'],
+                    'library_id' => $row['library_id'],
                     'name' => $row['member_name'],
                     'image' => $row['member_image']
                 ];
