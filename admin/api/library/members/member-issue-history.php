@@ -75,6 +75,7 @@ if ($requestMethod === 'GET') {
                 issue.`updated_by`,
                 issue.`updated_at`,
                 book.`name`,
+                book.`book_id`,
                 book.`cover_image`,
                 book.`author`
              FROM `library_books_issue` issue
