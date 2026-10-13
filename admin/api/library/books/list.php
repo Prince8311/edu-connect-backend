@@ -28,7 +28,7 @@ if ($requestMethod === 'GET') {
 
     try {
         if ($showAll) {
-            $sql = "SELECT `id`, `name`, `author`, `cover_image`
+            $sql = "SELECT `id`, `book_id`, `name`, `author`, `cover_image`
                     FROM `library_books`
                     WHERE `inst_id`='$instituteId' AND `stock` > 0$searchCondition
                     ORDER BY `created_at` DESC, `book_id` DESC";
