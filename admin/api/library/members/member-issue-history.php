@@ -31,18 +31,13 @@ if ($requestMethod === 'GET') {
     }
 
     $memberId = trim((string) $_GET['memberId']);
-    $showAll = filter_var($_GET['show_all'] ?? false, FILTER_VALIDATE_BOOLEAN);
-    $limit = 12;
-    $page = 1;
-    $offset = 0;
-    if (!$showAll) {
-        $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        $page = $page === false ? 1 : $page;
-        if ($page - 1 > intdiv(PHP_INT_MAX, $limit)) {
-            $respond(400, 'Pagination offset is too large.');
-        }
-        $offset = ($page - 1) * $limit;
+    $limit = 10;
+    $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $page = $page === false ? 1 : $page;
+    if ($page - 1 > intdiv(PHP_INT_MAX, $limit)) {
+        $respond(400, 'Pagination offset is too large.');
     }
+    $offset = ($page - 1) * $limit;
 
     try {
         $countStatement = mysqli_prepare(
@@ -68,7 +63,6 @@ if ($requestMethod === 'GET') {
         mysqli_stmt_close($countStatement);
         unset($countStatement);
 
-        $paginationClause = $showAll ? '' : " LIMIT $limit OFFSET $offset";
         $statement = mysqli_prepare(
             $conn,
             'SELECT
@@ -88,7 +82,8 @@ if ($requestMethod === 'GET') {
                 ON book.`id` = issue.`book_id`
                 AND book.`inst_id` = issue.`inst_id`
              WHERE issue.`member_id` = ? AND issue.`inst_id` = ?
-             ORDER BY issue.`issued_at` DESC, issue.`id` DESC' . $paginationClause
+             ORDER BY issue.`issued_at` DESC, issue.`id` DESC
+             LIMIT ' . $limit . ' OFFSET ' . $offset
         );
         if ($statement === false) {
             throw new RuntimeException(mysqli_error($conn));
@@ -114,11 +109,9 @@ if ($requestMethod === 'GET') {
 
         $responseData = [
             'totalCount' => $totalHistory,
+            'currentPage' => $page,
             'issueHistory' => $issueHistory
         ];
-        if (!$showAll) {
-            $responseData['currentPage'] = $page;
-        }
 
         $respond(200, 'Member issue history fetched successfully.', $responseData);
     } catch (Throwable $error) {

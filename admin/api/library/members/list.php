@@ -18,7 +18,7 @@ if ($requestMethod === 'GET') {
     global $conn;
     $instituteId = mysqli_real_escape_string($conn, (string) $authResult['inst_id']);
     $showAll = filter_var($_GET['show_all'] ?? false, FILTER_VALIDATE_BOOLEAN);
-    $limit = 12;
+    $limit = 10;
     $page = 1;
     $offset = 0;
     if (!$showAll) {
