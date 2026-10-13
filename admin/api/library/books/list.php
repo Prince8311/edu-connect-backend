@@ -18,12 +18,19 @@ if ($requestMethod === 'GET') {
     global $conn;
     $instituteId = mysqli_real_escape_string($conn, (string) $authResult['inst_id']);
     $showAll = filter_var($_GET['show_all'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $searchInput = $_GET['search'] ?? '';
+    $search = is_string($searchInput) || is_int($searchInput)
+        ? mysqli_real_escape_string($conn, trim((string) $searchInput))
+        : '';
+    $searchCondition = $search === ''
+        ? ''
+        : " AND (`name` LIKE '$search%' OR `author` LIKE '$search%')";
 
     try {
         if ($showAll) {
             $sql = "SELECT `id`, `name`, `author`, `cover_image`
                     FROM `library_books`
-                    WHERE `inst_id`='$instituteId' AND `stock` > 0
+                    WHERE `inst_id`='$instituteId' AND `stock` > 0$searchCondition
                     ORDER BY `created_at` DESC, `book_id` DESC";
             $result = mysqli_query($conn, $sql);
             if ($result === false) {
@@ -56,14 +63,17 @@ if ($requestMethod === 'GET') {
         }
         $offset = ($page - 1) * $limit;
 
-        $countResult = mysqli_query($conn, "SELECT COUNT(*) AS total FROM `library_books` WHERE `inst_id`='$instituteId'");
+        $countResult = mysqli_query(
+            $conn,
+            "SELECT COUNT(*) AS total FROM `library_books` WHERE `inst_id`='$instituteId'$searchCondition"
+        );
         if ($countResult === false) {
             throw new RuntimeException(mysqli_error($conn));
         }
         $totalBooks = (int) mysqli_fetch_assoc($countResult)['total'];
 
         $sql = "SELECT `id`, `book_id`, `name`, `author`, `cover_image`, `stock`
-                FROM `library_books` WHERE `inst_id`='$instituteId'
+                FROM `library_books` WHERE `inst_id`='$instituteId'$searchCondition
                 ORDER BY `created_at` DESC, `book_id` DESC LIMIT $limit OFFSET $offset";
         $result = mysqli_query($conn, $sql);
         if ($result === false) {
