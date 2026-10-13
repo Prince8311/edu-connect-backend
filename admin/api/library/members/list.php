@@ -17,15 +17,20 @@ if ($requestMethod === 'GET') {
     require __DIR__ . "/../../../../_db-connect.php";
     global $conn;
     $instituteId = mysqli_real_escape_string($conn, (string) $authResult['inst_id']);
+    $showAll = filter_var($_GET['show_all'] ?? false, FILTER_VALIDATE_BOOLEAN);
     $limit = 12;
-    $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    $page = $page === false ? 1 : $page;
-    if ($page - 1 > intdiv(PHP_INT_MAX, $limit)) {
-        http_response_code(400);
-        echo json_encode(['status' => 400, 'message' => 'Pagination offset is too large.']);
-        exit;
+    $page = 1;
+    $offset = 0;
+    if (!$showAll) {
+        $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $page = $page === false ? 1 : $page;
+        if ($page - 1 > intdiv(PHP_INT_MAX, $limit)) {
+            http_response_code(400);
+            echo json_encode(['status' => 400, 'message' => 'Pagination offset is too large.']);
+            exit;
+        }
+        $offset = ($page - 1) * $limit;
     }
-    $offset = ($page - 1) * $limit;
 
     $searchInput = $_GET['search'] ?? '';
     $search = is_string($searchInput) || is_int($searchInput)
@@ -48,6 +53,54 @@ if ($requestMethod === 'GET') {
             AND member_admin.`inst_id` = lm.`inst_id`";
 
     try {
+        if ($showAll) {
+            $sql = "SELECT
+                        lm.`id`,
+                        lm.`user_type`,
+                        lm.`enroll_id`,
+                        CASE
+                            WHEN LOWER(lm.`user_type`) IN ('student', 'teacher') THEN member_user.`name`
+                            WHEN LOWER(lm.`user_type`) IN ('staff', 'stuff') THEN member_admin.`name`
+                            ELSE NULL
+                        END AS `member_name`,
+                        CASE
+                            WHEN LOWER(lm.`user_type`) IN ('student', 'teacher') THEN member_user.`profile_image`
+                            WHEN LOWER(lm.`user_type`) IN ('staff', 'stuff') THEN member_admin.`image`
+                            ELSE NULL
+                        END AS `member_image`
+                    FROM `library_members` lm
+                    $memberJoins
+                    WHERE lm.`inst_id` = '$instituteId'$searchCondition
+                    ORDER BY lm.`created_at` DESC, lm.`id` DESC";
+
+            $result = mysqli_query($conn, $sql);
+            if ($result === false) {
+                throw new RuntimeException(mysqli_error($conn));
+            }
+
+            $members = [];
+            while ($row = mysqli_fetch_assoc($result)) {
+                $members[] = [
+                    'id' => $row['id'],
+                    'directory' => in_array(strtolower((string) $row['user_type']), ['student', 'teacher'], true)
+                        ? 'user'
+                        : 'admin',
+                    'enroll_id' => $row['enroll_id'],
+                    'name' => $row['member_name'],
+                    'image' => $row['member_image']
+                ];
+            }
+
+            http_response_code(200);
+            echo json_encode([
+                'status' => 200,
+                'message' => 'Library members fetched successfully.',
+                'totalCount' => count($members),
+                'members' => $members
+            ]);
+            exit;
+        }
+
         $countSql = "SELECT COUNT(DISTINCT lm.`id`) AS `total`
                     FROM `library_members` lm
                     $memberJoins
