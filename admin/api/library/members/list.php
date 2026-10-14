@@ -149,7 +149,7 @@ if ($requestMethod === 'GET') {
                     GROUP BY `inst_id`, `member_id`
                 ) issue_totals
                     ON issue_totals.`inst_id` = lm.`inst_id`
-                    AND issue_totals.`member_id` = lm.`library_id`
+                    AND issue_totals.`member_id` = lm.`id`
                 WHERE lm.`inst_id` = '$instituteId'$searchCondition
                 ORDER BY lm.`created_at` DESC, lm.`id` DESC
                 LIMIT $limit OFFSET $offset";
