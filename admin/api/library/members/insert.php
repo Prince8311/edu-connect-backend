@@ -196,7 +196,7 @@ if ($requestMethod === 'POST') {
     }
 
     $message = $emailSent
-        ? 'Library member added and email sent successfully.'
+        ? 'Library member added successfully.'
         : 'Library member added successfully, but the email could not be sent.';
     $respond(200, $message, ['library_id' => $libraryId, 'email_sent' => $emailSent]);
 } else {
