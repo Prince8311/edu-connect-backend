@@ -52,6 +52,33 @@ if ($requestMethod === 'POST') {
         }
         $transactionStarted = true;
 
+        $duplicateStatement = mysqli_prepare(
+            $conn,
+            'SELECT `id`
+             FROM `library_books_issue`
+             WHERE `inst_id` = ? AND `member_id` = ? AND `book_id` = ?
+             LIMIT 1 FOR UPDATE'
+        );
+        if ($duplicateStatement === false) {
+            throw new RuntimeException(mysqli_error($conn));
+        }
+
+        if (!mysqli_stmt_bind_param($duplicateStatement, 'sss', $instituteId, $memberId, $bookId)
+            || !mysqli_stmt_execute($duplicateStatement)
+            || !mysqli_stmt_store_result($duplicateStatement)) {
+            throw new RuntimeException(mysqli_stmt_error($duplicateStatement));
+        }
+
+        $alreadyIssued = mysqli_stmt_num_rows($duplicateStatement) > 0;
+        mysqli_stmt_close($duplicateStatement);
+        unset($duplicateStatement);
+
+        if ($alreadyIssued) {
+            mysqli_rollback($conn);
+            $transactionStarted = false;
+            $respond(409, 'This member has already issued this book.');
+        }
+
         $statement = mysqli_prepare(
             $conn,
             'INSERT INTO `library_books_issue`
@@ -113,6 +140,9 @@ if ($requestMethod === 'POST') {
     } catch (Throwable $error) {
         if ($transactionStarted) {
             mysqli_rollback($conn);
+        }
+        if (isset($duplicateStatement) && $duplicateStatement instanceof mysqli_stmt) {
+            mysqli_stmt_close($duplicateStatement);
         }
         if (isset($statement) && $statement instanceof mysqli_stmt) {
             mysqli_stmt_close($statement);
